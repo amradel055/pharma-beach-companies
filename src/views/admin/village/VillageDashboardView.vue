@@ -337,9 +337,16 @@ function fmtNum(n) { return Number(n || 0).toLocaleString('ar-EG') }
 .btn-submit:disabled { opacity: 0.5; cursor: not-allowed; }
 
 @media (max-width: 768px) {
-  .controls-row { flex-direction: column; }
-  .tabs-bar { overflow-x: auto; }
-  .tab-btn { white-space: nowrap; }
+  .controls-row { flex-direction: column; gap: 12px; }
+  .tabs-bar { overflow-x: auto; scrollbar-width: none; padding: 4px; }
+  .tabs-bar::-webkit-scrollbar { display: none; }
+  .tab-btn { white-space: nowrap; font-size: 12px; padding: 8px 14px; }
+  .breakdown-card { overflow-x: auto; }
+  .breakdown-table { min-width: 550px; }
   .breakdown-table th:nth-child(n+4), .breakdown-table td:nth-child(n+4) { display: none; }
+  .folders-header { flex-direction: column; gap: 10px; align-items: flex-start; }
+  .folder-top { flex-direction: column; gap: 10px; align-items: flex-start; }
+  .folder-actions { align-self: flex-end; }
+  .manage-chalets { max-height: 300px; overflow-y: auto; }
 }
 </style>

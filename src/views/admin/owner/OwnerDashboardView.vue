@@ -272,9 +272,16 @@ function fmtNum(n) { return Number(n || 0).toLocaleString('ar-EG') }
 .status-tag.pending { background: rgba(234, 179, 8, 0.08); color: #eab308; }
 
 @media (max-width: 768px) {
-  .controls-row { flex-direction: column; }
+  .controls-card { padding: 14px 16px; }
+  .controls-row { flex-direction: column; gap: 12px; }
   .control-field { min-width: 100%; }
-  .tabs-bar { overflow-x: auto; }
-  .tab-btn { white-space: nowrap; padding: 8px 14px; font-size: 12.5px; }
+  .tabs-bar { overflow-x: auto; padding: 4px; scrollbar-width: none; }
+  .tabs-bar::-webkit-scrollbar { display: none; }
+  .tab-btn { white-space: nowrap; padding: 8px 14px; font-size: 12px; }
+  .calendar-card { padding: 14px; }
+  .cal-day { font-size: 12px; }
+  .cal-weekday { font-size: 11px; }
+  .cal-header h3 { font-size: 14px; }
+  .cal-legend { flex-wrap: wrap; gap: 12px; }
 }
 </style>

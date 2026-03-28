@@ -423,11 +423,32 @@ onUnmounted(() => document.removeEventListener('click', handleClickOutside))
    ═══════════════════════════════════ */
 @media (max-width: 768px) {
   .topbar {
-    height: 48px;
+    height: 46px;
+    padding: 0 12px;
+    border-radius: 10px;
   }
 
   .mobile-menu-btn {
     display: flex;
+    width: 34px;
+    height: 34px;
+    font-size: 16px;
+  }
+
+  .breadcrumb {
+    font-size: 12.5px;
+  }
+
+  .breadcrumb-link span {
+    display: none;
+  }
+
+  .breadcrumb-sep {
+    display: none;
+  }
+
+  .breadcrumb-current {
+    font-size: 13px;
   }
 
   .user-label {
@@ -443,8 +464,36 @@ onUnmounted(() => document.removeEventListener('click', handleClickOutside))
     border-color: transparent;
   }
 
+  .user-av {
+    width: 28px;
+    height: 28px;
+    font-size: 11px;
+  }
+
   .tb-separator {
     display: none;
+  }
+
+  .tb-icon-btn {
+    width: 34px;
+    height: 34px;
+    font-size: 15px;
+    border-radius: 8px;
+  }
+
+  .drop-menu {
+    left: auto;
+    right: 0;
+    min-width: 230px;
+  }
+}
+
+@media (max-width: 380px) {
+  .breadcrumb-current {
+    max-width: 100px;
+    overflow: hidden;
+    text-overflow: ellipsis;
+    white-space: nowrap;
   }
 }
 </style>

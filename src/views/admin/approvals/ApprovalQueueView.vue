@@ -154,10 +154,14 @@ function previewFields(data) {
 function handleApprove(a) {
   const result = approvalsStore.approve(a.id, auth.user?.id, auth.user?.name)
   if (result.ok) {
-    // Apply changes
     if (a.type === 'chalet_create' || a.type === 'chalet_edit') {
       chaletsStore.updateStatus(a.entityId, 'published')
       if (a.proposedData) chaletsStore.update(a.entityId, a.proposedData)
+    } else if (a.type === 'rating_change') {
+      // Apply rating change (Story H4)
+      if (a.proposedData?.rating !== undefined) {
+        chaletsStore.update(a.entityId, { rating: a.proposedData.rating })
+      }
     }
     toast.success('تم الاعتماد بنجاح')
   }

@@ -101,6 +101,18 @@ function onToChange(val) {
   border-color: #fecaca;
   color: #ef4444;
 }
+
+@media (max-width: 640px) {
+  .date-range {
+    flex-direction: column;
+    align-items: stretch;
+    gap: 8px;
+  }
+
+  .dr-clear {
+    align-self: flex-end;
+  }
+}
 </style>
 
 <style>

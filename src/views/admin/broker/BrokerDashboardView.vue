@@ -223,9 +223,13 @@ function fmtNum(n) { return Number(n || 0).toLocaleString('ar-EG') }
 
 @media (max-width: 768px) {
   .page-header { flex-direction: column; gap: 12px; }
-  .controls-row { flex-direction: column; }
-  .tabs-bar { overflow-x: auto; }
-  .tab-btn { white-space: nowrap; }
-  .agents-table th:nth-child(n+4), .agents-table td:nth-child(n+4) { font-size: 12px; padding: 10px; }
+  .commission-badge { width: 100%; justify-content: center; }
+  .controls-row { flex-direction: column; gap: 12px; }
+  .tabs-bar { overflow-x: auto; scrollbar-width: none; padding: 4px; }
+  .tabs-bar::-webkit-scrollbar { display: none; }
+  .tab-btn { white-space: nowrap; font-size: 12px; padding: 8px 14px; }
+  .agents-card { overflow-x: auto; }
+  .agents-table { min-width: 550px; }
+  .agents-table th, .agents-table td { padding: 10px 12px; font-size: 12.5px; }
 }
 </style>

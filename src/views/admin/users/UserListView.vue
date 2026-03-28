@@ -677,12 +677,20 @@ function handleSubmit() {
 }
 
 @media (max-width: 768px) {
-  .page-header { flex-direction: column; gap: 14px; }
+  .page-header { flex-direction: column; gap: 12px; }
+  .btn-primary { width: 100%; justify-content: center; }
   .filters-row { flex-direction: column; }
   .search-box { max-width: 100%; }
   .filter-group { width: 100%; }
   .stats-row { grid-template-columns: 1fr 1fr; gap: 8px; }
+  .mini-stat { padding: 12px; }
+  .mini-stat-value { font-size: 18px; }
+  .table-card { overflow-x: auto; }
+  .data-table { min-width: 600px; }
+  .data-table th, .data-table td { padding: 10px 12px; font-size: 12.5px; }
   .data-table th:nth-child(5), .data-table td:nth-child(5) { display: none; }
   .fields-grid { grid-template-columns: 1fr; }
+  .pagination { padding: 12px; }
+  .pag-btn { width: 32px; height: 32px; font-size: 12px; }
 }
 </style>

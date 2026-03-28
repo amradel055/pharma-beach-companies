@@ -371,5 +371,16 @@ function handleSubmit() {
 .slide-enter-from, .slide-leave-to { opacity: 0; transform: translateY(-8px); }
 
 @media (max-width: 1024px) { .stats-row { grid-template-columns: repeat(2, 1fr); } }
-@media (max-width: 768px) { .page-header { flex-direction: column; gap: 14px; } .header-actions { width: 100%; } .filters-row { flex-direction: column; } .search-box { max-width: 100%; } .fields-grid { grid-template-columns: 1fr; } }
+@media (max-width: 768px) {
+  .page-header { flex-direction: column; gap: 12px; }
+  .header-actions { width: 100%; flex-direction: column; }
+  .header-actions .btn-primary, .header-actions .btn-secondary { width: 100%; justify-content: center; }
+  .filters-row { flex-direction: column; }
+  .search-box { max-width: 100%; }
+  .stats-row { gap: 8px; }
+  .table-card { overflow-x: auto; }
+  .data-table { min-width: 650px; }
+  .data-table th, .data-table td { padding: 10px 12px; font-size: 12.5px; }
+  .fields-grid { grid-template-columns: 1fr; }
+}
 </style>

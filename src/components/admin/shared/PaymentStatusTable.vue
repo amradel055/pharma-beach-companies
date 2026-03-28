@@ -115,4 +115,12 @@ function statusLabel(s) {
 .pay-badge.full { background: rgba(16, 185, 129, 0.08); color: #10b981; }
 .pay-badge.partial { background: rgba(234, 179, 8, 0.08); color: #eab308; }
 .pay-badge.unpaid { background: rgba(239, 68, 68, 0.08); color: #ef4444; }
+
+@media (max-width: 768px) {
+  .payment-summary { flex-wrap: wrap; gap: 6px; padding: 12px 16px; }
+  .ps-tab { font-size: 12px; padding: 6px 12px; }
+  .payment-card { overflow-x: auto; }
+  .payment-table { min-width: 500px; }
+  .payment-table th, .payment-table td { padding: 10px 12px; font-size: 12.5px; }
+}
 </style>

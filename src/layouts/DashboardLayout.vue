@@ -157,7 +157,11 @@ const mobileOpen = ref(false)
   }
 
   .dashboard-container {
-    padding: 16px;
+    padding: 0 12px 12px;
+  }
+
+  .topbar-sticky {
+    padding: 10px 0;
   }
 
   .sidebar-overlay {

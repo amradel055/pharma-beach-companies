@@ -55,8 +55,8 @@ export const PERMISSIONS = {
   // Owner dashboard
   view_owner_dashboard: [ROLES.SITE_ADMIN, ROLES.OWNER],
 
-  // Village management
-  view_village_dashboard: [ROLES.SITE_ADMIN, ROLES.VILLAGE_CS],
+  // Village management (financial reports — not for Village CS per story F2)
+  view_village_dashboard: [ROLES.SITE_ADMIN],
 
   // Broker dashboard
   view_broker_dashboard: [ROLES.SITE_ADMIN, ROLES.BROKER],

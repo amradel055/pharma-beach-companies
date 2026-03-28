@@ -110,9 +110,15 @@
             <img v-if="qrDataUrl" :src="qrDataUrl" alt="QR Code" class="qr-img" />
             <div v-else class="qr-loading"><i class="pi pi-spin pi-spinner" /></div>
           </div>
-          <a :href="whatsappLink" target="_blank" class="whatsapp-btn">
-            <i class="pi pi-whatsapp" /> إرسال التصريح عبر واتساب
-          </a>
+          <div class="wa-send">
+            <div class="wa-phone-field">
+              <label>رقم واتساب المستأجر</label>
+              <input v-model="waPhone" type="tel" placeholder="مثال: 201012345678" dir="ltr" />
+            </div>
+            <a :href="whatsappLink" target="_blank" class="whatsapp-btn" :class="{ disabled: !waPhone }">
+              <i class="pi pi-whatsapp" /> إرسال التصريح عبر واتساب
+            </a>
+          </div>
         </div>
       </div>
     </template>
@@ -237,6 +243,9 @@ function handleRemoveGuest(guestId) {
   toast.success('تم حذف العضو')
 }
 
+// WhatsApp phone — auto-fill from first guest if available
+const waPhone = ref('')
+
 // QR Code
 const qrDataUrl = ref('')
 
@@ -260,10 +269,18 @@ onMounted(() => {
 })
 
 // WhatsApp
+// Auto-fill waPhone from first guest
+onMounted(() => {
+  if (order.value?.guests?.length) {
+    const firstGuest = order.value.guests.find((g) => g.phone)
+    if (firstGuest) waPhone.value = firstGuest.phone
+  }
+})
+
 const whatsappLink = computed(() => {
-  if (!order.value) return '#'
-  const phone = settings.contactPhone || '201234567890'
-  const msg = `تصريح دخول - ${order.value.chaletName} (${order.value.chaletNumber})\nالحجز: #${shortId.value}\nالدخول: ${fmtDate(order.value.checkIn)}\nالخروج: ${fmtDate(order.value.checkOut)}`
+  if (!order.value || !waPhone.value) return '#'
+  const phone = waPhone.value.replace(/^0/, '2')
+  const msg = `تصريح دخول - فارما بيتش\n\nالشاليه: ${order.value.chaletName} (${order.value.chaletNumber})\nرقم الحجز: #${shortId.value}\nتسجيل الدخول: ${fmtDate(order.value.checkIn)}\nتسجيل الخروج: ${fmtDate(order.value.checkOut)}\nعدد الأعضاء: ${order.value.guests?.length || 0}\n\nبرجاء إبراز هذا التصريح عند الدخول.`
   return `https://wa.me/${phone}?text=${encodeURIComponent(msg)}`
 })
 
@@ -371,8 +388,14 @@ function fmtNum(n) { return Number(n || 0).toLocaleString('ar-EG') }
 .qr-img { width: 200px; height: 200px; border-radius: 12px; border: 1px solid #f1f5f9; }
 .qr-loading { padding: 60px; color: #94a3b8; font-size: 24px; }
 
+.wa-send { display: flex; flex-direction: column; align-items: center; gap: 14px; }
+.wa-phone-field { display: flex; flex-direction: column; gap: 5px; width: 100%; max-width: 280px; }
+.wa-phone-field label { font-size: 12.5px; font-weight: 600; color: #64748b; text-align: center; }
+.wa-phone-field input { height: 40px; padding: 0 14px; border: 1px solid #e2e8f0; border-radius: 10px; font-size: 13.5px; font-family: inherit; color: #1e293b; background: #fafbfc; outline: none; text-align: center; transition: all 0.2s; }
+.wa-phone-field input:focus { border-color: #25d366; background: #fff; box-shadow: 0 0 0 3px rgba(37, 211, 102, 0.08); }
 .whatsapp-btn { display: inline-flex; align-items: center; gap: 8px; padding: 12px 28px; background: #25d366; color: #fff; border-radius: 10px; font-size: 14px; font-weight: 600; text-decoration: none; transition: all 0.15s; }
-.whatsapp-btn:hover { background: #20bd5a; transform: translateY(-1px); }
+.whatsapp-btn:hover:not(.disabled) { background: #20bd5a; transform: translateY(-1px); }
+.whatsapp-btn.disabled { opacity: 0.5; pointer-events: none; }
 .whatsapp-btn i { font-size: 18px; }
 
 /* Modal form */
@@ -396,9 +419,25 @@ function fmtNum(n) { return Number(n || 0).toLocaleString('ar-EG') }
 .empty-state h3 { font-size: 16px; font-weight: 700; color: #1e293b; margin: 0; }
 
 @media (max-width: 768px) {
-  .page-header { flex-direction: column; gap: 12px; }
+  .page-header { flex-direction: column; gap: 10px; align-items: flex-start; }
+  .page-header .status-badge.lg { align-self: flex-start; }
   .details-grid { grid-template-columns: 1fr; }
-  .action-bar { flex-wrap: wrap; }
+  .info-card { padding: 16px; }
+  .card-title { font-size: 14px; }
+  .action-bar { flex-direction: column; gap: 8px; }
+  .btn-temp, .btn-confirm { width: 100%; justify-content: center; }
+  .confirm-hint { text-align: center; }
+  .guests-card { padding: 16px; }
+  .guests-header { flex-direction: column; gap: 10px; align-items: flex-start; }
+  .btn-sm { width: 100%; justify-content: center; }
+  .guest-item { flex-direction: column; gap: 8px; align-items: flex-start; }
+  .guest-item .item-btn { align-self: flex-end; }
   .fields-grid { grid-template-columns: 1fr; }
+  .add-payment { flex-direction: column; }
+  .pay-btn { width: 100%; justify-content: center; }
+  .qr-card { padding: 20px 16px; }
+  .qr-img { width: 160px; height: 160px; }
+  .wa-phone-field { max-width: 100%; }
+  .whatsapp-btn { width: 100%; justify-content: center; }
 }
 </style>

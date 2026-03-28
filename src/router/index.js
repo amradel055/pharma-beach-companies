@@ -1,6 +1,6 @@
 import { createRouter, createWebHistory } from 'vue-router'
 import { useAuthStore } from '@/stores/auth'
-import { ADMIN_ROLES } from '@/constants/roles'
+import { ROLES, ADMIN_ROLES } from '@/constants/roles'
 import MainLayout from '@/layouts/MainLayout.vue'
 import DefaultLayout from '@/layouts/DefaultLayout.vue'
 import NestedLayout from '@/layouts/NestedLayout.vue'
@@ -132,6 +132,7 @@ const routes = [
     component: DashboardLayout,
     meta: { requiresAuth: true, roles: [...ADMIN_ROLES] },
     children: [
+      // Everyone with admin access
       {
         path: '',
         name: 'admin-home',
@@ -144,89 +145,109 @@ const routes = [
         component: () => import('@/views/admin/ProfileView.vue'),
         meta: { title: 'الملف الشخصي', roles: [...ADMIN_ROLES] },
       },
+
+      // User management — Site Admin, Site CS, Village CS
       {
         path: 'users',
         name: 'admin-users',
         component: () => import('@/views/admin/users/UserListView.vue'),
-        meta: { title: 'المستخدمين', roles: [...ADMIN_ROLES] },
+        meta: { title: 'المستخدمين', roles: [ROLES.SITE_ADMIN, ROLES.SITE_CS, ROLES.VILLAGE_CS] },
       },
+
+      // Chalet management — Site Admin, Site CS
       {
         path: 'chalets',
         name: 'admin-chalets',
         component: () => import('@/views/admin/chalets/ChaletListView.vue'),
-        meta: { title: 'الشاليهات', roles: [...ADMIN_ROLES] },
+        meta: { title: 'الشاليهات', roles: [ROLES.SITE_ADMIN, ROLES.SITE_CS] },
       },
       {
         path: 'settings/search-attributes',
         name: 'admin-search-attributes',
         component: () => import('@/views/admin/settings/SearchAttributesView.vue'),
-        meta: { title: 'خيارات البحث', roles: [...ADMIN_ROLES] },
+        meta: { title: 'خيارات البحث', roles: [ROLES.SITE_ADMIN, ROLES.SITE_CS] },
       },
       {
         path: 'settings/amenities',
         name: 'admin-amenities',
         component: () => import('@/views/admin/settings/AmenitiesView.vue'),
-        meta: { title: 'الكماليات', roles: [...ADMIN_ROLES] },
+        meta: { title: 'الكماليات', roles: [ROLES.SITE_ADMIN, ROLES.SITE_CS] },
       },
+
+      // Approvals — Site Admin only
       {
         path: 'approvals',
         name: 'admin-approvals',
         component: () => import('@/views/admin/approvals/ApprovalQueueView.vue'),
-        meta: { title: 'طلبات الاعتماد', roles: [...ADMIN_ROLES] },
+        meta: { title: 'طلبات الاعتماد', roles: [ROLES.SITE_ADMIN] },
       },
+
+      // Owner dashboard — Site Admin, Owner
       {
         path: 'owner',
         name: 'admin-owner',
         component: () => import('@/views/admin/owner/OwnerDashboardView.vue'),
-        meta: { title: 'شاليهاتي', roles: [...ADMIN_ROLES] },
+        meta: { title: 'شاليهاتي', roles: [ROLES.SITE_ADMIN, ROLES.OWNER] },
       },
+
+      // Village dashboard — Site Admin, Village CS (reports only, not for CS operational)
       {
         path: 'village',
         name: 'admin-village',
         component: () => import('@/views/admin/village/VillageDashboardView.vue'),
-        meta: { title: 'تقارير القرية', roles: [...ADMIN_ROLES] },
+        meta: { title: 'تقارير القرية', roles: [ROLES.SITE_ADMIN] },
       },
+
+      // CS operations — Site Admin, Village CS
       {
         path: 'orders',
         name: 'admin-orders',
         component: () => import('@/views/admin/cs/OrdersQueueView.vue'),
-        meta: { title: 'الطلبات', roles: [...ADMIN_ROLES] },
+        meta: { title: 'الطلبات', roles: [ROLES.SITE_ADMIN, ROLES.VILLAGE_CS] },
       },
       {
         path: 'orders/:id',
         name: 'admin-order-details',
         component: () => import('@/views/admin/cs/OrderDetailsView.vue'),
-        meta: { title: 'تفاصيل الطلب', roles: [...ADMIN_ROLES] },
+        meta: { title: 'تفاصيل الطلب', roles: [ROLES.SITE_ADMIN, ROLES.VILLAGE_CS] },
       },
+
+      // Permits — Site Admin, Village CS, Agent
       {
         path: 'permits',
         name: 'admin-permits',
         component: () => import('@/views/admin/agent/AgentPermitsView.vue'),
-        meta: { title: 'التصاريح', roles: [...ADMIN_ROLES] },
+        meta: { title: 'التصاريح', roles: [ROLES.SITE_ADMIN, ROLES.VILLAGE_CS] },
       },
+
+      // Broker dashboard — Site Admin, Broker
       {
         path: 'broker',
         name: 'admin-broker',
         component: () => import('@/views/admin/broker/BrokerDashboardView.vue'),
-        meta: { title: 'لوحة البروكر', roles: [...ADMIN_ROLES] },
+        meta: { title: 'لوحة البروكر', roles: [ROLES.SITE_ADMIN, ROLES.BROKER] },
       },
+
+      // Agent permits — Site Admin, Agent
       {
         path: 'agent/permits',
         name: 'admin-agent-permits',
         component: () => import('@/views/admin/agent/AgentPermitsView.vue'),
-        meta: { title: 'تصاريحي', roles: [...ADMIN_ROLES] },
+        meta: { title: 'تصاريحي', roles: [ROLES.SITE_ADMIN, ROLES.AGENT] },
       },
+
+      // Coupons — Site Admin, Site CS
       {
         path: 'coupons',
         name: 'admin-coupons',
         component: () => import('@/views/admin/coupons/CouponListView.vue'),
-        meta: { title: 'كوبونات الخصم', roles: [...ADMIN_ROLES] },
+        meta: { title: 'كوبونات الخصم', roles: [ROLES.SITE_ADMIN, ROLES.SITE_CS] },
       },
       {
         path: 'coupons/report',
         name: 'admin-coupons-report',
         component: () => import('@/views/admin/coupons/CouponReportView.vue'),
-        meta: { title: 'تقرير الكوبونات', roles: [...ADMIN_ROLES] },
+        meta: { title: 'تقرير الكوبونات', roles: [ROLES.SITE_ADMIN, ROLES.SITE_CS] },
       },
     ],
   },

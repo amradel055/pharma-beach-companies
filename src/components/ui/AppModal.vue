@@ -252,19 +252,53 @@ watch(() => props.modelValue, (val) => {
    ═══════════════════════════════════ */
 @media (max-width: 640px) {
   .modal-backdrop {
-    padding: 20px 12px;
+    padding: 12px 8px;
+    align-items: flex-start;
+    padding-top: 40px;
+  }
+
+  .modal-panel {
+    border-radius: 14px;
+    max-height: calc(100vh - 80px);
+  }
+
+  .modal-sm, .modal-md, .modal-lg, .modal-xl {
+    max-width: 100%;
   }
 
   .modal-header {
-    padding: 20px 18px 0;
+    padding: 18px 16px 0;
+  }
+
+  .modal-header-content {
+    gap: 10px;
+  }
+
+  .modal-icon {
+    width: 38px;
+    height: 38px;
+    border-radius: 10px;
+  }
+
+  .modal-icon i {
+    font-size: 18px;
+  }
+
+  .modal-title {
+    font-size: 15px;
+  }
+
+  .modal-subtitle {
+    font-size: 12px;
   }
 
   .modal-body {
-    padding: 16px 18px;
+    padding: 14px 16px;
   }
 
   .modal-footer {
-    padding: 14px 18px;
+    padding: 12px 16px;
+    flex-wrap: wrap;
   }
 }
 </style>

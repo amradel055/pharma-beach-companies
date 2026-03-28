@@ -311,20 +311,34 @@ function handleSubmit() {
   setTimeout(() => {
     let result
     if (editing.value) {
+      // Check if rating changed — needs separate approval (Story H4)
+      const ratingChanged = editing.value.rating !== form.rating
+      if (ratingChanged && !isAdmin) {
+        approvalsStore.createApproval({ type: 'rating_change', entityId: editing.value.id, proposedData: { rating: form.rating }, previousData: { rating: editing.value.rating }, submitterId: auth.user?.id, submitterName: auth.user?.name })
+        toast.info('تم إرسال تغيير التقييم للاعتماد')
+      }
+
       if (isAdmin) {
         result = chaletsStore.update(editing.value.id, { ...form, status: 'published' })
       } else {
+        // Save without the rating change (rating waits for approval)
+        const formWithoutRating = { ...form, rating: editing.value.rating }
         approvalsStore.createApproval({ type: 'chalet_edit', entityId: editing.value.id, proposedData: { ...form }, previousData: { ...editing.value }, submitterId: auth.user?.id, submitterName: auth.user?.name })
-        chaletsStore.update(editing.value.id, { ...form, status: 'pending' })
+        chaletsStore.update(editing.value.id, { ...formWithoutRating, status: 'pending' })
         result = { ok: true }
       }
     } else {
       if (isAdmin) {
         result = chaletsStore.create({ ...form, status: 'published' })
       } else {
-        result = chaletsStore.create({ ...form, status: 'pending' })
+        // Create without rating (rating needs approval)
+        const formData = { ...form, rating: 0 }
+        result = chaletsStore.create({ ...formData, status: 'pending' })
         if (result.ok) {
           approvalsStore.createApproval({ type: 'chalet_create', entityId: result.chalet.id, proposedData: { ...form }, submitterId: auth.user?.id, submitterName: auth.user?.name })
+          if (form.rating > 0) {
+            approvalsStore.createApproval({ type: 'rating_change', entityId: result.chalet.id, proposedData: { rating: form.rating }, previousData: { rating: 0 }, submitterId: auth.user?.id, submitterName: auth.user?.name })
+          }
         }
       }
     }
@@ -433,5 +447,16 @@ function handleSubmit() {
 .slide-enter-from, .slide-leave-to { opacity: 0; transform: translateY(-8px); }
 
 @media (max-width: 1024px) { .stats-row { grid-template-columns: repeat(2, 1fr); } }
-@media (max-width: 768px) { .page-header { flex-direction: column; gap: 14px; } .filters-row { flex-direction: column; } .search-box { max-width: 100%; } .fields-grid { grid-template-columns: 1fr; } }
+@media (max-width: 768px) {
+  .page-header { flex-direction: column; gap: 12px; }
+  .btn-primary { width: 100%; justify-content: center; }
+  .filters-row { flex-direction: column; }
+  .search-box { max-width: 100%; }
+  .stats-row { gap: 8px; }
+  .mini-stat { padding: 12px; }
+  .table-card { overflow-x: auto; }
+  .data-table { min-width: 700px; }
+  .data-table th, .data-table td { padding: 10px 12px; font-size: 12.5px; }
+  .fields-grid { grid-template-columns: 1fr; }
+}
 </style>

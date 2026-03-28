@@ -572,6 +572,7 @@ const visibleSections = computed(() => {
     transform: translateX(100%);
     transition: transform 0.3s cubic-bezier(0.4, 0, 0.2, 1);
     box-shadow: none;
+    overflow-x: hidden;
   }
 
   .sidebar.collapsed {
@@ -584,8 +585,37 @@ const visibleSections = computed(() => {
     box-shadow: -8px 0 30px rgba(0, 0, 0, 0.3);
   }
 
+  .sidebar.collapsed.mobile-open {
+    transform: translateX(0);
+  }
+
+  .sidebar.collapsed .nav-item {
+    justify-content: flex-start;
+    padding: 0 12px;
+  }
+
   .edge-toggle {
     display: none;
+  }
+
+  .nav-group-label {
+    display: block !important;
+  }
+
+  .nav-group-divider {
+    display: none;
+  }
+
+  .nav-item-label {
+    display: inline !important;
+  }
+
+  .nav-badge {
+    display: inline !important;
+  }
+
+  .logo-text {
+    display: inline !important;
   }
 }
 </style>

@@ -1119,14 +1119,34 @@ const quickActions = computed(() => {
 }
 
 @media (max-width: 640px) {
-  .welcome-card { padding: 24px 20px; }
+  .welcome-card { padding: 24px 18px; }
   .welcome-visual { display: none; }
-  .welcome-title { font-size: 24px; }
-  .welcome-desc { font-size: 13.5px; }
-  .stats-grid { grid-template-columns: 1fr 1fr; gap: 10px; }
-  .stat-card { padding: 16px; }
-  .stat-value { font-size: 22px; }
+  .welcome-title { font-size: 22px; }
+  .welcome-desc { font-size: 13px; margin-bottom: 12px; }
+  .welcome-date { font-size: 12px; padding: 6px 12px; }
+  .welcome-badge { font-size: 11px; padding: 5px 12px; }
+  .stats-grid { grid-template-columns: 1fr 1fr; gap: 8px; }
+  .stat-card { padding: 14px; }
+  .stat-value { font-size: 20px; }
+  .stat-icon-wrap { width: 40px; height: 40px; border-radius: 10px; }
+  .stat-icon-wrap i { font-size: 18px; }
+  .stat-label { font-size: 11.5px; }
+  .stat-suffix { font-size: 10px; padding: 2px 6px; }
   .quick-grid { grid-template-columns: repeat(3, 1fr); gap: 6px; }
-  .quick-item { padding: 14px 8px; }
+  .quick-item { padding: 12px 6px; }
+  .qi-icon { width: 34px; height: 34px; border-radius: 10px; }
+  .qi-icon i { font-size: 16px; }
+  .qi-label { font-size: 11px; }
+  .activity-card, .quick-card { padding: 16px; }
+  .card-head h2 { font-size: 14px; }
+  .act-text { font-size: 12px; }
+  .act-icon { width: 32px; height: 32px; }
+  .pending-banner { padding: 14px 16px; flex-direction: column; gap: 12px; align-items: flex-start; }
+  .pb-btn { width: 100%; justify-content: center; }
+}
+
+@media (max-width: 380px) {
+  .stats-grid { grid-template-columns: 1fr; }
+  .quick-grid { grid-template-columns: repeat(2, 1fr); }
 }
 </style>

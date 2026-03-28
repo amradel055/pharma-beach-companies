@@ -59,10 +59,22 @@
             </span>
             <span class="row-value">{{ booking.deposit?.toLocaleString('ar-EG') }} ج.م</span>
           </div>
+          <!-- Coupon -->
+          <CouponInput
+            v-if="booking.status === 'PENDING' && !appliedCoupon"
+            :booking-total="booking.total"
+            :user-id="auth.user?.id"
+            @apply="handleCouponApply"
+          />
+          <div v-if="appliedCoupon" class="summary-row discount">
+            <span class="row-label">خصم كوبون ({{ appliedCoupon.couponCode }})</span>
+            <span class="row-value">- {{ appliedCoupon.discountAmount?.toLocaleString('ar-EG') }} ج.م</span>
+          </div>
+
           <div class="glass-divider thin" />
           <div class="summary-row total">
             <span class="row-label">الإجمالي</span>
-            <span class="row-value">{{ booking.total?.toLocaleString('ar-EG') }} ج.م</span>
+            <span class="row-value">{{ finalTotal?.toLocaleString('ar-EG') }} ج.م</span>
           </div>
         </div>
       </div>
@@ -155,12 +167,38 @@ import { computed, ref, onMounted, onUnmounted } from 'vue'
 import { useRoute } from 'vue-router'
 import { useBookingsStore } from '@/stores/bookings'
 import { useSettingsStore } from '@/stores/settings'
+import { useAuthStore } from '@/stores/auth'
+import { useCouponsStore } from '@/stores/coupons'
+import CouponInput from '@/components/booking/CouponInput.vue'
 
 const route = useRoute()
 const bookingsStore = useBookingsStore()
 const settings = useSettingsStore()
+const auth = useAuthStore()
+const couponsStore = useCouponsStore()
 
 const booking = computed(() => bookingsStore.getBookingById(route.params.id))
+const appliedCoupon = ref(null)
+
+const finalTotal = computed(() => {
+  if (!booking.value) return 0
+  const discount = appliedCoupon.value?.discountAmount || booking.value.discountAmount || 0
+  return booking.value.total - discount
+})
+
+function handleCouponApply(couponData) {
+  appliedCoupon.value = couponData
+  // Update booking with coupon info
+  if (booking.value) {
+    bookingsStore.updateBooking(booking.value.id, {
+      couponId: couponData.couponId,
+      couponCode: couponData.couponCode,
+      discountAmount: couponData.discountAmount,
+      discountType: couponData.discountType,
+    })
+    couponsStore.recordUsage(couponData.couponId, auth.user?.id)
+  }
+}
 const deadlineHours = computed(() => settings.pendingDurationMinutes / 60)
 
 // Countdown timer
@@ -446,6 +484,15 @@ const whatsappUrl = computed(() => {
   font-weight: 800;
   color: #fbbf24;
   text-shadow: 0 0 12px rgba(251, 191, 36, 0.3);
+}
+
+.summary-row.discount .row-label {
+  color: #10b981;
+}
+
+.summary-row.discount .row-value {
+  color: #10b981;
+  font-weight: 700;
 }
 
 .refund-badge {

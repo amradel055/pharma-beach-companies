@@ -132,5 +132,8 @@ function fmtNum(n) { return Number(n || 0).toLocaleString('ar-EG') }
 @media (max-width: 768px) {
   .page-header { flex-direction: column; gap: 12px; }
   .queue-stats { flex-wrap: wrap; }
+  .table-card { overflow-x: auto; }
+  .data-table { min-width: 650px; }
+  .data-table th, .data-table td { padding: 10px 12px; font-size: 12.5px; }
 }
 </style>

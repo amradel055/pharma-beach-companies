@@ -140,6 +140,7 @@ onUnmounted(() => document.removeEventListener('click', handleClickOutside))
   right: 0;
   min-width: 100%;
   width: max-content;
+  max-width: min(300px, calc(100vw - 40px));
   background: #fff;
   border: 1px solid #e2e8f0;
   border-radius: 10px;

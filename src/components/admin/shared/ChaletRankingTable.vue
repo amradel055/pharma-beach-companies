@@ -91,4 +91,12 @@ function formatNum(n) { return Number(n || 0).toLocaleString('ar-EG') }
 .rank-val { font-weight: 600; text-align: center; }
 .rank-val.highlight { color: #10b981; }
 .rank-val small { font-size: 11px; color: #94a3b8; font-weight: 500; }
+
+@media (max-width: 768px) {
+  .ranking-header { flex-direction: column; gap: 10px; align-items: flex-start; }
+  .ranking-sort { width: 100%; }
+  .ranking-card { overflow-x: auto; }
+  .ranking-table { min-width: 500px; }
+  .ranking-table th, .ranking-table td { padding: 10px 12px; font-size: 12.5px; }
+}
 </style>
