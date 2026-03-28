@@ -61,6 +61,13 @@ export const useUsersStore = defineStore('users', () => {
   }
 
   function create(data) {
+    if (!data.name?.trim()) return { ok: false, error: 'الاسم مطلوب' }
+    if (!data.phone?.trim()) return { ok: false, error: 'رقم التليفون مطلوب' }
+    if (!data.password || data.password.length < 6) return { ok: false, error: 'كلمة المرور مطلوبة (6 أحرف على الأقل)' }
+    if (!data.role) return { ok: false, error: 'الدور مطلوب' }
+    if (data.role === ROLES.BROKER && !data.commissionPercent) return { ok: false, error: 'نسبة البروكر مطلوبة' }
+    if (data.role === ROLES.AGENT && !data.brokerId) return { ok: false, error: 'يجب اختيار البروكر' }
+
     const existing = users.value.find((u) => u.phone === data.phone.trim())
     if (existing) {
       return { ok: false, error: 'رقم التليفون مسجل بالفعل' }
