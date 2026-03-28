@@ -25,6 +25,10 @@
                   </div>
                 </div>
                 <div class="dropdown-body">
+                  <RouterLink v-if="isAdminUser" to="/admin" class="dropdown-item" @click="menuOpen = false">
+                    <i class="pi pi-th-large" />
+                    لوحة التحكم
+                  </RouterLink>
                   <button class="dropdown-item logout" @click="handleLogout">
                     <i class="pi pi-sign-out" />
                     تسجيل الخروج
@@ -57,6 +61,10 @@
               <span class="mobile-user-email">{{ auth.user.email }}</span>
             </div>
           </div>
+          <RouterLink v-if="isAdminUser" to="/admin" class="mobile-logout" style="color: #f97316; border-top: none; text-decoration: none; display: flex;" @click="mobileOpen = false">
+            <i class="pi pi-th-large" />
+            لوحة التحكم
+          </RouterLink>
           <button class="mobile-logout" @click="handleLogout">
             <i class="pi pi-sign-out" />
             تسجيل الخروج
@@ -76,11 +84,14 @@ import { ref, computed, onMounted, onUnmounted } from 'vue'
 import { useRouter } from 'vue-router'
 import { useAuthStore } from '@/stores/auth'
 import { useToastStore } from '@/stores/toast'
+import { ADMIN_ROLES } from '@/constants/roles'
 import logo from '@/assets/images/logo.jpeg'
 
 const router = useRouter()
 const auth = useAuthStore()
 const toast = useToastStore()
+
+const isAdminUser = computed(() => ADMIN_ROLES.includes(auth.user?.role))
 
 const isScrolled = ref(false)
 const mobileOpen = ref(false)

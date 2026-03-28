@@ -101,6 +101,7 @@ import { ref, reactive, computed } from 'vue'
 import { useRouter } from 'vue-router'
 import { useAuthStore } from '@/stores/auth'
 import { useToastStore } from '@/stores/toast'
+import { ADMIN_ROLES } from '@/constants/roles'
 import logo from '@/assets/images/logo.jpeg'
 
 const router = useRouter()
@@ -133,7 +134,8 @@ function handleLogin() {
 
     if (result.ok) {
       toast.success('تم تسجيل الدخول بنجاح')
-      const redirect = auth.returnUrl || '/'
+      const isAdminUser = ADMIN_ROLES.includes(auth.user?.role)
+      const redirect = auth.returnUrl || (isAdminUser ? '/admin' : '/')
       auth.returnUrl = null
       router.push(redirect)
     } else {

@@ -1,8 +1,10 @@
 import { createRouter, createWebHistory } from 'vue-router'
 import { useAuthStore } from '@/stores/auth'
+import { ADMIN_ROLES } from '@/constants/roles'
 import MainLayout from '@/layouts/MainLayout.vue'
 import DefaultLayout from '@/layouts/DefaultLayout.vue'
 import NestedLayout from '@/layouts/NestedLayout.vue'
+import DashboardLayout from '@/layouts/DashboardLayout.vue'
 
 const routes = [
   // Main layout — header + footer
@@ -123,6 +125,111 @@ const routes = [
       },
     ],
   },
+
+  // Admin dashboard
+  {
+    path: '/admin',
+    component: DashboardLayout,
+    meta: { requiresAuth: true, roles: [...ADMIN_ROLES] },
+    children: [
+      {
+        path: '',
+        name: 'admin-home',
+        component: () => import('@/views/admin/DashboardHomeView.vue'),
+        meta: { title: 'لوحة التحكم', roles: [...ADMIN_ROLES] },
+      },
+      {
+        path: 'profile',
+        name: 'admin-profile',
+        component: () => import('@/views/admin/ProfileView.vue'),
+        meta: { title: 'الملف الشخصي', roles: [...ADMIN_ROLES] },
+      },
+      {
+        path: 'users',
+        name: 'admin-users',
+        component: () => import('@/views/admin/users/UserListView.vue'),
+        meta: { title: 'المستخدمين', roles: [...ADMIN_ROLES] },
+      },
+      {
+        path: 'chalets',
+        name: 'admin-chalets',
+        component: () => import('@/views/admin/chalets/ChaletListView.vue'),
+        meta: { title: 'الشاليهات', roles: [...ADMIN_ROLES] },
+      },
+      {
+        path: 'settings/search-attributes',
+        name: 'admin-search-attributes',
+        component: () => import('@/views/admin/settings/SearchAttributesView.vue'),
+        meta: { title: 'خيارات البحث', roles: [...ADMIN_ROLES] },
+      },
+      {
+        path: 'settings/amenities',
+        name: 'admin-amenities',
+        component: () => import('@/views/admin/settings/AmenitiesView.vue'),
+        meta: { title: 'الكماليات', roles: [...ADMIN_ROLES] },
+      },
+      {
+        path: 'approvals',
+        name: 'admin-approvals',
+        component: () => import('@/views/admin/approvals/ApprovalQueueView.vue'),
+        meta: { title: 'طلبات الاعتماد', roles: [...ADMIN_ROLES] },
+      },
+      {
+        path: 'owner',
+        name: 'admin-owner',
+        component: () => import('@/views/admin/owner/OwnerDashboardView.vue'),
+        meta: { title: 'شاليهاتي', roles: [...ADMIN_ROLES] },
+      },
+      {
+        path: 'village',
+        name: 'admin-village',
+        component: () => import('@/views/admin/village/VillageDashboardView.vue'),
+        meta: { title: 'تقارير القرية', roles: [...ADMIN_ROLES] },
+      },
+      {
+        path: 'orders',
+        name: 'admin-orders',
+        component: () => import('@/views/admin/cs/OrdersQueueView.vue'),
+        meta: { title: 'الطلبات', roles: [...ADMIN_ROLES] },
+      },
+      {
+        path: 'orders/:id',
+        name: 'admin-order-details',
+        component: () => import('@/views/admin/cs/OrderDetailsView.vue'),
+        meta: { title: 'تفاصيل الطلب', roles: [...ADMIN_ROLES] },
+      },
+      {
+        path: 'permits',
+        name: 'admin-permits',
+        component: () => import('@/views/admin/agent/AgentPermitsView.vue'),
+        meta: { title: 'التصاريح', roles: [...ADMIN_ROLES] },
+      },
+      {
+        path: 'broker',
+        name: 'admin-broker',
+        component: () => import('@/views/admin/broker/BrokerDashboardView.vue'),
+        meta: { title: 'لوحة البروكر', roles: [...ADMIN_ROLES] },
+      },
+      {
+        path: 'agent/permits',
+        name: 'admin-agent-permits',
+        component: () => import('@/views/admin/agent/AgentPermitsView.vue'),
+        meta: { title: 'تصاريحي', roles: [...ADMIN_ROLES] },
+      },
+      {
+        path: 'coupons',
+        name: 'admin-coupons',
+        component: () => import('@/views/admin/coupons/CouponListView.vue'),
+        meta: { title: 'كوبونات الخصم', roles: [...ADMIN_ROLES] },
+      },
+      {
+        path: 'coupons/report',
+        name: 'admin-coupons-report',
+        component: () => import('@/views/admin/coupons/CouponReportView.vue'),
+        meta: { title: 'تقرير الكوبونات', roles: [...ADMIN_ROLES] },
+      },
+    ],
+  },
 ]
 
 const router = createRouter({
@@ -145,6 +252,18 @@ router.beforeEach((to) => {
   // Guest-only routes — redirect to home if already authenticated
   if (to.meta.guest && auth.isAuthenticated) {
     return { name: 'home' }
+  }
+
+  // Role-based guard for admin routes
+  if (to.meta.roles && auth.isAuthenticated) {
+    const userRole = auth.user?.role
+    if (!to.meta.roles.includes(userRole)) {
+      // User doesn't have the required role
+      if (ADMIN_ROLES.includes(userRole)) {
+        return { name: 'admin-home' }
+      }
+      return { name: 'home' }
+    }
   }
 })
 

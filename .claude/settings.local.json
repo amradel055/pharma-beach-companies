@@ -26,7 +26,13 @@
       "Bash(find:*)",
       "Bash(file:*)",
       "WebFetch(domain:baymard.com)",
-      "Bash(npx vue-tsc:*)"
+      "Bash(npx vue-tsc:*)",
+      "Bash(python3 -c \":*)",
+      "Bash(python -c \":*)",
+      "Bash(find C:/web/pharma-beach/src -type f \\\\\\(-name *.vue -o -name *.js -o -name *.ts \\\\\\))",
+      "Bash(xargs grep:*)",
+      "Bash(python:*)",
+      "Bash(node:*)"
     ]
   }
 }

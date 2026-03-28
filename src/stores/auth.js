@@ -1,11 +1,14 @@
 import { defineStore } from 'pinia'
 import { ref, computed } from 'vue'
+import { ROLES, ADMIN_ROLES } from '@/constants/roles'
 
 export const useAuthStore = defineStore('auth', () => {
   const user = ref(null)
   const returnUrl = ref(null)
 
   const isAuthenticated = computed(() => !!user.value)
+  const userRole = computed(() => user.value?.role || ROLES.CUSTOMER)
+  const isAdmin = computed(() => ADMIN_ROLES.includes(userRole.value))
 
   // Restore session on init
   function init() {
@@ -44,6 +47,12 @@ export const useAuthStore = defineStore('auth', () => {
     if (!found) {
       return { ok: false, error: 'البريد الإلكتروني أو كلمة المرور غير صحيحة' }
     }
+
+    // Check if account is inactive
+    if (found.active === false) {
+      return { ok: false, error: 'الحساب غير مفعل' }
+    }
+
     const { password: _, ...safeUser } = found
     _setUser(safeUser)
     return { ok: true }
@@ -63,6 +72,8 @@ export const useAuthStore = defineStore('auth', () => {
       email: normalizedEmail,
       phone: phone.trim(),
       avatar: null,
+      role: ROLES.CUSTOMER,
+      active: true,
       createdAt: new Date().toISOString(),
       password,
     }
@@ -153,6 +164,8 @@ export const useAuthStore = defineStore('auth', () => {
     user,
     returnUrl,
     isAuthenticated,
+    userRole,
+    isAdmin,
     login,
     register,
     logout,
