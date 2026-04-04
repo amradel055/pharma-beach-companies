@@ -13,6 +13,7 @@
 | `broker@test.com` | `123456` | Broker | بروكر |
 | `agent@test.com` | `123456` | Agent | مندوب |
 
+
 ## Role Hierarchy (highest to lowest)
 
 1. **Site Admin** - Full access to all dashboards, approvals, settings
