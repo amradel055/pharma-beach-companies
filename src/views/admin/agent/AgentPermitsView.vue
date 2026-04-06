@@ -86,7 +86,7 @@ const bookingsStore = useBookingsStore()
 const { hasRole } = usePermissions()
 
 const permits = computed(() => {
-  if (hasRole(ROLES.SITE_ADMIN) || hasRole(ROLES.VILLAGE_CS)) {
+  if (hasRole(ROLES.SITE_ADMIN) || hasRole(ROLES.VILLAGE_ADMIN) || hasRole(ROLES.VILLAGE_CS)) {
     // Admin/CS see all confirmed bookings as permits
     return bookingsStore.bookings.filter((b) => b.status === 'CONFIRMED' || b.status === 'TEMPORARY' || b.status === 'PENDING')
   }

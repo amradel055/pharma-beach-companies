@@ -170,6 +170,7 @@ const todayFormatted = new Date().toLocaleDateString('ar-EG', {
 const welcomeMessage = computed(() => {
   if (hasRole(ROLES.SITE_ADMIN)) return 'يمكنك إدارة كل أقسام النظام ومراقبة الأداء العام'
   if (hasRole(ROLES.SITE_CS)) return 'يمكنك إدارة الشاليهات والمستخدمين وخيارات البحث'
+  if (hasRole(ROLES.VILLAGE_ADMIN)) return 'يمكنك إدارة القرية ومتابعة التقارير المالية والعمليات'
   if (hasRole(ROLES.VILLAGE_CS)) return 'يمكنك إدارة الطلبات والتصاريح ومتابعة العمليات'
   if (hasRole(ROLES.OWNER)) return 'تابع شاليهاتك وتقاريرك المالية وأداء الحجوزات'
   if (hasRole(ROLES.BROKER)) return 'تابع أداء مناديبك وعمولاتك وتقارير الحجوزات'

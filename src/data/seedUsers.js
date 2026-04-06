@@ -35,6 +35,17 @@ const SEED_USERS = [
     createdAt: '2026-01-01T00:00:00.000Z',
   },
   {
+    id: 'seed_villageadmin_001',
+    name: 'فاطمة أدمن القرية',
+    email: 'villageadmin@test.com',
+    phone: '01000000007',
+    password: '123456',
+    role: ROLES.VILLAGE_ADMIN,
+    active: true,
+    avatar: null,
+    createdAt: '2026-01-01T00:00:00.000Z',
+  },
+  {
     id: 'seed_owner_001',
     name: 'خالد المالك',
     email: 'owner@test.com',
@@ -75,16 +86,17 @@ const SEED_USERS = [
 export function seedUsers() {
   try {
     const existing = JSON.parse(localStorage.getItem('pb_users') || '[]')
-    const hasSeedAdmin = existing.some((u) => u.id === 'seed_admin_001')
-    if (hasSeedAdmin) return
 
-    // Add seed users without removing existing customer accounts
+    // Add any missing seed users (handles newly added roles)
     const merged = [...existing]
+    let changed = false
     for (const seedUser of SEED_USERS) {
-      if (!merged.some((u) => u.email === seedUser.email)) {
+      if (!merged.some((u) => u.id === seedUser.id || u.email === seedUser.email)) {
         merged.push(seedUser)
+        changed = true
       }
     }
+    if (!changed && existing.length > 0) return
     localStorage.setItem('pb_users', JSON.stringify(merged))
   } catch {
     localStorage.setItem('pb_users', JSON.stringify(SEED_USERS))

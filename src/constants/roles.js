@@ -1,6 +1,7 @@
 export const ROLES = {
   SITE_ADMIN: 'site_admin',
   SITE_CS: 'site_cs',
+  VILLAGE_ADMIN: 'village_admin',
   VILLAGE_CS: 'village_cs',
   OWNER: 'owner',
   BROKER: 'broker',
@@ -11,6 +12,7 @@ export const ROLES = {
 export const ROLE_LABELS = {
   [ROLES.SITE_ADMIN]: 'أدمن الموقع',
   [ROLES.SITE_CS]: 'خدمة عملاء الأدمن',
+  [ROLES.VILLAGE_ADMIN]: 'أدمن القرية',
   [ROLES.VILLAGE_CS]: 'خدمة عملاء القرية',
   [ROLES.OWNER]: 'مالك',
   [ROLES.BROKER]: 'بروكر',
@@ -22,6 +24,7 @@ export const ROLE_LABELS = {
 export const ROLE_HIERARCHY = [
   ROLES.SITE_ADMIN,
   ROLES.SITE_CS,
+  ROLES.VILLAGE_ADMIN,
   ROLES.VILLAGE_CS,
   ROLES.OWNER,
   ROLES.BROKER,
@@ -33,6 +36,7 @@ export const ROLE_HIERARCHY = [
 export const ADMIN_ROLES = [
   ROLES.SITE_ADMIN,
   ROLES.SITE_CS,
+  ROLES.VILLAGE_ADMIN,
   ROLES.VILLAGE_CS,
   ROLES.OWNER,
   ROLES.BROKER,
@@ -42,7 +46,7 @@ export const ADMIN_ROLES = [
 // Permission-to-roles mapping
 export const PERMISSIONS = {
   // Account management
-  manage_users: [ROLES.SITE_ADMIN, ROLES.SITE_CS, ROLES.VILLAGE_CS],
+  manage_users: [ROLES.SITE_ADMIN, ROLES.SITE_CS, ROLES.VILLAGE_ADMIN, ROLES.VILLAGE_CS],
 
   // Chalet management
   manage_chalets: [ROLES.SITE_ADMIN, ROLES.SITE_CS],
@@ -56,7 +60,7 @@ export const PERMISSIONS = {
   view_owner_dashboard: [ROLES.SITE_ADMIN, ROLES.OWNER],
 
   // Village management (financial reports — not for Village CS per story F2)
-  view_village_dashboard: [ROLES.SITE_ADMIN],
+  view_village_dashboard: [ROLES.SITE_ADMIN, ROLES.VILLAGE_ADMIN],
 
   // Broker dashboard
   view_broker_dashboard: [ROLES.SITE_ADMIN, ROLES.BROKER],
@@ -65,19 +69,20 @@ export const PERMISSIONS = {
   view_agent_permits: [ROLES.SITE_ADMIN, ROLES.AGENT],
 
   // CS operations
-  manage_orders: [ROLES.SITE_ADMIN, ROLES.VILLAGE_CS],
-  view_permits: [ROLES.SITE_ADMIN, ROLES.VILLAGE_CS, ROLES.AGENT],
+  manage_orders: [ROLES.SITE_ADMIN, ROLES.VILLAGE_ADMIN, ROLES.VILLAGE_CS],
+  view_permits: [ROLES.SITE_ADMIN, ROLES.VILLAGE_ADMIN, ROLES.VILLAGE_CS, ROLES.AGENT],
 
   // Coupons
   manage_coupons: [ROLES.SITE_ADMIN, ROLES.SITE_CS],
 
   // Reports (financial)
-  view_financial_reports: [ROLES.SITE_ADMIN, ROLES.SITE_CS, ROLES.OWNER, ROLES.BROKER, ROLES.VILLAGE_CS],
+  view_financial_reports: [ROLES.SITE_ADMIN, ROLES.SITE_CS, ROLES.VILLAGE_ADMIN, ROLES.OWNER, ROLES.BROKER],
 }
 
 // Roles that can be created by each role
 export const CREATABLE_ROLES = {
-  [ROLES.SITE_ADMIN]: [ROLES.SITE_CS, ROLES.VILLAGE_CS, ROLES.OWNER, ROLES.BROKER, ROLES.AGENT],
-  [ROLES.SITE_CS]: [ROLES.VILLAGE_CS, ROLES.OWNER, ROLES.BROKER, ROLES.AGENT],
+  [ROLES.SITE_ADMIN]: [ROLES.SITE_CS, ROLES.VILLAGE_ADMIN, ROLES.VILLAGE_CS, ROLES.OWNER, ROLES.BROKER, ROLES.AGENT],
+  [ROLES.SITE_CS]: [ROLES.VILLAGE_ADMIN, ROLES.VILLAGE_CS, ROLES.OWNER, ROLES.BROKER, ROLES.AGENT],
+  [ROLES.VILLAGE_ADMIN]: [ROLES.VILLAGE_CS, ROLES.OWNER, ROLES.BROKER, ROLES.AGENT],
   [ROLES.VILLAGE_CS]: [ROLES.OWNER, ROLES.BROKER, ROLES.AGENT],
 }

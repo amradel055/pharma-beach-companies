@@ -308,6 +308,7 @@ const perPage = 8
 const filterableRoles = [
   { value: ROLES.SITE_ADMIN, label: 'أدمن الموقع' },
   { value: ROLES.SITE_CS, label: 'خدمة عملاء الأدمن' },
+  { value: ROLES.VILLAGE_ADMIN, label: 'أدمن القرية' },
   { value: ROLES.VILLAGE_CS, label: 'خدمة عملاء القرية' },
   { value: ROLES.OWNER, label: 'مالك' },
   { value: ROLES.BROKER, label: 'بروكر' },
@@ -353,7 +354,7 @@ const stats = computed(() => {
 // ── Helpers ──
 function roleLabel(role) { return ROLE_LABELS[role] || role }
 function roleColorMap(role) {
-  return { [ROLES.SITE_ADMIN]: '#8b5cf6', [ROLES.SITE_CS]: '#0ea5e9', [ROLES.VILLAGE_CS]: '#06b6d4', [ROLES.OWNER]: '#f97316', [ROLES.BROKER]: '#eab308', [ROLES.AGENT]: '#64748b' }[role] || '#94a3b8'
+  return { [ROLES.SITE_ADMIN]: '#8b5cf6', [ROLES.SITE_CS]: '#0ea5e9', [ROLES.VILLAGE_ADMIN]: '#14b8a6', [ROLES.VILLAGE_CS]: '#06b6d4', [ROLES.OWNER]: '#f97316', [ROLES.BROKER]: '#eab308', [ROLES.AGENT]: '#64748b' }[role] || '#94a3b8'
 }
 function avatarColor(role) { return `linear-gradient(135deg, ${roleColorMap(role)}, ${roleColorMap(role)}dd)` }
 function formatDate(iso) {
@@ -397,7 +398,7 @@ const touched = reactive({
 const creatableRoleOptions = computed(() => {
   const allowed = CREATABLE_ROLES[userRole.value] || []
   const labels = {
-    [ROLES.SITE_CS]: 'خدمة عملاء الأدمن', [ROLES.VILLAGE_CS]: 'خدمة عملاء القرية',
+    [ROLES.SITE_CS]: 'خدمة عملاء الأدمن', [ROLES.VILLAGE_ADMIN]: 'أدمن القرية', [ROLES.VILLAGE_CS]: 'خدمة عملاء القرية',
     [ROLES.OWNER]: 'مالك', [ROLES.BROKER]: 'بروكر', [ROLES.AGENT]: 'مندوب',
   }
   return allowed.map((r) => ({ value: r, label: labels[r] || r }))

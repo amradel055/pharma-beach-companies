@@ -151,7 +151,7 @@ const routes = [
         path: 'users',
         name: 'admin-users',
         component: () => import('@/views/admin/users/UserListView.vue'),
-        meta: { title: 'المستخدمين', roles: [ROLES.SITE_ADMIN, ROLES.SITE_CS, ROLES.VILLAGE_CS] },
+        meta: { title: 'المستخدمين', roles: [ROLES.SITE_ADMIN, ROLES.SITE_CS, ROLES.VILLAGE_ADMIN, ROLES.VILLAGE_CS] },
       },
 
       // Chalet management — Site Admin, Site CS
@@ -195,7 +195,7 @@ const routes = [
         path: 'village',
         name: 'admin-village',
         component: () => import('@/views/admin/village/VillageDashboardView.vue'),
-        meta: { title: 'تقارير القرية', roles: [ROLES.SITE_ADMIN] },
+        meta: { title: 'تقارير القرية', roles: [ROLES.SITE_ADMIN, ROLES.VILLAGE_ADMIN] },
       },
 
       // CS operations — Site Admin, Village CS
@@ -203,13 +203,13 @@ const routes = [
         path: 'orders',
         name: 'admin-orders',
         component: () => import('@/views/admin/cs/OrdersQueueView.vue'),
-        meta: { title: 'الطلبات', roles: [ROLES.SITE_ADMIN, ROLES.VILLAGE_CS] },
+        meta: { title: 'الطلبات', roles: [ROLES.SITE_ADMIN, ROLES.VILLAGE_ADMIN, ROLES.VILLAGE_CS] },
       },
       {
         path: 'orders/:id',
         name: 'admin-order-details',
         component: () => import('@/views/admin/cs/OrderDetailsView.vue'),
-        meta: { title: 'تفاصيل الطلب', roles: [ROLES.SITE_ADMIN, ROLES.VILLAGE_CS] },
+        meta: { title: 'تفاصيل الطلب', roles: [ROLES.SITE_ADMIN, ROLES.VILLAGE_ADMIN, ROLES.VILLAGE_CS] },
       },
 
       // Permits — Site Admin, Village CS, Agent
@@ -217,7 +217,7 @@ const routes = [
         path: 'permits',
         name: 'admin-permits',
         component: () => import('@/views/admin/agent/AgentPermitsView.vue'),
-        meta: { title: 'التصاريح', roles: [ROLES.SITE_ADMIN, ROLES.VILLAGE_CS] },
+        meta: { title: 'التصاريح', roles: [ROLES.SITE_ADMIN, ROLES.VILLAGE_ADMIN, ROLES.VILLAGE_CS] },
       },
 
       // Broker dashboard — Site Admin, Broker
