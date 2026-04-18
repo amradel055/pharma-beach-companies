@@ -6,6 +6,8 @@ export const ROLES = {
   OWNER: 'owner',
   BROKER: 'broker',
   AGENT: 'agent',
+  OPERATOR: 'operator',
+  SECURITY: 'security',
   CUSTOMER: 'customer',
 }
 
@@ -17,6 +19,8 @@ export const ROLE_LABELS = {
   [ROLES.OWNER]: 'مالك',
   [ROLES.BROKER]: 'بروكر',
   [ROLES.AGENT]: 'مندوب',
+  [ROLES.OPERATOR]: 'مشغل',
+  [ROLES.SECURITY]: 'أمن',
   [ROLES.CUSTOMER]: 'عميل',
 }
 
@@ -29,6 +33,8 @@ export const ROLE_HIERARCHY = [
   ROLES.OWNER,
   ROLES.BROKER,
   ROLES.AGENT,
+  ROLES.OPERATOR,
+  ROLES.SECURITY,
   ROLES.CUSTOMER,
 ]
 
@@ -41,7 +47,12 @@ export const ADMIN_ROLES = [
   ROLES.OWNER,
   ROLES.BROKER,
   ROLES.AGENT,
+  ROLES.OPERATOR,
+  ROLES.SECURITY,
 ]
+
+// Roles that are allowed to make bookings
+export const BOOKING_ROLES = [ROLES.AGENT, ROLES.CUSTOMER]
 
 // Permission-to-roles mapping
 export const PERMISSIONS = {
@@ -68,6 +79,14 @@ export const PERMISSIONS = {
   // Agent
   view_agent_permits: [ROLES.SITE_ADMIN, ROLES.AGENT],
 
+  // Operator management
+  manage_operators: [ROLES.SITE_ADMIN, ROLES.VILLAGE_ADMIN],
+  view_operator_dashboard: [ROLES.SITE_ADMIN, ROLES.OPERATOR],
+
+  // Security management
+  manage_security: [ROLES.SITE_ADMIN, ROLES.VILLAGE_ADMIN],
+  scan_qr: [ROLES.SECURITY],
+
   // CS operations
   manage_orders: [ROLES.SITE_ADMIN, ROLES.VILLAGE_ADMIN, ROLES.VILLAGE_CS],
   view_permits: [ROLES.SITE_ADMIN, ROLES.VILLAGE_ADMIN, ROLES.VILLAGE_CS, ROLES.AGENT],
@@ -77,12 +96,21 @@ export const PERMISSIONS = {
 
   // Reports (financial)
   view_financial_reports: [ROLES.SITE_ADMIN, ROLES.SITE_CS, ROLES.VILLAGE_ADMIN, ROLES.OWNER, ROLES.BROKER],
+
+  // Village daily report
+  view_village_report: [ROLES.SITE_ADMIN, ROLES.VILLAGE_ADMIN],
+
+  // Agents page visibility
+  view_agents_page: [ROLES.SITE_ADMIN, ROLES.VILLAGE_ADMIN, ROLES.BROKER],
+
+  // General settings
+  manage_settings: [ROLES.SITE_ADMIN],
 }
 
 // Roles that can be created by each role
 export const CREATABLE_ROLES = {
-  [ROLES.SITE_ADMIN]: [ROLES.SITE_CS, ROLES.VILLAGE_ADMIN, ROLES.VILLAGE_CS, ROLES.OWNER, ROLES.BROKER, ROLES.AGENT],
+  [ROLES.SITE_ADMIN]: [ROLES.SITE_CS, ROLES.VILLAGE_ADMIN, ROLES.VILLAGE_CS, ROLES.OWNER, ROLES.BROKER, ROLES.AGENT, ROLES.OPERATOR, ROLES.SECURITY],
   [ROLES.SITE_CS]: [ROLES.VILLAGE_ADMIN, ROLES.VILLAGE_CS, ROLES.OWNER, ROLES.BROKER, ROLES.AGENT],
-  [ROLES.VILLAGE_ADMIN]: [ROLES.VILLAGE_CS, ROLES.OWNER, ROLES.BROKER, ROLES.AGENT],
+  [ROLES.VILLAGE_ADMIN]: [ROLES.VILLAGE_CS, ROLES.OWNER, ROLES.BROKER, ROLES.AGENT, ROLES.OPERATOR, ROLES.SECURITY],
   [ROLES.VILLAGE_CS]: [ROLES.OWNER, ROLES.BROKER, ROLES.AGENT],
 }

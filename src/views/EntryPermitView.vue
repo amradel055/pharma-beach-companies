@@ -15,13 +15,26 @@
         <span class="booking-id-badge">{{ booking.id }}</span>
       </div>
 
-      <!-- QR Code Card -->
-      <div class="glass-card qr-card anim-item" style="--i: 1" v-if="booking.status === 'PENDING'">
+      <!-- QR Code Card (only after full payment) -->
+      <div class="glass-card qr-card anim-item" style="--i: 1" v-if="isFullyPaid">
         <img v-if="qrDataUrl" :src="qrDataUrl" alt="QR Code" class="qr-image" />
         <div v-else class="qr-placeholder">
           <i class="pi pi-spin pi-spinner" />
         </div>
         <p class="qr-caption">امسح الكود عند بوابة الدخول</p>
+      </div>
+
+      <!-- Payment Required Card -->
+      <div class="glass-card payment-required anim-item" style="--i: 1"
+           v-if="(booking.status === 'PENDING' || booking.status === 'CONFIRMED') && !isFullyPaid">
+        <div class="payment-required-icon">
+          <i class="pi pi-lock" />
+        </div>
+        <p class="payment-required-text">سيظهر QR Code بعد اكتمال الدفع</p>
+        <RouterLink :to="`/booking-confirmation/${booking.id}`" class="complete-payment-btn">
+          <i class="pi pi-wallet" />
+          إكمال الدفع
+        </RouterLink>
       </div>
 
       <!-- Preliminary Booking Notice -->
@@ -131,6 +144,12 @@ const auth = useAuthStore()
 const booking = computed(() => bookingsStore.getBookingById(route.params.id))
 const deadlineHours = computed(() => settings.pendingDurationMinutes / 60)
 
+const isFullyPaid = computed(() => {
+  if (!booking.value) return false
+  const totalPaid = (booking.value.payments || []).reduce((s, p) => s + Number(p.amount || 0), 0)
+  return totalPaid >= booking.value.total && booking.value.total > 0
+})
+
 const qrDataUrl = ref('')
 
 // Countdown timer
@@ -157,6 +176,7 @@ onMounted(async () => {
 
   // Generate QR code
   try {
+    const totalPaid = (b.payments || []).reduce((s, p) => s + Number(p.amount || 0), 0)
     const qrContent = JSON.stringify({
       bookingId: b.id,
       chaletNumber: b.chaletNumber,
@@ -164,6 +184,8 @@ onMounted(async () => {
       checkIn: b.checkIn,
       checkOut: b.checkOut,
       expiresAt: b.expiresAt,
+      userId: b.userId,
+      paymentStatus: totalPaid >= b.total ? 'fully_paid' : totalPaid > 0 ? 'partially_paid' : 'unpaid',
     })
     qrDataUrl.value = await QRCode.toDataURL(qrContent, { width: 280, margin: 2 })
   } catch {
@@ -391,6 +413,61 @@ const instructionLines = computed(() => {
   font-size: 0.84rem;
   color: rgba(255, 255, 255, 0.6);
   font-weight: 600;
+}
+
+/* ═══════════════════════════════════
+   PAYMENT REQUIRED
+   ═══════════════════════════════════ */
+.glass-card.payment-required {
+  text-align: center;
+  padding: 2rem 1.35rem;
+  background: rgba(251, 146, 60, 0.1);
+  border-color: rgba(251, 146, 60, 0.25);
+}
+
+.payment-required-icon {
+  width: 72px;
+  height: 72px;
+  border-radius: 50%;
+  background: rgba(251, 146, 60, 0.15);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  margin: 0 auto 1.25rem;
+  border: 2px solid rgba(251, 146, 60, 0.25);
+}
+
+.payment-required-icon i {
+  font-size: 1.8rem;
+  color: #fb923c;
+}
+
+.payment-required-text {
+  font-size: 0.92rem;
+  color: rgba(255, 255, 255, 0.8);
+  font-weight: 700;
+  margin-bottom: 1.25rem;
+}
+
+.complete-payment-btn {
+  display: inline-flex;
+  align-items: center;
+  gap: 0.5rem;
+  padding: 0.75rem 2rem;
+  border-radius: 50px;
+  background: linear-gradient(135deg, #f97316, #ea580c);
+  color: #fff;
+  font-size: 0.9rem;
+  font-weight: 700;
+  text-decoration: none;
+  font-family: inherit;
+  transition: all 0.3s ease;
+  box-shadow: 0 4px 20px rgba(249, 115, 22, 0.35);
+}
+
+.complete-payment-btn:hover {
+  box-shadow: 0 6px 28px rgba(249, 115, 22, 0.5);
+  transform: translateY(-2px);
 }
 
 /* ═══════════════════════════════════

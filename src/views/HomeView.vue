@@ -1,235 +1,96 @@
 <template>
   <div class="home">
-    <section class="hero">
-      <div :class="['hero-visual', { 'has-spotlight': spotlightIdx !== -1 }]" ref="visualRef">
+    <section class="hero" ref="heroRef" @mousemove="onHeroMouse">
+      <!-- Background image -->
+      <div class="hero-bg">
         <img :src="heroBg" alt="Pharma Beach Resort" />
-        <div class="hero-overlay" />
-
-        <!-- Float Card 1: Chalet preview -->
-        <div
-          :class="['fcard fcard-1', { entered, spotlight: spotlightIdx === 0 }]"
-          :style="spotlightIdx === 0 ? { transform: spotlightTransform } : {}"
-        >
-          <div class="fcard-thumb">
-            <img :src="heroImg" alt="شاليه فاخر" />
-          </div>
-          <div class="fcard-body">
-            <strong>شاليهات فاخرة</strong>
-            <span>إطلالة مباشرة على البحر</span>
-          </div>
-        </div>
-
-        <!-- Float Card 2: Rating -->
-        <div
-          :class="['fcard fcard-2', { entered, spotlight: spotlightIdx === 1 }]"
-          :style="spotlightIdx === 1 ? { transform: spotlightTransform } : {}"
-        >
-          <div class="fcard-icon fcard-icon--star">
-            <i class="pi pi-star-fill" />
-          </div>
-          <div class="fcard-body">
-            <strong>4.9 <small>/ 5</small></strong>
-            <span>تقييم الزوار</span>
-          </div>
-        </div>
-
-        <!-- Float Card 3: Live guests -->
-        <div
-          :class="['fcard fcard-3', { entered, spotlight: spotlightIdx === 2 }]"
-          :style="spotlightIdx === 2 ? { transform: spotlightTransform } : {}"
-        >
-          <div class="fcard-avatars">
-            <span class="avatar a1">A</span>
-            <span class="avatar a2">M</span>
-            <span class="avatar a3">S</span>
-          </div>
-          <div class="fcard-body">
-            <strong>+1,200 حجز</strong>
-            <span>هذا الموسم</span>
-          </div>
-        </div>
-
-        <!-- Float Card 4: Location -->
-        <div
-          :class="['fcard fcard-4', { entered, spotlight: spotlightIdx === 3 }]"
-          :style="spotlightIdx === 3 ? { transform: spotlightTransform } : {}"
-        >
-          <div class="fcard-icon fcard-icon--loc">
-            <i class="pi pi-map-marker" />
-          </div>
-          <div class="fcard-body">
-            <strong>الساحل الشمالي</strong>
-            <span>البحر الأبيض المتوسط</span>
-          </div>
-        </div>
-
-        <!-- Stat Card 1: Chalets -->
-        <div
-          :class="['fcard fcard-stat fcard-s1', { entered, spotlight: spotlightIdx === 4 }]"
-          :style="spotlightIdx === 4 ? { transform: spotlightTransform } : {}"
-        >
-          <div class="fcard-icon fcard-icon--building">
-            <i class="pi pi-building" />
-          </div>
-          <div class="fcard-body">
-            <strong>+50 شاليه</strong>
-            <span>بمساحات متنوعة</span>
-          </div>
-        </div>
-
-        <!-- Stat Card 2: Service -->
-        <div
-          :class="['fcard fcard-stat fcard-s2', { entered, spotlight: spotlightIdx === 5 }]"
-          :style="spotlightIdx === 5 ? { transform: spotlightTransform } : {}"
-        >
-          <div class="fcard-icon fcard-icon--check">
-            <i class="pi pi-check-circle" />
-          </div>
-          <div class="fcard-body">
-            <strong>خدمة متميزة</strong>
-            <span>على مدار الساعة</span>
-          </div>
-        </div>
-
-        <!-- Stat Card 3: Beach -->
-        <div
-          :class="['fcard fcard-stat fcard-s3', { entered, spotlight: spotlightIdx === 6 }]"
-          :style="spotlightIdx === 6 ? { transform: spotlightTransform } : {}"
-        >
-          <div class="fcard-icon fcard-icon--sun">
-            <i class="pi pi-sun" />
-          </div>
-          <div class="fcard-body">
-            <strong>شاطئ خاص</strong>
-            <span>رمال ذهبية نقية</span>
-          </div>
-        </div>
       </div>
 
+      <!-- Dark overlay + mouse spotlight -->
+      <div class="hero-overlay" />
+      <div class="hero-spotlight" :style="spotlightStyle" />
 
-      <!-- Ambient effects -->
-      <div class="hero-ambient">
-        <span
-          v-for="(orb, i) in bokehOrbs" :key="'o'+i"
-          class="bokeh"
+      <!-- Light sweep -->
+      <div class="hero-sweep" />
+
+      <!-- Floating particles -->
+      <div class="hero-particles">
+        <span v-for="n in 20" :key="n" class="particle"
           :style="{
-            left: orb.x, top: orb.y,
-            width: orb.size+'px', height: orb.size+'px',
-            background: orb.clr,
-            '--blur': orb.blur+'px',
-            '--dur': orb.dur+'s',
-            '--del': orb.del+'s',
-            '--dx': orb.dx+'px',
-            '--dy': orb.dy+'px',
-          }"
-        />
-        <span
-          v-for="(s, i) in sparkles" :key="'s'+i"
-          class="sparkle"
-          :style="{
-            left: s.x, top: s.y,
-            width: s.size+'px', height: s.size+'px',
-            '--dur': s.dur+'s',
-            '--del': s.del+'s',
-          }"
-        />
-        <div class="light-sweep" />
+            left: ((n * 5 + 2) % 100) + '%',
+            animationDelay: (n * 0.7) + 's',
+            animationDuration: (6 + n % 5) + 's',
+          }" />
       </div>
 
-      <div class="hero-content">
-        <div class="hero-content-inner">
-          <span class="hero-badge anim-item" style="--i: 0">
-            <i class="pi pi-star-fill" />
-            الوجهة الأولى للاستجمام
+      <!-- Corner frames -->
+      <div class="corner corner--tr" />
+      <div class="corner corner--bl" />
+
+      <!-- Glow ring behind title -->
+      <div class="hero-halo" />
+
+      <!-- Minimal centered content -->
+      <div class="hero-center">
+        <div class="hero-line-deco" />
+        <h1 class="hero-name">
+          <span class="hero-word" data-text="Pharma">
+            <span v-for="(ch, i) in 'Pharma'" :key="'p'+i" class="hl" :style="`--i:${i}`">{{ ch }}</span>
           </span>
-
-          <h1 class="hero-title">
-            <span class="title-word">
-              <span v-for="(ch, i) in 'Pharma'" :key="'p'+i" class="title-letter title-blue" :style="`--d:${i}`">{{ ch }}</span>
-              <span class="title-letter title-space" :style="`--d:6`">&nbsp;</span>
-              <span v-for="(ch, i) in 'Beach'" :key="'b'+i" class="title-letter title-dark" :style="`--d:${i + 7}`">{{ ch }}</span>
-            </span>
-          </h1>
-
-          <p class="hero-desc anim-item" style="--i: 2">
-            استمتع بتجربة استثنائية على شاطئ البحر الأبيض المتوسط،
-            <br />
-            شاليهات فاخرة وخدمات لا مثيل لها
-          </p>
-
-          <div class="hero-actions anim-item" style="--i: 3">
-            <RouterLink to="/booking" class="btn-book">احجز الآن</RouterLink>
-            <a href="#discover" class="btn-discover">
-              اكتشف المزيد
-              <i class="pi pi-arrow-down" />
-            </a>
-          </div>
-
-        </div>
-      </div>
-    </section>
-
-    <!-- Discover Section -->
-    <section id="discover" class="discover">
-      <div class="discover-header">
-        <h2 class="discover-title">اكتشف <span>جمال</span> القرية</h2>
-        <p class="discover-sub">استمتع بمرافق متنوعة تلبي جميع احتياجاتك</p>
-      </div>
-
-      <div class="discover-tabs">
-        <button
-          v-for="(cat, i) in categories"
-          :key="cat.id"
-          :class="['dtab', { active: activeCat === i }]"
-          @click="goToSlide(i)"
-        >{{ cat.label }}</button>
-      </div>
-
-      <div class="discover-carousel">
-        <Swiper
-          :modules="swiperModules"
-          :slides-per-view="1.4"
-          :centered-slides="true"
-          :space-between="24"
-          :loop="true"
-          :speed="650"
-          :grab-cursor="true"
-          :autoplay="{ delay: 4000, disableOnInteraction: false, pauseOnMouseEnter: true }"
-          :navigation="{ nextEl: '.nav-next', prevEl: '.nav-prev' }"
-          :breakpoints="{
-            768: { slidesPerView: 1.6, spaceBetween: 30 },
-            1024: { slidesPerView: 2.2, spaceBetween: 36 },
-          }"
-          effect="coverflow"
-          :coverflow-effect="{ rotate: 4, stretch: 0, depth: 180, modifier: 1, slideShadows: false }"
-          @swiper="onSwiper"
-          @slideChange="onSlideChange"
-        >
-          <SwiperSlide v-for="item in galleryItems" :key="item.id">
-            <div class="dcard">
-              <img :src="item.img" :alt="item.title" loading="lazy" />
-              <div class="dcard-info">
-                <h3>{{ item.title }}</h3>
-                <p>{{ item.desc }}</p>
-              </div>
+          <span class="hero-word hero-word--accent" data-text="Beach">
+            <span v-for="(ch, i) in 'Beach'" :key="'b'+i" class="hl" :style="`--i:${i + 6}`">{{ ch }}</span>
+          </span>
+        </h1>
+        <div class="hero-line-deco" />
+        <p class="hero-arabic">شاليهات فاخرة على ساحل البحر الأبيض المتوسط</p>
+        <div class="hero-meta">
+          <div class="meta-card">
+            <div class="meta-card-icon"><i class="pi pi-map-marker" /></div>
+            <div class="meta-card-text">
+              <strong>الموقع</strong>
+              <span>الساحل الشمالي، مصر</span>
             </div>
-          </SwiperSlide>
-        </Swiper>
-
-        <button class="carousel-nav nav-prev" aria-label="السابق">
-          <i class="pi pi-chevron-right" />
-        </button>
-        <button class="carousel-nav nav-next" aria-label="التالي">
-          <i class="pi pi-chevron-left" />
-        </button>
+          </div>
+          <div class="meta-card">
+            <div class="meta-card-icon meta-card-icon--gold"><i class="pi pi-star-fill" /></div>
+            <div class="meta-card-text">
+              <strong>التقييم</strong>
+              <span>4.9 / 5</span>
+            </div>
+          </div>
+          <div class="meta-card">
+            <div class="meta-card-icon meta-card-icon--blue"><i class="pi pi-sun" /></div>
+            <div class="meta-card-text">
+              <strong>الطقس</strong>
+              <span>28° مشمس</span>
+            </div>
+          </div>
+        </div>
+        <RouterLink to="/booking" class="hero-cta">احجز إقامتك</RouterLink>
       </div>
+
+      <!-- Side vertical text -->
+      <div class="hero-side hero-side--r">PHARMA BEACH RESORT</div>
+      <div class="hero-side hero-side--l">MEDITERRANEAN COAST</div>
+
     </section>
 
     <!-- About Section -->
     <section :class="['about', { 'in-view': aboutVisible }]" ref="aboutRef">
+      <!-- Background decorative elements -->
+      <div class="about-bg-shapes">
+        <div class="about-shape about-shape--1" />
+        <div class="about-shape about-shape--2" />
+        <div class="about-shape about-shape--3" />
+        <div class="about-dots" />
+      </div>
       <div class="about-container">
         <div class="about-text">
-          <span class="about-tag">من نحن</span>
+          <span class="about-tag">
+            <span class="tag-line" />
+            من نحن
+            <span class="tag-line" />
+          </span>
           <h2 class="about-title">نبذة عن <span>القرية</span></h2>
           <p class="about-desc">
             تقع قرية فارما بيتش ريزورت على ساحل البحر الأبيض المتوسط، وتوفر تجربة إقامة فاخرة
@@ -286,6 +147,159 @@
       </div>
     </section>
 
+    <!-- Location Section -->
+    <section class="location">
+      <!-- Background map (always visible, dimmed) -->
+      <div class="loc-bg-map">
+        <iframe
+          src="https://www.google.com/maps/embed?pb=!1m18!1m12!1m3!1d217988.4511519507!2d28.5!3d31.05!2m3!1f0!2f0!3f0!3m2!1i1024!2i768!4f13.1!3m3!1m2!1s0x0%3A0x0!2zMzHCsDAzJzAwLjAiTiAyOMKwMzAnMDAuMCJF!5e0!3m2!1sar!2seg!4v1700000000000"
+          width="100%" height="100%" style="border:0"
+          allowfullscreen="" loading="lazy"
+          referrerpolicy="no-referrer-when-downgrade"
+        />
+        <div class="loc-bg-tint" />
+      </div>
+      <div class="loc-wrapper">
+        <!-- Dark card -->
+        <div class="loc-card">
+          <div class="loc-card-inner">
+            <!-- Left: info -->
+            <div class="loc-info">
+              <span class="loc-tag">
+                <span class="tag-line" />
+                الموقع
+                <span class="tag-line" />
+              </span>
+              <h2 class="loc-title">تجدنا هنا</h2>
+              <div class="loc-detail">
+                <i class="pi pi-map-marker" />
+                <span>الساحل الشمالي — الكيلو 120، مصر</span>
+              </div>
+              <div class="loc-detail">
+                <i class="pi pi-phone" />
+                <span dir="ltr">+20 123 456 7890</span>
+              </div>
+              <div class="loc-detail">
+                <i class="pi pi-clock" />
+                <span>24 ساعة / 7 أيام</span>
+              </div>
+              <div class="loc-actions">
+                <a href="https://maps.google.com" target="_blank" rel="noopener" class="loc-btn-primary">
+                  <i class="pi pi-directions" />
+                  احصل على الاتجاهات
+                </a>
+                <button class="loc-btn-map" @click="showMap = !showMap">
+                  <i :class="showMap ? 'pi pi-times' : 'pi pi-map'" />
+                  {{ showMap ? 'إخفاء الخريطة' : 'عرض الخريطة' }}
+                </button>
+              </div>
+            </div>
+            <!-- Right: map (revealed on click) -->
+            <Transition name="map-reveal">
+              <div v-if="showMap" class="loc-map-panel">
+                <iframe
+                  src="https://www.google.com/maps/embed?pb=!1m18!1m12!1m3!1d217988.4511519507!2d28.5!3d31.05!2m3!1f0!2f0!3f0!3m2!1i1024!2i768!4f13.1!3m3!1m2!1s0x0%3A0x0!2zMzHCsDAzJzAwLjAiTiAyOMKwMzAnMDAuMCJF!5e0!3m2!1sar!2seg!4v1700000000000"
+                  width="100%" height="100%" style="border:0"
+                  allowfullscreen="" loading="lazy"
+                  referrerpolicy="no-referrer-when-downgrade"
+                />
+              </div>
+            </Transition>
+          </div>
+        </div>
+      </div>
+    </section>
+
+    <!-- Discover Section -->
+    <section id="discover" class="discover">
+      <!-- Animated background shapes -->
+      <div class="discover-bg-shapes">
+        <!-- Large gradient circle -->
+        <div class="dshape dshape--blob-1" />
+        <!-- Double ring -->
+        <div class="dshape dshape--ring" />
+        <!-- Oval outline -->
+        <div class="dshape dshape--oval" />
+        <!-- Dot grid -->
+        <div class="dshape dshape--dots" />
+        <!-- Accent circle -->
+        <div class="dshape dshape--accent" />
+      </div>
+      <!-- Header with decorative line -->
+      <div class="discover-header">
+        <span class="discover-tag">
+          <span class="tag-line" />
+          اكتشف القرية
+          <span class="tag-line" />
+        </span>
+        <h2 class="discover-title">جمال <span>فارما بيتش</span> من الداخل</h2>
+        <p class="discover-sub">جولة بصرية في أرجاء القرية ومرافقها</p>
+      </div>
+
+      <!-- Filter chips with icons -->
+      <div class="discover-filters">
+        <button :class="['filter-chip', { active: discoverTab === 'photos' }]" @click="discoverTab = 'photos'">
+          <i class="pi pi-images" />
+          صور
+          <span class="chip-count">{{ galleryItems.length }}</span>
+        </button>
+        <button :class="['filter-chip', { active: discoverTab === 'videos' }]" @click="discoverTab = 'videos'">
+          <i class="pi pi-video" />
+          فيديوهات
+          <span class="chip-count">6</span>
+        </button>
+      </div>
+
+      <!-- Masonry Photos Grid -->
+      <div v-if="discoverTab === 'photos'" class="discover-masonry">
+        <div
+          v-for="(item, idx) in galleryItems"
+          :key="item.id"
+          :class="['mcard', { 'mcard--large': idx === 0 }]"
+          @click="openLightbox(item)"
+          :style="{ '--delay': idx * 0.08 + 's' }"
+        >
+          <img :src="item.img" :alt="item.title" loading="lazy" />
+          <div class="mcard-overlay">
+            <div class="mcard-zoom"><i class="pi pi-search-plus" /></div>
+            <div class="mcard-info">
+              <h3>{{ item.title }}</h3>
+              <p>{{ item.desc }}</p>
+            </div>
+          </div>
+        </div>
+      </div>
+
+      <!-- Videos Grid -->
+      <div v-if="discoverTab === 'videos'" class="discover-masonry">
+        <div
+          v-for="n in 6"
+          :key="'vid-' + n"
+          :class="['mcard', { 'mcard--large': n === 1 }]"
+          :style="{ '--delay': (n - 1) * 0.08 + 's' }"
+        >
+          <div class="mcard-video">
+            <div class="video-play">
+              <i class="pi pi-play-fill" />
+            </div>
+            <span>فيديو القرية {{ n }}</span>
+          </div>
+        </div>
+      </div>
+
+      <!-- Lightbox -->
+      <Teleport to="body">
+        <Transition name="lightbox-fade">
+          <div v-if="lightboxItem" class="lightbox-overlay" @click="lightboxItem = null">
+            <button class="lightbox-close" @click.stop="lightboxItem = null">
+              <i class="pi pi-times" />
+            </button>
+            <img :src="lightboxItem.img" :alt="lightboxItem.title" class="lightbox-img" @click.stop />
+          </div>
+        </Transition>
+      </Teleport>
+    </section>
+
     <!-- Features: Sticky Scroll Section -->
     <section class="features" ref="featRef" :style="{ height: featuresData.length * 100 + 'vh' }">
       <div class="features-sticky">
@@ -315,8 +329,9 @@
         <!-- Steps card -->
         <div class="features-card">
           <span class="features-tag">
-            <i class="pi pi-sparkles" />
+            <span class="tag-line" />
             مميزاتنا
+            <span class="tag-line" />
           </span>
           <h2 class="features-title">هي وجهتك <span>المثالية</span></h2>
           <p class="features-desc">كل ما تحتاجه لعطلة لا تُنسى متوفر في مكان واحد</p>
@@ -333,63 +348,6 @@
               <span class="feat-item-title">{{ feat.title }}</span>
             </button>
           </div>
-        </div>
-      </div>
-    </section>
-
-    <!-- Location Section -->
-    <section class="location">
-      <div class="location-header">
-        <span class="location-tag">الموقع</span>
-        <h2 class="location-title">موقعنا على <span>الخريطة</span></h2>
-        <p class="location-sub">يسهل الوصول إلينا من القاهرة والإسكندرية عبر طريق الساحل الشمالي</p>
-      </div>
-
-      <div class="location-map-wrap">
-        <!-- Full-width Map -->
-        <div class="location-map">
-          <iframe
-            src="https://www.google.com/maps/embed?pb=!1m18!1m12!1m3!1d217988.4511519507!2d28.5!3d31.05!2m3!1f0!2f0!3f0!3m2!1i1024!2i768!4f13.1!3m3!1m2!1s0x0%3A0x0!2zMzHCsDAzJzAwLjAiTiAyOMKwMzAnMDAuMCJF!5e0!3m2!1sar!2seg!4v1700000000000"
-            width="100%"
-            height="100%"
-            style="border:0"
-            allowfullscreen=""
-            loading="lazy"
-            referrerpolicy="no-referrer-when-downgrade"
-          />
-        </div>
-
-        <!-- Glass info card floating over map -->
-        <div class="location-card">
-          <div class="location-card-head">
-            <div class="location-card-icon">
-              <i class="pi pi-map-marker" />
-            </div>
-            <div>
-              <h3 class="location-card-title">فارما بيتش ريزورت</h3>
-              <p class="location-card-sub">الساحل الشمالي — الكيلو 120، مصر</p>
-            </div>
-          </div>
-
-          <div class="location-card-items">
-            <div class="loc-item">
-              <i class="pi pi-phone" />
-              <span dir="ltr">+20 123 456 7890</span>
-            </div>
-            <div class="loc-item">
-              <i class="pi pi-clock" />
-              <span>24 ساعة / 7 أيام</span>
-            </div>
-            <div class="loc-item">
-              <i class="pi pi-envelope" />
-              <span dir="ltr">info@pharmabeach.com</span>
-            </div>
-          </div>
-
-          <a href="https://maps.google.com" target="_blank" rel="noopener" class="map-btn">
-            <i class="pi pi-directions" />
-            افتح في خرائط جوجل
-          </a>
         </div>
       </div>
     </section>
@@ -423,8 +381,9 @@
 
           <div class="cta-inner">
             <span class="cta-badge">
-              <i class="pi pi-bolt" />
+              <span class="tag-line" />
               عروض لفترة محدودة
+              <span class="tag-line" />
             </span>
             <h2 class="cta-title">جاهز لعطلة <span>لا تُنسى</span> ؟</h2>
             <p class="cta-desc">احجز شاليهك الآن واستمتع بأفضل العروض الحصرية على فارما بيتش ريزورت</p>
@@ -446,101 +405,35 @@
 </template>
 
 <script setup>
-import { ref, onMounted, onUnmounted } from 'vue'
-import { Swiper, SwiperSlide } from 'swiper/vue'
-import { Navigation, Autoplay, EffectCoverflow } from 'swiper/modules'
-import 'swiper/css'
-import 'swiper/css/effect-coverflow'
+import { ref, computed, onMounted, onUnmounted } from 'vue'
 import heroBg from '@/assets/images/hero-bg.jpg'
-import heroImg from '@/assets/images/hero-1.jpg'
 
-const bokehOrbs = [
-  { x: '78%', y: '12%', size: 110, clr: 'rgba(var(--primary-rgb), 0.18)', blur: 35, dur: 9, del: 0, dx: -35, dy: 45 },
-  { x: '8%', y: '60%', size: 150, clr: 'rgba(var(--secondary-rgb), 0.14)', blur: 45, dur: 12, del: 3, dx: 45, dy: -30 },
-  { x: '55%', y: '75%', size: 90, clr: 'rgba(var(--primary-rgb), 0.12)', blur: 30, dur: 8, del: 1.5, dx: -25, dy: -40 },
-  { x: '25%', y: '20%', size: 130, clr: 'rgba(var(--secondary-rgb), 0.1)', blur: 40, dur: 14, del: 5, dx: 30, dy: 35 },
-  { x: '90%', y: '50%', size: 80, clr: 'rgba(var(--primary-rgb), 0.15)', blur: 25, dur: 10, del: 2, dx: -40, dy: -20 },
-  { x: '40%', y: '5%', size: 100, clr: 'rgba(255,255,255,0.12)', blur: 30, dur: 11, del: 4, dx: 20, dy: 50 },
-]
+// ---- Hero: mouse spotlight + parallax ----
+const heroRef = ref(null)
+const mouseX = ref(50)
+const mouseY = ref(50)
 
-const sparkles = [
-  { x: '18%', y: '25%', size: 4, dur: 3.5, del: 0 },
-  { x: '72%', y: '18%', size: 3, dur: 4, del: 1.2 },
-  { x: '45%', y: '70%', size: 5, dur: 3, del: 2.5 },
-  { x: '85%', y: '40%', size: 3, dur: 4.5, del: 0.8 },
-  { x: '30%', y: '85%', size: 4, dur: 3.8, del: 3.5 },
-  { x: '60%', y: '35%', size: 3, dur: 5, del: 1.8 },
-  { x: '12%', y: '50%', size: 5, dur: 3.2, del: 4.2 },
-  { x: '92%', y: '72%', size: 4, dur: 4.2, del: 2.8 },
-  { x: '50%', y: '10%', size: 3, dur: 3.6, del: 5 },
-  { x: '75%', y: '88%', size: 4, dur: 4.8, del: 0.5 },
-]
+const spotlightStyle = computed(() => ({
+  background: `radial-gradient(600px circle at ${mouseX.value}% ${mouseY.value}%, rgba(255,255,255,0.04) 0%, transparent 100%)`,
+}))
 
-const visualRef = ref(null)
-const entered = ref(false)
-const spotlightIdx = ref(-1)
-const spotlightTransform = ref('')
-let running = true
-
-// Base transforms that cards use for positioning (fcard-s1 uses translateX(50%) to center)
-const BASE_TRANSFORMS = ['', '', '', '', '', '', '']
-const CARD_COUNT = 7
-
-function wait(ms) {
-  return new Promise(r => setTimeout(r, ms))
+function onHeroMouse(e) {
+  if (!heroRef.value || window.innerWidth < 768) return
+  const rect = heroRef.value.getBoundingClientRect()
+  mouseX.value = ((e.clientX - rect.left) / rect.width * 100).toFixed(1)
+  mouseY.value = ((e.clientY - rect.top) / rect.height * 100).toFixed(1)
 }
 
-async function startShowcase() {
-  // Wait for all entrance animations to finish
-  await wait(5500)
-  if (!running) return
-  entered.value = true
-  await wait(300)
-
-  let lastIdx = -1
-
-  while (running) {
-    // Pause between spotlights
-    await wait(1500 + Math.random() * 1000)
-    if (!running) break
-
-    // Pick a random card (different from last)
-    let idx
-    do {
-      idx = Math.floor(Math.random() * CARD_COUNT)
-    } while (idx === lastIdx)
-    lastIdx = idx
-
-    // Calculate movement to container center
-    const container = visualRef.value
-    if (!container) break
-    const cards = container.querySelectorAll('.fcard')
-    const card = cards[idx]
-    if (!card) continue
-
-    const cRect = container.getBoundingClientRect()
-    const kRect = card.getBoundingClientRect()
-
-    // Target left-center area (away from glass content card)
-    const dx = (cRect.left + cRect.width * 0.3) - (kRect.left + kRect.width / 2)
-    const dy = (cRect.top + cRect.height / 2) - (kRect.top + kRect.height / 2)
-
-    const base = BASE_TRANSFORMS[idx]
-    spotlightTransform.value = `${base} translate(${dx}px, ${dy}px) scale(1.45)`.trim()
-    spotlightIdx.value = idx
-
-    // Hold in spotlight
-    await wait(2500)
-    if (!running) break
-
-    // Return to original position
-    spotlightIdx.value = -1
-    spotlightTransform.value = ''
-
-    // Wait for return transition to finish
-    await wait(900)
-  }
+function onHeroScroll() {
+  if (!heroRef.value) return
+  const y = window.scrollY
+  if (y > window.innerHeight) return
+  const img = heroRef.value.querySelector('.hero-bg > img')
+  if (img) img.style.transform = `scale(${1 + y * 0.0001}) translateY(${y * 0.15}px)`
 }
+
+// ---- Location: map toggle ----
+const showMap = ref(false)
 
 // ---- About Section: scroll entrance ----
 const aboutRef = ref(null)
@@ -576,6 +469,8 @@ function onFeatScroll() {
   activeFeature.value = Math.min(featuresData.length - 1, Math.floor(progress * featuresData.length))
 }
 
+
+
 function goToFeature(idx) {
   if (!featRef.value) return
   const top = featRef.value.offsetTop
@@ -584,7 +479,8 @@ function goToFeature(idx) {
 }
 
 onMounted(() => {
-  startShowcase()
+  window.addEventListener('scroll', onHeroScroll, { passive: true })
+
   aboutObserver = new IntersectionObserver(
     ([entry]) => { if (entry.isIntersecting) { aboutVisible.value = true; aboutObserver.disconnect() } },
     { threshold: 0.15 }
@@ -599,24 +495,15 @@ onMounted(() => {
   featuresData.forEach(f => { const img = new Image(); img.src = f.img })
 })
 onUnmounted(() => {
-  running = false
   aboutObserver?.disconnect()
   ctaObserver?.disconnect()
   window.removeEventListener('scroll', onFeatScroll)
+  window.removeEventListener('scroll', onHeroScroll)
 })
 
 // ---- Discover Section ----
-const swiperModules = [Navigation, Autoplay, EffectCoverflow]
-let swiperInstance = null
-
-const categories = [
-  { id: 'pool', label: 'مسبح' },
-  { id: 'beach', label: 'شاطئ خاص' },
-  { id: 'chalets', label: 'شاليهات' },
-  { id: 'restaurants', label: 'مطاعم' },
-  { id: 'waterGames', label: 'ألعاب مائية' },
-  { id: 'gardens', label: 'حدائق' },
-]
+const discoverTab = ref('photos')
+const lightboxItem = ref(null)
 
 const galleryItems = [
   { id: 1, title: 'المسبح الرئيسي', desc: 'استرخاء وسباحة بلا حدود', img: 'https://picsum.photos/seed/pharma-pool/800/500' },
@@ -627,757 +514,569 @@ const galleryItems = [
   { id: 6, title: 'الحدائق', desc: 'طبيعة خلابة واسترخاء', img: 'https://picsum.photos/seed/pharma-garden/800/500' },
 ]
 
-const activeCat = ref(0)
-
-function onSwiper(swiper) {
-  swiperInstance = swiper
-}
-
-function onSlideChange(swiper) {
-  activeCat.value = swiper.realIndex
-}
-
-function goToSlide(idx) {
-  if (swiperInstance) swiperInstance.slideToLoop(idx, 650)
+function openLightbox(item) {
+  lightboxItem.value = item
 }
 </script>
 
 <style scoped>
+/* ═══════════════════════════════════
+   HERO — DARK MODE LUXURY (ANIMATED)
+   ═══════════════════════════════════ */
 .hero {
   position: relative;
-  min-height: 100vh;
+  height: 100vh;
   overflow: hidden;
   display: flex;
   align-items: center;
+  justify-content: center;
+  background: #0a0e1a;
 }
 
-/* ---- Full Background Image ---- */
-.hero-visual {
+/* ---- Background ---- */
+.hero-bg {
   position: absolute;
   inset: 0;
+}
+
+.hero-bg > img {
+  width: 100%;
+  height: 100%;
+  object-fit: cover;
+  display: block;
+  opacity: 0;
+  animation: kb 35s ease-in-out infinite alternate, img-reveal 2.5s ease-out 0.3s forwards;
+}
+
+@keyframes kb {
+  0% { transform: scale(1); }
+  100% { transform: scale(1.06) translate(-0.5%, -0.3%); }
+}
+
+@keyframes img-reveal {
+  from { opacity: 0; }
+  to { opacity: 1; }
 }
 
 .hero-overlay {
   position: absolute;
   inset: 0;
-  background: linear-gradient(
-    90deg,
-    rgba(0, 0, 0, 0.45) 0%,
-    rgba(0, 0, 0, 0.3) 40%,
-    rgba(0, 0, 0, 0.12) 100%
-  );
   z-index: 1;
+  background:
+    radial-gradient(ellipse at center, rgba(10, 14, 26, 0.3) 0%, rgba(10, 14, 26, 0.65) 100%),
+    linear-gradient(180deg, rgba(10, 14, 26, 0.5) 0%, rgba(10, 14, 26, 0.2) 40%, rgba(10, 14, 26, 0.2) 60%, rgba(10, 14, 26, 0.6) 100%);
 }
 
-.hero-visual > img {
-  width: 100%;
-  height: 100%;
-  object-fit: cover;
-  display: block;
-  animation: img-reveal 1.2s cubic-bezier(0.22, 1, 0.36, 1) forwards;
-}
-
-@keyframes img-reveal {
-  from {
-    opacity: 0;
-    scale: 1.08;
-  }
-  to {
-    opacity: 1;
-    scale: 1;
-  }
-}
-
-/* ---- Floating Cards ---- */
-.fcard {
-  position: absolute;
-  display: flex;
-  align-items: center;
-  gap: 0.7rem;
-  padding: 0.55rem 1rem 0.55rem 0.55rem;
-  background: rgba(255, 255, 255, 0.88);
-  backdrop-filter: blur(14px) saturate(160%);
-  -webkit-backdrop-filter: blur(14px) saturate(160%);
-  border-radius: 14px;
-  box-shadow: 0 8px 32px rgba(0, 0, 0, 0.12), 0 2px 6px rgba(0, 0, 0, 0.06);
-  border: 1px solid rgba(255, 255, 255, 0.5);
-  z-index: 5;
-  opacity: 0;
-  will-change: transform, opacity;
-}
-
-/* ---- Entered state (after entrance animations) ---- */
-.fcard.entered {
-  animation: none;
-  opacity: 1;
-  transition:
-    transform 0.75s cubic-bezier(0.34, 1.56, 0.64, 1),
-    box-shadow 0.6s ease,
-    filter 0.5s ease;
-}
-
-.fcard.spotlight {
-  z-index: 10;
-  box-shadow:
-    0 20px 60px rgba(0, 0, 0, 0.22),
-    0 4px 12px rgba(0, 0, 0, 0.08);
-}
-
-.has-spotlight .fcard.entered:not(.spotlight) {
-  filter: brightness(0.75) saturate(0.6);
-}
-
-.fcard-body {
-  display: flex;
-  flex-direction: column;
-  gap: 1px;
-}
-
-.fcard-body strong {
-  font-size: 0.82rem;
-  font-weight: 700;
-  color: #0f172a;
-  white-space: nowrap;
-}
-
-.fcard-body strong small {
-  font-weight: 500;
-  color: #94a3b8;
-  font-size: 0.72rem;
-}
-
-.fcard-body span {
-  font-size: 0.72rem;
-  color: #64748b;
-  font-weight: 500;
-  white-space: nowrap;
-}
-
-/* --- Card 1: Chalet preview --- */
-.fcard-1 {
-  bottom: 8rem;
-  left: 4%;
-  animation:
-    fc-enter-right 0.9s cubic-bezier(0.22, 1, 0.36, 1) 1.4s forwards,
-    fc-drift-1 6s ease-in-out 2.3s infinite;
-}
-
-.fcard-thumb {
-  width: 50px;
-  height: 50px;
-  border-radius: 10px;
-  overflow: hidden;
-  flex-shrink: 0;
-}
-
-.fcard-thumb img {
-  width: 100%;
-  height: 100%;
-  object-fit: cover;
-}
-
-/* --- Card 2: Rating --- */
-.fcard-2 {
-  top: 7rem;
-  left: 2%;
-  animation:
-    fc-enter-right 0.9s cubic-bezier(0.22, 1, 0.36, 1) 1.8s forwards,
-    fc-drift-2 7s ease-in-out 2.7s infinite;
-}
-
-.fcard-icon {
-  width: 40px;
-  height: 40px;
-  border-radius: 10px;
-  display: flex;
-  align-items: center;
-  justify-content: center;
-  font-size: 1rem;
-  flex-shrink: 0;
-}
-
-.fcard-icon--star {
-  background: rgba(250, 204, 21, 0.15);
-  color: #eab308;
-}
-
-/* --- Card 3: Guests --- */
-.fcard-3 {
-  bottom: 3rem;
-  left: 30%;
-  animation:
-    fc-enter-left 0.9s cubic-bezier(0.22, 1, 0.36, 1) 2.2s forwards,
-    fc-drift-3 8s ease-in-out 3.1s infinite;
-}
-
-.fcard-avatars {
-  display: flex;
-  flex-shrink: 0;
-}
-
-.avatar {
-  width: 32px;
-  height: 32px;
-  border-radius: 50%;
-  display: flex;
-  align-items: center;
-  justify-content: center;
-  font-size: 0.7rem;
-  font-weight: 700;
-  color: #fff;
-  border: 2px solid rgba(255, 255, 255, 0.9);
-}
-
-.avatar:not(:first-child) {
-  margin-right: -10px;
-}
-
-.a1 { background: var(--primary); }
-.a2 { background: var(--secondary); }
-.a3 { background: #8b5cf6; }
-
-/* --- Card 4: Location --- */
-.fcard-4 {
-  top: 13rem;
-  left: 28%;
-  animation:
-    fc-enter-left 0.9s cubic-bezier(0.22, 1, 0.36, 1) 2.6s forwards,
-    fc-drift-4 9s ease-in-out 3.5s infinite;
-}
-
-.fcard-icon--loc {
-  background: rgba(var(--primary-rgb), 0.12);
-  color: var(--primary);
-}
-
-/* --- Stat Cards --- */
-.fcard-stat {
-  padding: 0.45rem 0.9rem 0.45rem 0.45rem;
-}
-
-.fcard-stat .fcard-icon {
-  width: 36px;
-  height: 36px;
-  border-radius: 9px;
-  font-size: 0.9rem;
-}
-
-.fcard-s1 {
-  bottom: 2.5rem;
-  left: 15%;
-  animation:
-    fc-enter-bottom 0.9s cubic-bezier(0.22, 1, 0.36, 1) 3s forwards,
-    fc-drift-s1 7s ease-in-out 3.9s infinite;
-}
-
-.fcard-s2 {
-  top: 42%;
-  left: 1%;
-  animation:
-    fc-enter-left 0.9s cubic-bezier(0.22, 1, 0.36, 1) 3.3s forwards,
-    fc-drift-s2 8s ease-in-out 4.2s infinite;
-}
-
-.fcard-s3 {
-  top: 38%;
-  left: 40%;
-  animation:
-    fc-enter-right 0.9s cubic-bezier(0.22, 1, 0.36, 1) 3.6s forwards,
-    fc-drift-s3 9s ease-in-out 4.5s infinite;
-}
-
-.fcard-icon--building {
-  background: rgba(var(--secondary-rgb), 0.12);
-  color: var(--secondary);
-}
-
-.fcard-icon--check {
-  background: rgba(34, 197, 94, 0.12);
-  color: #16a34a;
-}
-
-.fcard-icon--sun {
-  background: rgba(250, 204, 21, 0.12);
-  color: #ca8a04;
-}
-
-/* ---- Entrance Animations ---- */
-@keyframes fc-enter-right {
-  0% {
-    opacity: 0;
-    transform: translateX(-40px) translateY(15px) scale(0.88);
-  }
-  65% {
-    opacity: 1;
-    transform: translateX(5px) translateY(-2px) scale(1.03);
-  }
-  100% {
-    opacity: 1;
-    transform: translate(0, 0) scale(1);
-  }
-}
-
-@keyframes fc-enter-left {
-  0% {
-    opacity: 0;
-    transform: translateX(40px) translateY(15px) scale(0.88);
-  }
-  65% {
-    opacity: 1;
-    transform: translateX(-5px) translateY(-2px) scale(1.03);
-  }
-  100% {
-    opacity: 1;
-    transform: translate(0, 0) scale(1);
-  }
-}
-
-@keyframes fc-enter-bottom {
-  0% {
-    opacity: 0;
-    transform: translateY(30px) scale(0.88);
-  }
-  65% {
-    opacity: 1;
-    transform: translateY(-4px) scale(1.03);
-  }
-  100% {
-    opacity: 1;
-    transform: translateY(0) scale(1);
-  }
-}
-
-/* ---- Drift / Float Animations (each unique) ---- */
-@keyframes fc-drift-1 {
-  0%, 100% { transform: translateY(0) rotate(0deg); }
-  25% { transform: translateY(-9px) rotate(0.6deg); }
-  55% { transform: translateY(-3px) rotate(-0.4deg); }
-  80% { transform: translateY(-11px) rotate(0.3deg); }
-}
-
-@keyframes fc-drift-2 {
-  0%, 100% { transform: translateY(0) translateX(0); }
-  20% { transform: translateY(-6px) translateX(3px); }
-  50% { transform: translateY(-12px) translateX(-2px); }
-  75% { transform: translateY(-4px) translateX(4px); }
-}
-
-@keyframes fc-drift-3 {
-  0%, 100% { transform: translateY(0) rotate(0deg); }
-  30% { transform: translateY(-7px) rotate(-0.5deg); }
-  60% { transform: translateY(-13px) rotate(0.4deg); }
-  85% { transform: translateY(-5px) rotate(-0.2deg); }
-}
-
-@keyframes fc-drift-4 {
-  0%, 100% { transform: translateY(0) translateX(0) rotate(0deg); }
-  20% { transform: translateY(-10px) translateX(-3px) rotate(-0.5deg); }
-  45% { transform: translateY(-4px) translateX(2px) rotate(0.3deg); }
-  70% { transform: translateY(-12px) translateX(-1px) rotate(-0.3deg); }
-  90% { transform: translateY(-6px) translateX(3px) rotate(0.2deg); }
-}
-
-@keyframes fc-drift-s1 {
-  0%, 100% { transform: translateY(0) rotate(0deg); }
-  35% { transform: translateY(-8px) rotate(0.4deg); }
-  65% { transform: translateY(-4px) rotate(-0.3deg); }
-  85% { transform: translateY(-10px) rotate(0.2deg); }
-}
-
-@keyframes fc-drift-s2 {
-  0%, 100% { transform: translateY(0) translateX(0); }
-  25% { transform: translateY(-9px) translateX(2px); }
-  50% { transform: translateY(-5px) translateX(-3px); }
-  75% { transform: translateY(-11px) translateX(1px); }
-}
-
-@keyframes fc-drift-s3 {
-  0%, 100% { transform: translateY(0) rotate(0deg); }
-  20% { transform: translateY(-7px) rotate(0.5deg); }
-  50% { transform: translateY(-12px) rotate(-0.3deg); }
-  80% { transform: translateY(-5px) rotate(0.4deg); }
-}
-
-/* ---- Staggered entrance animation ---- */
-.anim-item {
-  opacity: 0;
-  transform: translateY(30px) translateX(15px);
-  animation: curtain-in 0.8s cubic-bezier(0.22, 1, 0.36, 1) forwards;
-  animation-delay: calc(0.15s * var(--i) + 0.3s);
-}
-
-@keyframes curtain-in {
-  0% {
-    opacity: 0;
-    transform: translateY(30px) translateX(15px);
-    filter: blur(4px);
-  }
-  60% {
-    filter: blur(0);
-  }
-  100% {
-    opacity: 1;
-    transform: translateY(0) translateX(0);
-    filter: blur(0);
-  }
-}
-
-/* ---- Ambient Background ---- */
-.hero-ambient {
+/* ---- Mouse spotlight ---- */
+.hero-spotlight {
   position: absolute;
   inset: 0;
-  overflow: hidden;
+  z-index: 2;
   pointer-events: none;
-  z-index: 3;
+  transition: background 0.3s ease;
 }
 
-/* Bokeh orbs */
-.bokeh {
+/* ---- Light sweep ---- */
+.hero-sweep {
   position: absolute;
-  border-radius: 50%;
-  filter: blur(var(--blur));
-  opacity: 0;
-  animation: bokeh-drift var(--dur) ease-in-out var(--del) infinite;
+  inset: 0;
+  z-index: 2;
+  pointer-events: none;
+  overflow: hidden;
 }
 
-@keyframes bokeh-drift {
-  0% {
-    opacity: 0;
-    transform: translate(0, 0) scale(0.7);
-  }
-  15% {
-    opacity: 1;
-  }
-  50% {
-    opacity: 1;
-    transform: translate(var(--dx), var(--dy)) scale(1.15);
-  }
-  85% {
-    opacity: 1;
-  }
-  100% {
-    opacity: 0;
-    transform: translate(calc(var(--dx) * -0.5), calc(var(--dy) * -0.5)) scale(0.8);
-  }
-}
-
-/* Sparkle dots */
-.sparkle {
-  position: absolute;
-  border-radius: 50%;
-  background: white;
-  opacity: 0;
-  box-shadow: 0 0 6px 2px rgba(255, 255, 255, 0.3);
-  animation: sparkle-pulse var(--dur) ease-in-out var(--del) infinite;
-}
-
-@keyframes sparkle-pulse {
-  0%, 100% {
-    opacity: 0;
-    transform: scale(0) rotate(0deg);
-  }
-  15% {
-    opacity: 0;
-    transform: scale(0) rotate(0deg);
-  }
-  40% {
-    opacity: 0.9;
-    transform: scale(1) rotate(90deg);
-  }
-  60% {
-    opacity: 0.9;
-    transform: scale(1.2) rotate(180deg);
-  }
-  80% {
-    opacity: 0;
-    transform: scale(0) rotate(270deg);
-  }
-}
-
-/* Light sweep */
-.light-sweep {
+.hero-sweep::after {
+  content: '';
   position: absolute;
   top: 0;
-  left: -80%;
-  width: 50%;
+  left: -60%;
+  width: 35%;
   height: 100%;
-  background: linear-gradient(
-    105deg,
-    transparent 30%,
-    rgba(255, 255, 255, 0.04) 45%,
-    rgba(255, 255, 255, 0.08) 50%,
-    rgba(255, 255, 255, 0.04) 55%,
-    transparent 70%
-  );
+  background: linear-gradient(105deg, transparent 35%, rgba(255,255,255,0.03) 45%, rgba(255,255,255,0.06) 50%, rgba(255,255,255,0.03) 55%, transparent 65%);
   transform: skewX(-15deg);
-  animation: sweep 7s ease-in-out 2s infinite;
+  animation: sweep 8s ease-in-out 3s infinite;
 }
 
 @keyframes sweep {
-  0%, 100% {
-    left: -80%;
+  0%, 100% { left: -60%; opacity: 0; }
+  10% { opacity: 1; }
+  50% { left: 130%; opacity: 1; }
+  60% { opacity: 0; }
+}
+
+/* ---- Glow halo behind title ---- */
+.hero-halo {
+  position: absolute;
+  z-index: 3;
+  top: 50%;
+  left: 50%;
+  transform: translate(-50%, -50%);
+  width: 450px;
+  height: 250px;
+  border-radius: 50%;
+  background: radial-gradient(ellipse, rgba(249,115,22,0.06) 0%, transparent 70%);
+  pointer-events: none;
+  opacity: 0;
+  animation: halo-in 1.5s ease 2.5s forwards, halo-pulse 5s ease-in-out 4s infinite;
+}
+
+@keyframes halo-in {
+  to { opacity: 1; }
+}
+
+@keyframes halo-pulse {
+  0%, 100% { transform: translate(-50%, -50%) scale(1); opacity: 0.7; }
+  50% { transform: translate(-50%, -50%) scale(1.12); opacity: 1; }
+}
+
+/* ---- Floating particles ---- */
+.hero-particles {
+  position: absolute;
+  inset: 0;
+  z-index: 2;
+  pointer-events: none;
+  overflow: hidden;
+}
+
+.particle {
+  position: absolute;
+  bottom: -10px;
+  width: 2px;
+  height: 2px;
+  border-radius: 50%;
+  background: rgba(255, 255, 255, 0.4);
+  animation: rise linear infinite;
+}
+
+@keyframes rise {
+  0% {
+    bottom: -10px;
     opacity: 0;
   }
   10% {
-    opacity: 1;
+    opacity: 0.6;
   }
-  50% {
-    left: 130%;
-    opacity: 1;
-  }
-  60% {
-    opacity: 0;
-  }
-}
-
-/* ---- Frosted Glass Content Card ---- */
-.hero-content {
-  position: relative;
-  z-index: 10;
-  margin-left: auto;
-  margin-right: 0;
-  width: 45%;
-  background: rgba(255, 255, 255, 0.78);
-  backdrop-filter: blur(24px) saturate(180%);
-  -webkit-backdrop-filter: blur(24px) saturate(180%);
-  border-radius: 32px 0 0 32px;
-  border: 1px solid rgba(255, 255, 255, 0.6);
-  box-shadow:
-    0 24px 80px rgba(0, 0, 0, 0.12),
-    0 4px 16px rgba(0, 0, 0, 0.06),
-    inset 0 1px 0 rgba(255, 255, 255, 0.5);
-  animation: glass-enter 1s cubic-bezier(0.22, 1, 0.36, 1) 0.3s both;
-}
-
-@keyframes glass-enter {
-  from {
-    opacity: 0;
-    transform: translateX(40px) scale(0.96);
-  }
-  to {
-    opacity: 1;
-    transform: translateX(0) scale(1);
-  }
-}
-
-.hero-content-inner {
-  display: flex;
-  flex-direction: column;
-  gap: 1.5rem;
-  padding: 3rem;
-}
-
-.hero-badge {
-  display: inline-flex;
-  align-items: center;
-  gap: 0.5rem;
-  padding: 0.45rem 1.25rem;
-  border-radius: 50px;
-  border: 1.5px solid rgba(var(--primary-rgb), 0.4);
-  color: var(--primary);
-  font-size: 0.85rem;
-  font-weight: 600;
-  width: fit-content;
-  background: rgba(var(--primary-rgb), 0.08);
-}
-
-.hero-badge i {
-  font-size: 0.75rem;
-}
-
-/* ---- Hero Title ---- */
-.hero-title {
-  font-family: 'Playfair Display', Georgia, serif;
-  line-height: 1.1;
-  perspective: 600px;
-  direction: ltr;
-  text-align: right;
-}
-
-.title-word {
-  display: block;
-  font-size: 3.8rem;
-  font-weight: 900;
-}
-
-.title-blue {
-  color: var(--secondary);
-}
-
-.title-dark {
-  color: #0f172a;
-}
-
-.title-space {
-  width: 0.3em;
-}
-
-/* ---- Letter Animation ---- */
-.title-letter {
-  display: inline-block;
-  opacity: 0;
-  transform: translateY(100%) rotateX(-80deg);
-  transform-origin: top center;
-  animation:
-    letter-rise 0.7s cubic-bezier(0.16, 1, 0.3, 1) forwards,
-    letter-wave 4s ease-in-out infinite;
-  animation-delay:
-    calc(0.08s * var(--d) + 0.5s),
-    calc(0.12s * var(--d) + 2.5s);
-}
-
-@keyframes letter-rise {
-  0% {
-    opacity: 0;
-    transform: translateY(100%) rotateX(-80deg);
-    filter: blur(6px);
-  }
-  40% {
-    opacity: 1;
-    filter: blur(0);
-  }
-  70% {
-    transform: translateY(-8%) rotateX(5deg);
+  90% {
+    opacity: 0.3;
   }
   100% {
-    opacity: 1;
-    transform: translateY(0) rotateX(0deg);
-    filter: blur(0);
+    bottom: 105%;
+    opacity: 0;
   }
+}
+
+/* ---- Corner frames ---- */
+.corner {
+  position: absolute;
+  z-index: 5;
+  width: 80px;
+  height: 80px;
+  pointer-events: none;
+  opacity: 0;
+  animation: corner-in 1s ease 2.5s forwards;
+}
+
+.corner--tr {
+  top: 2.5rem;
+  right: 2.5rem;
+  border-top: 1px solid rgba(255, 255, 255, 0.15);
+  border-right: 1px solid rgba(255, 255, 255, 0.15);
+}
+
+.corner--bl {
+  bottom: 2.5rem;
+  left: 2.5rem;
+  border-bottom: 1px solid rgba(255, 255, 255, 0.15);
+  border-left: 1px solid rgba(255, 255, 255, 0.15);
+}
+
+@keyframes corner-in {
+  from { opacity: 0; transform: scale(0.6); }
+  to { opacity: 1; transform: scale(1); }
+}
+
+/* ---- Centered content ---- */
+.hero-center {
+  position: relative;
+  z-index: 10;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  text-align: center;
+  gap: 0.75rem;
+}
+
+/* ---- Line decorations ---- */
+.hero-line-deco {
+  width: 0;
+  height: 1px;
+  background: linear-gradient(90deg, transparent, rgba(255, 255, 255, 0.4), transparent);
+  animation: line-expand 1.2s ease 1.8s forwards, line-breathe 4s ease-in-out 3.5s infinite;
+}
+
+@keyframes line-expand {
+  from { width: 0; }
+  to { width: 80px; }
+}
+
+@keyframes line-breathe {
+  0%, 100% { width: 80px; opacity: 0.3; }
+  50% { width: 120px; opacity: 0.55; }
+}
+
+/* ---- Title ---- */
+.hero-name {
+  line-height: 1;
+  margin: 0.75rem 0;
+  direction: ltr;
+  white-space: nowrap;
+  position: relative;
+  overflow: hidden;
+  display: flex;
+  align-items: baseline;
+  justify-content: center;
+  gap: 2.5rem;
+}
+
+/* Both words — neon outlined stroke with depth */
+.hero-word {
+  font-family: 'Playfair Display', Georgia, serif;
+  font-size: 9rem;
+  font-weight: 900;
+  color: rgba(249, 115, 22, 0.06);
+  -webkit-text-stroke: 3px #fbbf24;
+  letter-spacing: 8px;
+  display: inline-block;
+  position: relative;
+  opacity: 0;
+  animation: word-in 1s cubic-bezier(0.22, 1, 0.36, 1) 1s forwards, neon-glow 5s ease-in-out 3s infinite;
+  text-shadow:
+    0 0 8px rgba(249, 115, 22, 0.08),
+    0 0 20px rgba(249, 115, 22, 0.05);
+}
+
+/* White outline behind (depth layer) */
+.hero-word::before {
+  content: attr(data-text);
+  position: absolute;
+  inset: 0;
+  color: transparent;
+  -webkit-text-stroke: 5px rgba(255, 255, 255, 0.08);
+  z-index: -1;
+  pointer-events: none;
+}
+
+/* "Beach" — filled primary with outlined gold stroke on top */
+.hero-word--accent {
+  letter-spacing: 10px;
+  color: rgba(249, 115, 22, 0.55);
+  -webkit-text-stroke: 1.5px #fbbf24;
+  text-shadow:
+    0 0 12px rgba(249, 115, 22, 0.2),
+    0 4px 30px rgba(0, 0, 0, 0.3);
+  animation:
+    word-in 1s cubic-bezier(0.22, 1, 0.36, 1) 1.3s forwards,
+    beach-glow 5s ease-in-out 3.5s infinite;
+}
+
+.hero-word--accent::before {
+  -webkit-text-stroke: 4px rgba(249, 115, 22, 0.12);
+  color: transparent;
+  filter: blur(3px);
+}
+
+@keyframes beach-glow {
+  0%, 100% {
+    text-shadow:
+      0 0 12px rgba(249, 115, 22, 0.2),
+      0 4px 30px rgba(0, 0, 0, 0.3);
+  }
+  50% {
+    text-shadow:
+      0 0 20px rgba(249, 115, 22, 0.3),
+      0 0 40px rgba(249, 115, 22, 0.1),
+      0 4px 30px rgba(0, 0, 0, 0.3);
+  }
+}
+
+/* Entrance */
+@keyframes word-in {
+  0% { opacity: 0; transform: translateY(20px); filter: blur(6px); }
+  100% { opacity: 1; transform: translateY(0); filter: blur(0); }
+}
+
+/* Continuous: subtle glow breathe */
+@keyframes neon-glow {
+  0%, 100% {
+    filter: drop-shadow(0 0 6px rgba(249, 115, 22, 0.08));
+  }
+  50% {
+    filter: drop-shadow(0 0 12px rgba(249, 115, 22, 0.15));
+  }
+}
+
+/* ---- Per-letter wave animation ---- */
+.hl {
+  display: inline-block;
+  animation: letter-wave 4s ease-in-out infinite;
+  animation-delay: calc(0.2s * var(--i));
 }
 
 @keyframes letter-wave {
-  0%, 50%, 100% {
-    transform: translateY(0) scale(1);
-  }
-  20% {
-    transform: translateY(-14px) scale(1.08);
-  }
-  35% {
-    transform: translateY(3px) scale(0.98);
-  }
+  0%, 100% { transform: translateY(0); }
+  50% { transform: translateY(-6px); }
 }
 
-.hero-desc {
-  font-size: 1.05rem;
-  line-height: 1.85;
-  color: #475569;
+/* ---- Arabic tagline ---- */
+.hero-arabic {
+  font-size: 1.15rem;
+  color: rgba(255, 255, 255, 0.5);
+  font-weight: 600;
+  margin-top: 0.5rem;
+  max-width: 500px;
+  line-height: 1.7;
+  opacity: 0;
+  animation: text-rise 0.8s ease 2.2s forwards;
+}
+
+@keyframes text-rise {
+  from { opacity: 0; transform: translateY(12px); filter: blur(3px); }
+  to { opacity: 1; transform: translateY(0); filter: blur(0); }
+}
+
+/* ---- Meta: location, rating, weather ---- */
+.hero-meta {
+  display: flex;
+  align-items: center;
+  gap: 0.6rem;
+  margin-top: 0.75rem;
+  opacity: 0;
+  animation: text-rise 0.8s ease 2.6s forwards;
+}
+
+.meta-card {
+  display: flex;
+  align-items: center;
+  gap: 0.65rem;
+  padding: 0.65rem 1.1rem;
+  border-radius: 14px;
+  background: rgba(255, 255, 255, 0.06);
+  border: 1px solid rgba(255, 255, 255, 0.08);
+  backdrop-filter: blur(16px);
+  -webkit-backdrop-filter: blur(16px);
+  transition: all 0.35s ease;
+}
+
+.meta-card:hover {
+  background: rgba(255, 255, 255, 0.12);
+  border-color: rgba(255, 255, 255, 0.18);
+  transform: translateY(-2px);
+  box-shadow: 0 8px 24px rgba(0, 0, 0, 0.15);
+}
+
+.meta-card-icon {
+  width: 36px;
+  height: 36px;
+  border-radius: 10px;
+  background: rgba(249, 115, 22, 0.12);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  flex-shrink: 0;
+  transition: transform 0.3s ease;
+}
+
+.meta-card:hover .meta-card-icon {
+  transform: scale(1.1);
+}
+
+.meta-card-icon i {
+  font-size: 0.85rem;
+  color: #f97316;
+}
+
+.meta-card-icon--gold {
+  background: rgba(251, 191, 36, 0.12);
+}
+.meta-card-icon--gold i { color: #fbbf24; }
+
+.meta-card-icon--blue {
+  background: rgba(56, 189, 248, 0.12);
+}
+.meta-card-icon--blue i { color: #38bdf8; }
+
+.meta-card-text {
+  display: flex;
+  flex-direction: column;
+  gap: 0.1rem;
+}
+
+.meta-card-text strong {
+  font-size: 0.62rem;
+  color: rgba(255, 255, 255, 0.35);
+  font-weight: 600;
+  letter-spacing: 1px;
+  text-transform: uppercase;
+}
+
+.meta-card-text span {
+  font-size: 0.82rem;
+  color: rgba(255, 255, 255, 0.7);
+  font-weight: 700;
+}
+
+@keyframes fade-in {
+  from { opacity: 0; transform: translateY(10px); }
+  to { opacity: 1; transform: translateY(0); }
+}
+
+/* ---- CTA ---- */
+.hero-cta {
+  display: inline-block;
+  margin-top: 1.75rem;
+  padding: 0.9rem 3.5rem;
+  border: 1.5px solid rgba(249, 115, 22, 0.5);
+  color: #fff;
+  text-decoration: none;
+  font-size: 0.88rem;
+  font-weight: 700;
+  letter-spacing: 3px;
+  text-transform: uppercase;
+  border-radius: 50px;
+  position: relative;
+  overflow: hidden;
+  opacity: 0;
+  animation: text-rise 0.8s ease 2.8s forwards;
+  transition: all 0.4s ease;
+  background: transparent;
+}
+
+.hero-cta::before {
+  content: '';
+  position: absolute;
+  inset: 0;
+  border-radius: 50px;
+  background: linear-gradient(135deg, rgba(249, 115, 22, 0.15), rgba(249, 115, 22, 0.05));
+  opacity: 0;
+  transition: opacity 0.4s ease;
+}
+
+.hero-cta:hover {
+  border-color: rgba(249, 115, 22, 0.8);
+  box-shadow: 0 0 25px rgba(249, 115, 22, 0.15);
+}
+
+.hero-cta:hover::before {
+  opacity: 1;
+}
+
+/* ---- Side vertical text ---- */
+.hero-side {
+  position: absolute;
+  z-index: 5;
+  font-size: 0.55rem;
+  letter-spacing: 4px;
+  color: rgba(255, 255, 255, 0.08);
+  font-weight: 600;
+  text-transform: uppercase;
+  writing-mode: vertical-lr;
+  white-space: nowrap;
+  pointer-events: none;
+  opacity: 0;
+  animation: fade-in 1s ease 3s forwards;
+}
+
+.hero-side--r {
+  right: 2.5rem;
+  top: 50%;
+  transform: translateY(-50%);
+}
+
+.hero-side--l {
+  left: 2.5rem;
+  top: 50%;
+  transform: translateY(-50%) rotate(180deg);
+}
+
+/* ---- Scroll indicator ---- */
+.hero-scroll-link {
+  position: absolute;
+  bottom: 2.5rem;
+  left: 50%;
+  transform: translateX(-50%);
+  z-index: 10;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 0.6rem;
+  text-decoration: none;
+  opacity: 0;
+  animation: fade-in 1s ease 3.5s forwards;
+}
+
+.hero-scroll-link span {
+  font-size: 0.6rem;
+  letter-spacing: 3px;
+  color: rgba(255, 255, 255, 0.3);
+  text-transform: uppercase;
   font-weight: 500;
 }
 
-/* ---- Buttons ---- */
-.hero-actions {
-  display: flex;
-  align-items: center;
-  gap: 1rem;
-  margin-top: 0.5rem;
+.scroll-bar {
+  width: 1px;
+  height: 50px;
+  position: relative;
+  background: rgba(255, 255, 255, 0.1);
+  overflow: hidden;
 }
 
-.btn-book {
-  padding: 0.7rem 2rem;
-  border-radius: 50px;
-  font-weight: 700;
-  font-size: 0.95rem;
-  text-decoration: none;
-  background: linear-gradient(135deg, var(--primary), var(--primary-dark));
-  color: #fff;
-  box-shadow: 0 4px 16px rgba(var(--primary-rgb), 0.35);
-  transition: all 0.25s ease;
+.scroll-bar::after {
+  content: '';
+  position: absolute;
+  top: -100%;
+  left: 0;
+  width: 100%;
+  height: 100%;
+  background: rgba(255, 255, 255, 0.5);
+  animation: scroll-drop 2s ease-in-out infinite;
 }
 
-.btn-book:hover {
-  background: linear-gradient(135deg, var(--primary-dark), var(--primary-darker));
-  box-shadow: 0 6px 24px rgba(var(--primary-rgb), 0.45);
-  transform: translateY(-2px);
-}
-
-.btn-discover {
-  display: inline-flex;
-  align-items: center;
-  gap: 0.5rem;
-  padding: 0.7rem 1.75rem;
-  border-radius: 50px;
-  font-weight: 600;
-  font-size: 0.95rem;
-  text-decoration: none;
-  color: #334155;
-  border: 1.5px solid rgba(0, 0, 0, 0.12);
-  background: rgba(255, 255, 255, 0.3);
-  transition: all 0.25s ease;
-}
-
-.btn-discover i {
-  font-size: 0.8rem;
-  transition: transform 0.25s ease;
-}
-
-.btn-discover:hover {
-  border-color: var(--primary);
-  color: var(--primary);
-  background: rgba(var(--primary-rgb), 0.04);
-}
-
-.btn-discover:hover i {
-  transform: translateY(3px);
+@keyframes scroll-drop {
+  0% { top: -100%; }
+  50% { top: 100%; }
+  100% { top: 100%; }
 }
 
 /* ---- Responsive ---- */
 @media (max-width: 1024px) {
-  .hero-content {
-    width: 50%;
-  }
-
-  .hero-content-inner {
-    padding: 2.5rem;
-    padding-right: 2.5rem;
-  }
-
-  .title-word { font-size: 3rem; }
-
-  .fcard-3 { left: 22%; }
-  .fcard-4 { left: 20%; }
-  .fcard-s3 { left: 30%; }
+  .hero-word { font-size: 6rem; }
+  .corner { width: 60px; height: 60px; top: 2rem; right: 2rem; }
+  .corner--bl { bottom: 2rem; left: 2rem; }
 }
 
 @media (max-width: 768px) {
-  .hero {
-    align-items: flex-end;
-    padding: 0 1rem 1.25rem;
-  }
+  .hero-word { font-size: 3.2rem; letter-spacing: 4px; }
+  .hero-word--accent { letter-spacing: 4px; }
+  .hero-arabic { font-size: 0.95rem; }
+  .hero-cta { padding: 0.75rem 2.5rem; font-size: 0.78rem; letter-spacing: 2px; }
+  .scroll-bar { height: 35px; }
+  .corner { display: none; }
+  .hero-side { display: none; }
+  .hero-particles { display: none; }
+  .hero-spotlight { display: none; }
+  .hero-sweep { display: none; }
+  .hero-halo { width: 250px; height: 150px; }
+  .hero-meta { gap: 0.4rem; flex-wrap: wrap; justify-content: center; }
+  .meta-card { padding: 0.5rem 0.85rem; border-radius: 12px; }
+  .meta-card-icon { width: 30px; height: 30px; border-radius: 8px; }
+  .meta-card-icon i { font-size: 0.72rem; }
+  .meta-card-text strong { font-size: 0.55rem; }
+  .meta-card-text span { font-size: 0.72rem; }
+}
 
-  .hero-content {
-    margin: 0;
-    max-width: none;
-    width: 100%;
-    border-radius: 24px 24px 0 0;
-  }
-
-  .hero-content-inner {
-    padding: 2rem 1.5rem;
-    align-items: center;
-    text-align: center;
-  }
-
-  .title-word { font-size: 2.2rem; }
-
-  .hero-desc { font-size: 0.95rem; }
-
-  .hero-actions { justify-content: center; }
-
-  .fcard-1 { left: 1rem; top: 6.5rem; bottom: auto; }
-  .fcard-2 { left: 1rem; top: 1rem; }
-  .fcard-3 { left: auto; right: 1rem; top: 6.5rem; bottom: auto; }
-  .fcard-4 { left: auto; right: 1rem; top: 1rem; }
-  .fcard-stat { display: none; }
-
-  .hero-overlay {
-    background: linear-gradient(
-      to top,
-      rgba(0, 0, 0, 0.5) 0%,
-      rgba(0, 0, 0, 0.15) 50%,
-      rgba(0, 0, 0, 0.1) 100%
-    );
-  }
+@media (max-width: 480px) {
+  .hero-word { font-size: 2.2rem; letter-spacing: 3px; }
+  .hero-word--accent { letter-spacing: 3px; }
 }
 
 /* ========================================
@@ -1385,10 +1084,142 @@ function goToSlide(idx) {
    ======================================== */
 .discover {
   padding: 6rem 0 5rem;
-  background: linear-gradient(180deg, #f8fafc 0%, #fff 100%);
+  background: #fff;
+  overflow: hidden;
+  position: relative;
+}
+
+/* ---- Animated background shapes ---- */
+.discover-bg-shapes {
+  position: absolute;
+  inset: 0;
+  pointer-events: none;
+  z-index: 0;
   overflow: hidden;
 }
 
+.dshape { position: absolute; }
+
+/* 1. Large gradient blob — top-right */
+.dshape--blob-1 {
+  width: 500px;
+  height: 500px;
+  top: -10%;
+  right: -8%;
+  border-radius: 50%;
+  background: conic-gradient(
+    from 0deg,
+    rgba(249, 115, 22, 0.08),
+    rgba(14, 165, 233, 0.05),
+    rgba(249, 115, 22, 0.08)
+  );
+  filter: blur(40px);
+  animation: blob-morph 18s ease-in-out infinite;
+}
+
+@keyframes blob-morph {
+  0%, 100% {
+    border-radius: 50%;
+    transform: scale(1) rotate(0deg);
+  }
+  25% {
+    border-radius: 40% 60% 55% 45%;
+    transform: scale(1.05) rotate(30deg);
+  }
+  50% {
+    border-radius: 55% 45% 40% 60%;
+    transform: scale(0.95) rotate(60deg);
+  }
+  75% {
+    border-radius: 45% 55% 60% 40%;
+    transform: scale(1.03) rotate(90deg);
+  }
+}
+
+/* 2. Double ring — bottom-left */
+.dshape--ring {
+  width: 200px;
+  height: 200px;
+  bottom: 5%;
+  left: 3%;
+  border-radius: 50%;
+  border: 2px solid rgba(249, 115, 22, 0.15);
+  animation: ring-spin 25s linear infinite;
+}
+
+.dshape--ring::after {
+  content: '';
+  position: absolute;
+  inset: 18px;
+  border-radius: 50%;
+  border: 2px dashed rgba(249, 115, 22, 0.1);
+  animation: ring-spin 15s linear infinite reverse;
+}
+
+@keyframes ring-spin {
+  from { transform: rotate(0deg); }
+  to { transform: rotate(360deg); }
+}
+
+/* 3. Oval outline — mid-right, orbiting */
+.dshape--oval {
+  width: 350px;
+  height: 140px;
+  top: 35%;
+  right: -3%;
+  border-radius: 50%;
+  border: 2px solid rgba(14, 165, 233, 0.1);
+  animation: oval-orbit 20s ease-in-out infinite;
+}
+
+@keyframes oval-orbit {
+  0%, 100% { transform: translate(0, 0) rotate(-10deg); }
+  33% { transform: translate(20px, -25px) rotate(5deg); }
+  66% { transform: translate(-10px, 15px) rotate(-20deg); }
+}
+
+/* 4. Dot grid — top-left */
+.dshape--dots {
+  width: 120px;
+  height: 150px;
+  top: 6%;
+  left: 4%;
+  background-image: radial-gradient(circle, rgba(249, 115, 22, 0.18) 2px, transparent 2px);
+  background-size: 18px 18px;
+  animation: dots-breathe 5s ease-in-out infinite;
+}
+
+@keyframes dots-breathe {
+  0%, 100% { opacity: 0.3; transform: scale(1); }
+  50% { opacity: 0.7; transform: scale(1.05); }
+}
+
+/* 5. Accent small filled circle — floating */
+.dshape--accent {
+  width: 80px;
+  height: 80px;
+  bottom: 25%;
+  right: 12%;
+  border-radius: 50%;
+  background: linear-gradient(135deg, rgba(249, 115, 22, 0.08), rgba(249, 115, 22, 0.02));
+  border: 1.5px solid rgba(249, 115, 22, 0.12);
+  animation: accent-float 8s ease-in-out infinite;
+}
+
+@keyframes accent-float {
+  0%, 100% { transform: translateY(0) scale(1); }
+  50% { transform: translateY(-20px) scale(1.1); }
+}
+
+/* Ensure content sits above shapes */
+.discover-header,
+.discover-filters,
+.discover-masonry {
+  position: relative;
+  z-index: 1;
+}
+
+/* ---- Header ---- */
 .discover-header {
   text-align: center;
   max-width: 1280px;
@@ -1396,36 +1227,59 @@ function goToSlide(idx) {
   padding: 0 2rem;
 }
 
+.discover-tag {
+  display: inline-flex;
+  align-items: center;
+  gap: 0.75rem;
+  font-size: 0.75rem;
+  font-weight: 700;
+  color: var(--primary, #f97316);
+  text-transform: uppercase;
+  letter-spacing: 3px;
+  margin-bottom: 1rem;
+}
+
+.tag-line {
+  display: block;
+  width: 30px;
+  height: 1px;
+  background: var(--primary, #f97316);
+  opacity: 0.4;
+}
+
 .discover-title {
-  font-size: 2.6rem;
-  font-weight: 800;
+  font-size: 2.8rem;
+  font-weight: 900;
   color: #0f172a;
+  line-height: 1.3;
 }
 
 .discover-title span {
-  color: var(--primary);
+  color: var(--primary, #f97316);
 }
 
 .discover-sub {
-  color: #64748b;
-  font-size: 1.05rem;
+  color: #94a3b8;
+  font-size: 1rem;
   font-weight: 500;
-  margin-top: 0.6rem;
+  margin-top: 0.5rem;
 }
 
-/* ---- Tabs ---- */
-.discover-tabs {
+/* ---- Filter chips ---- */
+.discover-filters {
   display: flex;
   justify-content: center;
-  gap: 0.5rem;
-  margin-top: 2rem;
-  flex-wrap: wrap;
+  gap: 0.75rem;
+  margin-top: 2.5rem;
   padding: 0 2rem;
 }
 
-.dtab {
-  padding: 0.5rem 1.3rem;
-  border-radius: 50px;
+.filter-chip {
+  display: inline-flex;
+  align-items: center;
+  gap: 0.5rem;
+  padding: 0.6rem 1.5rem;
+  border-radius: 12px;
   border: 1.5px solid #e2e8f0;
   background: #fff;
   color: #475569;
@@ -1433,167 +1287,262 @@ function goToSlide(idx) {
   font-size: 0.88rem;
   font-family: inherit;
   cursor: pointer;
-  transition: all 0.35s cubic-bezier(0.4, 0, 0.2, 1);
+  transition: all 0.3s ease;
 }
 
-.dtab:hover {
-  border-color: rgba(var(--primary-rgb), 0.35);
-  color: var(--primary);
-  background: rgba(var(--primary-rgb), 0.04);
+.filter-chip i {
+  font-size: 0.9rem;
 }
 
-.dtab.active {
-  background: linear-gradient(135deg, var(--primary), var(--primary-dark));
+.chip-count {
+  font-size: 0.68rem;
+  background: #f1f5f9;
+  color: #64748b;
+  padding: 0.15rem 0.5rem;
+  border-radius: 20px;
+  font-weight: 700;
+  transition: all 0.3s ease;
+}
+
+.filter-chip:hover {
+  border-color: var(--primary, #f97316);
+  color: var(--primary, #f97316);
+}
+
+.filter-chip.active {
+  background: #0f172a;
   color: #fff;
-  border-color: transparent;
-  box-shadow: 0 4px 14px rgba(var(--primary-rgb), 0.35);
-  transform: scale(1.05);
+  border-color: #0f172a;
 }
 
-/* ---- Swiper Carousel ---- */
-.discover-carousel {
-  position: relative;
+.filter-chip.active .chip-count {
+  background: rgba(255, 255, 255, 0.15);
+  color: #fff;
+}
+
+/* ---- Masonry Grid ---- */
+.discover-masonry {
+  display: grid;
+  grid-template-columns: repeat(3, 1fr);
+  grid-auto-rows: 220px;
+  gap: 1rem;
   max-width: 1280px;
-  margin: 3rem auto 0;
-  padding: 1rem 0 2rem;
+  margin: 2.5rem auto 0;
+  padding: 0 2rem;
 }
 
-.discover-carousel :deep(.swiper) {
-  overflow: visible;
-  padding: 1.5rem 0;
-}
-
-.discover-carousel :deep(.swiper-slide) {
-  transition: transform 0.5s ease, opacity 0.5s ease;
-  opacity: 0.55;
-  filter: saturate(0.6) brightness(0.9);
-}
-
-.discover-carousel :deep(.swiper-slide-active) {
-  opacity: 1;
-  filter: none;
-}
-
-.dcard {
-  border-radius: 24px;
+.mcard {
+  border-radius: 20px;
   overflow: hidden;
-  aspect-ratio: 16 / 10;
   position: relative;
-  box-shadow: 0 8px 30px rgba(0, 0, 0, 0.1);
-  transition: box-shadow 0.5s ease;
+  cursor: pointer;
+  animation: card-enter 0.5s ease var(--delay, 0s) both;
 }
 
-.discover-carousel :deep(.swiper-slide-active) .dcard {
-  box-shadow: 0 25px 60px rgba(0, 0, 0, 0.2), 0 8px 20px rgba(0, 0, 0, 0.08);
+.mcard--large {
+  grid-column: span 2;
+  grid-row: span 2;
 }
 
-.dcard img {
+@keyframes card-enter {
+  from { opacity: 0; transform: translateY(20px); }
+  to { opacity: 1; transform: translateY(0); }
+}
+
+.mcard > img {
   width: 100%;
   height: 100%;
   object-fit: cover;
   display: block;
-  transition: transform 6s ease;
+  transition: transform 0.6s ease;
 }
 
-.discover-carousel :deep(.swiper-slide-active) .dcard img {
-  transform: scale(1.06);
+.mcard:hover > img {
+  transform: scale(1.08);
 }
 
-.dcard-info {
+/* Overlay on hover */
+.mcard-overlay {
   position: absolute;
-  bottom: 0;
-  left: 0;
-  right: 0;
-  padding: 3.5rem 1.5rem 1.5rem;
-  background: linear-gradient(to top, rgba(0, 0, 0, 0.75) 0%, transparent 100%);
+  inset: 0;
+  background: linear-gradient(180deg, rgba(0,0,0,0) 30%, rgba(0,0,0,0.7) 100%);
+  display: flex;
+  flex-direction: column;
+  justify-content: flex-end;
+  padding: 1.5rem;
   opacity: 0;
-  transform: translateY(8px);
-  transition: all 0.45s ease;
+  transition: opacity 0.35s ease;
 }
 
-.discover-carousel :deep(.swiper-slide-active) .dcard-info {
+.mcard:hover .mcard-overlay {
   opacity: 1;
-  transform: translateY(0);
 }
 
-.dcard-info h3 {
-  color: #fff;
-  font-size: 1.2rem;
-  font-weight: 700;
-}
-
-.dcard-info p {
-  color: rgba(255, 255, 255, 0.8);
-  font-size: 0.85rem;
-  font-weight: 500;
-  margin-top: 0.2rem;
-}
-
-/* Navigation Arrows */
-.carousel-nav {
+.mcard-zoom {
   position: absolute;
   top: 50%;
-  transform: translateY(-50%);
-  z-index: 10;
-  width: 48px;
-  height: 48px;
+  left: 50%;
+  transform: translate(-50%, -50%) scale(0.7);
+  width: 50px;
+  height: 50px;
   border-radius: 50%;
-  border: 1.5px solid rgba(0, 0, 0, 0.08);
-  background: rgba(255, 255, 255, 0.9);
+  background: rgba(255, 255, 255, 0.2);
   backdrop-filter: blur(8px);
-  box-shadow: 0 4px 16px rgba(0, 0, 0, 0.08);
+  -webkit-backdrop-filter: blur(8px);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  transition: transform 0.3s ease;
+}
+
+.mcard:hover .mcard-zoom {
+  transform: translate(-50%, -50%) scale(1);
+}
+
+.mcard-zoom i {
+  font-size: 1.1rem;
+  color: #fff;
+}
+
+.mcard-info h3 {
+  font-size: 1.05rem;
+  font-weight: 700;
+  color: #fff;
+}
+
+.mcard-info p {
+  font-size: 0.78rem;
+  color: rgba(255, 255, 255, 0.7);
+  margin-top: 0.15rem;
+}
+
+/* ---- Video cards ---- */
+.mcard-video {
+  width: 100%;
+  height: 100%;
+  background: linear-gradient(135deg, #1e293b, #0f172a);
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  gap: 0.75rem;
+  color: rgba(255, 255, 255, 0.7);
+  font-size: 0.88rem;
+  font-weight: 600;
+}
+
+.video-play {
+  width: 56px;
+  height: 56px;
+  border-radius: 50%;
+  background: rgba(249, 115, 22, 0.15);
+  border: 2px solid rgba(249, 115, 22, 0.3);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  transition: all 0.3s ease;
+}
+
+.video-play i {
+  font-size: 1.2rem;
+  color: var(--primary, #f97316);
+  margin-right: -2px;
+}
+
+.mcard:hover .video-play {
+  background: rgba(249, 115, 22, 0.25);
+  border-color: rgba(249, 115, 22, 0.5);
+  transform: scale(1.1);
+}
+
+/* ---- Lightbox ---- */
+.lightbox-overlay {
+  position: fixed;
+  inset: 0;
+  z-index: 9999;
+  background: rgba(0, 0, 0, 0.9);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  cursor: pointer;
+}
+
+.lightbox-img {
+  max-width: 90vw;
+  max-height: 90vh;
+  border-radius: 12px;
+  box-shadow: 0 20px 60px rgba(0, 0, 0, 0.5);
+  cursor: default;
+}
+
+.lightbox-close {
+  position: absolute;
+  top: 1.5rem;
+  right: 1.5rem;
+  width: 44px;
+  height: 44px;
+  border-radius: 50%;
+  border: none;
+  background: rgba(255, 255, 255, 0.1);
+  color: #fff;
+  font-size: 1.2rem;
   cursor: pointer;
   display: flex;
   align-items: center;
   justify-content: center;
-  font-size: 1rem;
-  color: #334155;
-  transition: all 0.3s ease;
+  transition: background 0.25s ease;
 }
 
-.carousel-nav:hover {
-  background: var(--primary);
-  color: #fff;
-  border-color: var(--primary);
-  box-shadow: 0 6px 20px rgba(var(--primary-rgb), 0.35);
-  transform: translateY(-50%) scale(1.1);
+.lightbox-close:hover {
+  background: rgba(255, 255, 255, 0.25);
 }
 
-.nav-prev {
-  right: 0;
+.lightbox-fade-enter-active,
+.lightbox-fade-leave-active {
+  transition: opacity 0.3s ease;
 }
 
-.nav-next {
-  left: 0;
+.lightbox-fade-enter-from,
+.lightbox-fade-leave-to {
+  opacity: 0;
 }
 
-/* ---- Discover Responsive ---- */
+/* ---- Responsive ---- */
+@media (max-width: 1024px) {
+  .discover-masonry {
+    grid-auto-rows: 180px;
+  }
+}
+
 @media (max-width: 768px) {
-  .discover {
-    padding: 4rem 0 3rem;
-  }
+  .discover { padding: 4rem 0 3rem; }
+  .discover-title { font-size: 2rem; }
 
-  .discover-title {
-    font-size: 2rem;
-  }
-
-  .discover-carousel {
+  .discover-masonry {
+    grid-template-columns: repeat(2, 1fr);
+    grid-auto-rows: 160px;
+    gap: 0.75rem;
     margin-top: 2rem;
   }
 
-  .dcard {
-    border-radius: 18px;
+  .mcard--large {
+    grid-column: span 2;
+    grid-row: span 1;
   }
 
-  .carousel-nav {
-    width: 40px;
-    height: 40px;
-    font-size: 0.85rem;
+  .mcard { border-radius: 14px; }
+  .filter-chip { font-size: 0.8rem; padding: 0.5rem 1.1rem; }
+  .mcard-info h3 { font-size: 0.88rem; }
+}
+
+@media (max-width: 480px) {
+  .discover-masonry {
+    grid-template-columns: 1fr;
+    grid-auto-rows: 200px;
   }
 
-  .dtab {
-    font-size: 0.8rem;
-    padding: 0.4rem 1rem;
+  .mcard--large {
+    grid-column: span 1;
   }
 }
 
@@ -1607,7 +1556,77 @@ function goToSlide(idx) {
   overflow: hidden;
 }
 
+/* ---- Background decorative shapes ---- */
+.about-bg-shapes {
+  position: absolute;
+  inset: 0;
+  pointer-events: none;
+  z-index: 0;
+}
+
+.about-shape {
+  position: absolute;
+  border-radius: 50%;
+  opacity: 0;
+  transition: opacity 1.5s ease;
+}
+
+.about.in-view .about-shape {
+  opacity: 1;
+}
+
+.about-shape--1 {
+  width: 500px;
+  height: 500px;
+  top: -15%;
+  right: -10%;
+  background: radial-gradient(circle, rgba(249, 115, 22, 0.06) 0%, transparent 70%);
+  animation: shape-float 15s ease-in-out infinite alternate;
+}
+
+.about-shape--2 {
+  width: 400px;
+  height: 400px;
+  bottom: -10%;
+  left: -8%;
+  background: radial-gradient(circle, rgba(14, 165, 233, 0.05) 0%, transparent 70%);
+  animation: shape-float 18s ease-in-out 2s infinite alternate-reverse;
+}
+
+.about-shape--3 {
+  width: 250px;
+  height: 250px;
+  top: 40%;
+  left: 30%;
+  background: radial-gradient(circle, rgba(249, 115, 22, 0.04) 0%, transparent 70%);
+  animation: shape-float 12s ease-in-out 4s infinite alternate;
+}
+
+@keyframes shape-float {
+  0% { transform: translate(0, 0); }
+  100% { transform: translate(20px, -15px); }
+}
+
+/* Dot pattern */
+.about-dots {
+  position: absolute;
+  top: 8%;
+  left: 5%;
+  width: 120px;
+  height: 120px;
+  opacity: 0;
+  transition: opacity 1.5s ease 0.5s;
+  background-image: radial-gradient(circle, rgba(249, 115, 22, 0.12) 1px, transparent 1px);
+  background-size: 16px 16px;
+}
+
+.about.in-view .about-dots {
+  opacity: 1;
+}
+
 .about-container {
+  position: relative;
+  z-index: 1;
   max-width: 1280px;
   margin: 0 auto;
   padding: 0 2rem;
@@ -1631,14 +1650,14 @@ function goToSlide(idx) {
 }
 
 .about-tag {
-  display: inline-block;
-  padding: 0.35rem 1.1rem;
-  border-radius: 50px;
-  font-size: 0.82rem;
+  display: inline-flex;
+  align-items: center;
+  gap: 0.75rem;
+  font-size: 0.75rem;
   font-weight: 700;
-  color: var(--primary);
-  background: rgba(var(--primary-rgb), 0.08);
-  border: 1.5px solid rgba(var(--primary-rgb), 0.2);
+  color: var(--primary, #f97316);
+  text-transform: uppercase;
+  letter-spacing: 3px;
 }
 
 .about-title {
@@ -2169,19 +2188,13 @@ function goToSlide(idx) {
 .features-tag {
   display: inline-flex;
   align-items: center;
-  gap: 0.4rem;
-  padding: 0.3rem 1rem;
-  border-radius: 50px;
-  font-size: 0.78rem;
+  gap: 0.75rem;
+  font-size: 0.75rem;
   font-weight: 700;
-  color: var(--primary);
-  background: rgba(var(--primary-rgb), 0.08);
-  border: 1.5px solid rgba(var(--primary-rgb), 0.18);
+  color: var(--primary, #f97316);
+  text-transform: uppercase;
+  letter-spacing: 3px;
   width: fit-content;
-}
-
-.features-tag i {
-  font-size: 0.65rem;
 }
 
 .features-title {
@@ -2363,228 +2376,239 @@ function goToSlide(idx) {
    LOCATION SECTION
    ======================================== */
 .location {
-  padding: 6rem 0 0;
-  background: #fff;
   position: relative;
+  padding: 6rem 0;
+  overflow: hidden;
 }
 
-.location-header {
-  text-align: center;
-  max-width: 1280px;
+/* ---- Background map ---- */
+.loc-bg-map {
+  position: absolute;
+  inset: 0;
+}
+
+.loc-bg-map iframe {
+  width: 100%;
+  height: 100%;
+  display: block;
+  filter: grayscale(1) brightness(0.35);
+}
+
+.loc-bg-tint {
+  position: absolute;
+  inset: 0;
+  background: rgba(10, 14, 26, 0.5);
+  pointer-events: none;
+}
+
+.loc-wrapper {
+  position: relative;
+  z-index: 2;
+  max-width: max-content;
   margin: 0 auto;
   padding: 0 2rem;
 }
 
-.location-tag {
-  display: inline-block;
-  padding: 0.35rem 1.1rem;
-  border-radius: 50px;
-  font-size: 0.82rem;
-  font-weight: 700;
-  color: var(--primary);
-  background: rgba(var(--primary-rgb), 0.08);
-  border: 1.5px solid rgba(var(--primary-rgb), 0.2);
-}
-
-.location-title {
-  font-size: 2.6rem;
-  font-weight: 800;
-  color: #0f172a;
-  margin-top: 0.75rem;
-  line-height: 1.35;
-}
-
-.location-title span {
-  color: var(--primary);
-}
-
-.location-sub {
-  color: #64748b;
-  font-size: 1.05rem;
-  font-weight: 500;
-  margin-top: 0.6rem;
-}
-
-/* ---- Map Wrapper (full-width with glass card overlay) ---- */
-.location-map-wrap {
-  position: relative;
-  margin-top: 3rem;
-  height: 520px;
-}
-
-.location-map {
-  position: absolute;
-  inset: 0;
-  border-radius: 24px 24px 0 0;
+/* ---- Dark card ---- */
+.loc-card {
+  background: #0f172a;
+  border-radius: 24px;
   overflow: hidden;
 }
 
-.location-map iframe {
-  display: block;
-  width: 100%;
-  height: 100%;
+.loc-card-inner {
+  display: flex;
+  direction: rtl;
+  min-height: 380px;
 }
 
-/* ---- Floating Glass Card ---- */
-.location-card {
-  position: absolute;
-  top: 2rem;
-  right: max(2rem, calc((100vw - 1280px) / 2 + 2rem));
-  z-index: 10;
-  width: 360px;
-  max-width: calc(100% - 4rem);
-  background: rgba(255, 255, 255, 0.88);
-  backdrop-filter: blur(24px) saturate(180%);
-  -webkit-backdrop-filter: blur(24px) saturate(180%);
-  border-radius: 22px;
-  border: 1px solid rgba(255, 255, 255, 0.7);
-  box-shadow:
-    0 20px 60px rgba(0, 0, 0, 0.1),
-    0 6px 20px rgba(0, 0, 0, 0.05),
-    inset 0 1px 0 rgba(255, 255, 255, 0.5);
-  padding: 1.5rem;
+/* ---- Info side ---- */
+.loc-info {
+  flex: 1;
+  padding: 3rem;
   display: flex;
   flex-direction: column;
-  gap: 1.25rem;
-}
-
-/* Card header: icon + title */
-.location-card-head {
-  display: flex;
   align-items: center;
-  gap: 0.85rem;
+  text-align: center;
+  gap: 1rem;
 }
 
-.location-card-icon {
-  width: 48px;
-  height: 48px;
-  border-radius: 14px;
-  background: linear-gradient(135deg, var(--primary), var(--primary-dark));
-  display: flex;
+.loc-tag {
+  display: inline-flex;
   align-items: center;
-  justify-content: center;
-  color: #fff;
-  font-size: 1.15rem;
-  flex-shrink: 0;
-  box-shadow: 0 4px 14px rgba(var(--primary-rgb), 0.3);
-}
-
-.location-card-title {
-  font-size: 1.05rem;
-  font-weight: 800;
-  color: #0f172a;
-  margin: 0;
-}
-
-.location-card-sub {
-  font-size: 0.8rem;
-  color: #64748b;
-  font-weight: 500;
-  margin: 0.1rem 0 0;
-  line-height: 1.4;
-}
-
-/* Contact items */
-.location-card-items {
-  display: flex;
-  flex-direction: column;
-  gap: 0.6rem;
-  padding: 1rem 0;
-  border-top: 1px solid rgba(0, 0, 0, 0.06);
-  border-bottom: 1px solid rgba(0, 0, 0, 0.06);
-}
-
-.loc-item {
-  display: flex;
-  align-items: center;
-  gap: 0.7rem;
-  font-size: 0.85rem;
-  color: #334155;
-  font-weight: 500;
-}
-
-.loc-item i {
-  width: 32px;
-  height: 32px;
-  border-radius: 9px;
-  background: rgba(0, 0, 0, 0.04);
-  display: flex;
-  align-items: center;
-  justify-content: center;
-  font-size: 0.8rem;
-  color: #64748b;
-  flex-shrink: 0;
-}
-
-/* Map Button */
-.map-btn {
-  display: flex;
-  align-items: center;
-  justify-content: center;
-  gap: 0.6rem;
-  padding: 0.75rem 1.5rem;
-  border-radius: 12px;
+  gap: 0.75rem;
+  font-size: 0.72rem;
   font-weight: 700;
-  font-size: 0.9rem;
-  text-decoration: none;
-  background: linear-gradient(135deg, var(--primary), var(--primary-dark));
+  color: var(--primary, #f97316);
+  text-transform: uppercase;
+  letter-spacing: 3px;
+  width: fit-content;
+}
+
+.loc-tag .tag-line {
+  display: block;
+  width: 20px;
+  height: 1px;
+  background: var(--primary, #f97316);
+  opacity: 0.4;
+}
+
+.loc-title {
+  font-size: 2rem;
+  font-weight: 900;
   color: #fff;
-  box-shadow: 0 4px 16px rgba(var(--primary-rgb), 0.3);
+  line-height: 1.2;
+}
+
+.loc-detail {
+  display: flex;
+  align-items: center;
+  gap: 0.65rem;
+  font-size: 0.85rem;
+  color: rgba(255, 255, 255, 0.5);
+  font-weight: 500;
+}
+
+.loc-detail i {
+  font-size: 0.8rem;
+  color: var(--primary, #f97316);
+  opacity: 0.7;
+  width: 20px;
+  text-align: center;
+  flex-shrink: 0;
+}
+
+/* ---- Action buttons ---- */
+.loc-detail { justify-content: center; }
+
+.loc-actions {
+  display: flex;
+  gap: 0.75rem;
+  margin-top: 0.75rem;
+  flex-wrap: wrap;
+  justify-content: center;
+}
+
+.loc-btn-primary {
+  display: inline-flex;
+  align-items: center;
+  gap: 0.5rem;
+  padding: 0.7rem 1.75rem;
+  border-radius: 10px;
+  background: var(--primary, #f97316);
+  color: #fff;
+  font-weight: 700;
+  font-size: 0.82rem;
+  text-decoration: none;
   transition: all 0.3s ease;
 }
 
-.map-btn:hover {
-  background: linear-gradient(135deg, var(--primary-dark), var(--primary-darker));
-  box-shadow: 0 6px 24px rgba(var(--primary-rgb), 0.4);
-  transform: translateY(-2px);
+.loc-btn-primary i { font-size: 0.8rem; }
+
+.loc-btn-primary:hover {
+  background: var(--primary-dark, #ea580c);
+  transform: translateY(-1px);
+  box-shadow: 0 4px 16px rgba(249, 115, 22, 0.3);
 }
 
-.map-btn i {
-  font-size: 0.85rem;
+.loc-btn-map {
+  display: inline-flex;
+  align-items: center;
+  gap: 0.5rem;
+  padding: 0.7rem 1.75rem;
+  border-radius: 10px;
+  border: 1px solid rgba(255, 255, 255, 0.15);
+  background: transparent;
+  color: rgba(255, 255, 255, 0.7);
+  font-weight: 600;
+  font-size: 0.82rem;
+  font-family: inherit;
+  cursor: pointer;
+  transition: all 0.3s ease;
 }
 
-/* ---- Location Responsive ---- */
+.loc-btn-map i { font-size: 0.8rem; }
+
+.loc-btn-map:hover {
+  border-color: rgba(255, 255, 255, 0.35);
+  color: #fff;
+  background: rgba(255, 255, 255, 0.06);
+}
+
+/* ---- Map panel (reveals on click) ---- */
+.loc-map-panel {
+  width: 50%;
+  min-height: 100%;
+  flex-shrink: 0;
+}
+
+.loc-map-panel iframe {
+  width: 100%;
+  height: 100%;
+  display: block;
+  min-height: 380px;
+}
+
+/* Map reveal transition */
+.map-reveal-enter-active {
+  transition: all 0.5s cubic-bezier(0.22, 1, 0.36, 1);
+}
+
+.map-reveal-leave-active {
+  transition: all 0.3s ease;
+}
+
+.map-reveal-enter-from {
+  width: 0;
+  opacity: 0;
+}
+
+.map-reveal-leave-to {
+  width: 0;
+  opacity: 0;
+}
+
+/* ---- Responsive ---- */
 @media (max-width: 1024px) {
-  .location-card {
-    width: 320px;
-  }
-
-  .location-title {
-    font-size: 2.1rem;
-  }
+  .loc-info { padding: 2.5rem 2rem; }
+  .loc-title { font-size: 1.7rem; }
+  .loc-map-panel { width: 45%; }
 }
 
 @media (max-width: 768px) {
-  .location {
-    padding: 4rem 0 0;
-  }
+  .location { padding: 4rem 0; }
+  .loc-wrapper { padding: 0 1rem; }
 
-  .location-map-wrap {
-    height: auto;
-    margin-top: 2.5rem;
-    display: flex;
+  .loc-card-inner {
     flex-direction: column;
   }
 
-  .location-map {
-    position: relative;
-    height: 300px;
-    border-radius: 0;
+  .loc-info {
+    padding: 2rem 1.5rem;
+    align-items: center;
+    text-align: center;
   }
 
-  .location-card {
-    position: relative;
-    top: auto;
-    right: auto;
-    width: calc(100% - 2rem);
-    max-width: none;
-    margin: -2rem auto 0;
-    border-radius: 18px;
-    z-index: 10;
+  .loc-title { font-size: 1.5rem; }
+  .loc-detail { justify-content: center; }
+
+  .loc-actions {
+    flex-direction: column;
+    width: 100%;
   }
 
-  .location-title {
-    font-size: 2rem;
+  .loc-btn-primary, .loc-btn-map {
+    width: 100%;
+    justify-content: center;
+  }
+
+  .loc-map-panel {
+    width: 100%;
+    min-height: 280px;
+  }
+
+  .loc-map-panel iframe {
+    min-height: 280px;
   }
 }
 
@@ -2897,39 +2921,18 @@ function goToSlide(idx) {
   transition-delay: 0.9s;
 }
 
-/* Badge — with pulse animation */
+/* Badge */
 .cta-badge {
   display: inline-flex;
   align-items: center;
-  gap: 0.4rem;
-  padding: 0.45rem 1.3rem;
-  background: rgba(255, 255, 255, 0.15);
-  backdrop-filter: blur(8px);
-  border: 1px solid rgba(255, 255, 255, 0.2);
-  border-radius: 50px;
-  color: #fff;
-  font-size: 0.82rem;
-  font-weight: 600;
-  letter-spacing: 0.02em;
-  animation: cta-badge-pulse 3s ease-in-out infinite;
-}
-
-@keyframes cta-badge-pulse {
-  0%, 100% { box-shadow: 0 0 0 0 rgba(255, 255, 255, 0.15); }
-  50% { box-shadow: 0 0 0 8px rgba(255, 255, 255, 0); }
-}
-
-.cta-badge i {
+  gap: 0.75rem;
   font-size: 0.75rem;
-  color: var(--primary);
-  animation: cta-bolt-flash 2s ease-in-out infinite;
+  font-weight: 700;
+  color: var(--primary, #f97316);
+  text-transform: uppercase;
+  letter-spacing: 3px;
 }
 
-@keyframes cta-bolt-flash {
-  0%, 70%, 100% { opacity: 1; }
-  80% { opacity: 0.3; }
-  90% { opacity: 1; }
-}
 
 /* Title */
 .cta-title {

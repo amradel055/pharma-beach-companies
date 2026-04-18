@@ -7,10 +7,14 @@
 
 <script setup>
 import { ref, computed, onMounted, onUnmounted } from 'vue'
+import { useSettingsStore } from '@/stores/settings'
 
 const props = defineProps({
   createdAt: { type: String, required: true },
+  frozenAt: { type: String, default: null },
 })
+
+const settings = useSettingsStore()
 
 const now = ref(Date.now())
 let interval = null
@@ -18,7 +22,8 @@ let interval = null
 onMounted(() => { interval = setInterval(() => { now.value = Date.now() }, 1000) })
 onUnmounted(() => { clearInterval(interval) })
 
-const elapsed = computed(() => Math.max(0, Math.floor((now.value - new Date(props.createdAt).getTime()) / 1000)))
+const endTime = computed(() => props.frozenAt ? new Date(props.frozenAt).getTime() : now.value)
+const elapsed = computed(() => Math.max(0, Math.floor((endTime.value - new Date(props.createdAt).getTime()) / 1000)))
 
 const display = computed(() => {
   const h = Math.floor(elapsed.value / 3600)
@@ -29,8 +34,8 @@ const display = computed(() => {
 
 const colorClass = computed(() => {
   const mins = elapsed.value / 60
-  if (mins > 60) return 'danger'
-  if (mins > 30) return 'warn'
+  if (mins > settings.csTimerOrangeMax) return 'danger'
+  if (mins > settings.csTimerGreenMax) return 'warn'
   return 'ok'
 })
 </script>

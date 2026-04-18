@@ -116,18 +116,27 @@
           <template v-else-if="msg.type === 'results'">
             <div class="results-container" ref="resultsRef">
               <div class="results-header">
-                <span class="results-count" v-if="filteredChalets.length">
+                <span class="results-count" v-if="sortedFilteredChalets.length">
                   <i class="pi pi-check-circle" />
-                  تم العثور على {{ filteredChalets.length }} شاليه
+                  تم العثور على {{ sortedFilteredChalets.length }} شاليه
                 </span>
-                <button class="reset-btn-sm" @click="resetWizard" v-if="filteredChalets.length">
+                <button class="reset-btn-sm" @click="resetWizard" v-if="sortedFilteredChalets.length">
                   <i class="pi pi-refresh" />
                   بحث جديد
                 </button>
               </div>
-              <div v-if="filteredChalets.length" class="results-grid">
+              <div class="sort-bar" v-if="sortedFilteredChalets.length > 0">
+                <span class="sort-label">ترتيب حسب:</span>
+                <div class="sort-chips">
+                  <button :class="['sort-chip', { active: sortOption === 'default' }]" @click="sortOption = 'default'">الافتراضي</button>
+                  <button :class="['sort-chip', { active: sortOption === 'price_desc' }]" @click="sortOption = 'price_desc'">الأعلى سعراً</button>
+                  <button :class="['sort-chip', { active: sortOption === 'price_asc' }]" @click="sortOption = 'price_asc'">الأقل سعراً</button>
+                  <button :class="['sort-chip', { active: sortOption === 'rating' }]" @click="sortOption = 'rating'">التقييم</button>
+                </div>
+              </div>
+              <div v-if="sortedFilteredChalets.length" class="results-grid">
                 <RouterLink
-                  v-for="chalet in filteredChalets"
+                  v-for="chalet in sortedFilteredChalets"
                   :key="chalet.id"
                   :to="getChaletLink(chalet.id)"
                   class="result-card"
@@ -172,7 +181,7 @@
 </template>
 
 <script setup>
-import { ref, reactive, nextTick, onMounted } from 'vue'
+import { ref, reactive, computed, nextTick, onMounted } from 'vue'
 import { RouterLink } from 'vue-router'
 import DatePicker from 'primevue/datepicker'
 import { chalets as mockChalets } from '@/data/chalets'
@@ -283,6 +292,21 @@ async function showTypingThenMessage(text) {
 
 // ── Filter Logic ──
 const filteredChalets = ref([])
+const sortOption = ref('default')
+
+const sortedFilteredChalets = computed(() => {
+  const list = [...filteredChalets.value]
+  switch (sortOption.value) {
+    case 'price_desc':
+      return list.sort((a, b) => b.price - a.price)
+    case 'price_asc':
+      return list.sort((a, b) => a.price - b.price)
+    case 'rating':
+      return list.sort((a, b) => (b.rating || 0) - (a.rating || 0))
+    default:
+      return list
+  }
+})
 
 function getChaletLink(id) {
   const link = { name: 'chalet-details', params: { id } }
@@ -297,6 +321,7 @@ function getChaletLink(id) {
 
 function computeFilteredChalets() {
   let results = [...mockChalets]
+  results = results.filter(c => c.hidden !== true)
 
   if (selections.floor) {
     results = results.filter((c) => selections.floor.includes(c.floor))
@@ -485,6 +510,7 @@ async function resetWizard() {
   pendingSelections.value = []
   dateRange.value = null
   filteredChalets.value = []
+  sortOption.value = 'default'
   currentStepIndex = -1
   selections.floor = null
   selections.rooms = null
@@ -1124,6 +1150,53 @@ a.result-card {
 .reset-btn:hover {
   box-shadow: 0 4px 20px rgba(var(--primary-rgb), 0.45);
   transform: translateY(-1px);
+}
+
+/* ── Sort Bar ── */
+.sort-bar {
+  display: flex;
+  align-items: center;
+  gap: 0.6rem;
+  margin-bottom: 1rem;
+  flex-wrap: wrap;
+}
+
+.sort-label {
+  font-size: 0.82rem;
+  font-weight: 700;
+  color: #64748b;
+  white-space: nowrap;
+}
+
+.sort-chips {
+  display: flex;
+  gap: 0.4rem;
+  flex-wrap: wrap;
+}
+
+.sort-chip {
+  padding: 0.35rem 0.9rem;
+  border-radius: 50px;
+  border: 1.5px solid rgba(0, 0, 0, 0.08);
+  background: rgba(255, 255, 255, 0.85);
+  color: #475569;
+  font-size: 0.78rem;
+  font-weight: 600;
+  cursor: pointer;
+  font-family: inherit;
+  transition: all 0.25s ease;
+}
+
+.sort-chip:hover {
+  border-color: var(--primary);
+  color: var(--primary);
+}
+
+.sort-chip.active {
+  background: linear-gradient(135deg, var(--primary), var(--primary-dark));
+  color: #fff;
+  border-color: transparent;
+  box-shadow: 0 2px 10px rgba(var(--primary-rgb), 0.3);
 }
 
 /* ── Transitions ── */

@@ -145,7 +145,7 @@ function previewFields(data) {
   if (data.name) pick['الاسم'] = data.name
   if (data.chaletNumber) pick['الرقم'] = data.chaletNumber
   if (data.price) pick['السعر'] = `${data.price} ج.م`
-  if (data.rentalFee) pick['رسم الإيجار'] = `${data.rentalFee} ج.م`
+  if (data.rentalFee) pick['رسوم القرية'] = `${data.rentalFee} ج.م`
   if (data.floor) pick['الدور'] = data.floor
   if (data.rating) pick['التقييم'] = data.rating
   return pick

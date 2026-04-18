@@ -13,28 +13,63 @@
 
 <script setup>
 import { computed } from 'vue'
+import { useAuthStore } from '@/stores/auth'
+import { ROLES } from '@/constants/roles'
 
 const props = defineProps({
   totals: { type: Object, default: () => ({}) },
 })
+
+const auth = useAuthStore()
 
 function formatNum(n) {
   if (n === undefined || n === null) return '0'
   return Number(n).toLocaleString('ar-EG')
 }
 
-const kpis = computed(() => {
+const allKpis = computed(() => {
   const t = props.totals
   return [
     { label: 'عدد الحجوزات', value: t.bookingsCount || 0, icon: 'pi pi-calendar', color: '#8b5cf6', suffix: 'حجز' },
     { label: 'القيمة الإيجارية', value: t.rentalValue || 0, icon: 'pi pi-wallet', color: '#0ea5e9', suffix: 'ج.م' },
-    { label: 'رسم الإيجار', value: t.rentalFee || 0, icon: 'pi pi-receipt', color: '#64748b', suffix: 'ج.م' },
+    { label: 'رسوم القرية', value: t.rentalFee || 0, icon: 'pi pi-receipt', color: '#64748b', suffix: 'ج.م' },
+    { label: 'رسوم الموقع', value: t.siteFee || 0, icon: 'pi pi-globe', color: '#ec4899', suffix: 'ج.م' },
     { label: 'نسبة التشغيل (17%)', value: t.operatingFee || 0, icon: 'pi pi-cog', color: '#eab308', suffix: 'ج.م' },
     { label: 'نسبة البروكر', value: t.brokerCommission || 0, icon: 'pi pi-briefcase', color: '#f97316', suffix: 'ج.م' },
     { label: 'نسبة القرية', value: t.villageCommission || 0, icon: 'pi pi-building', color: '#06b6d4', suffix: 'ج.م' },
     { label: 'صافي المالك', value: t.netOwner || 0, icon: 'pi pi-check-circle', color: '#10b981', suffix: 'ج.م' },
     { label: 'إجمالي الليالي', value: t.totalNights || 0, icon: 'pi pi-moon', color: '#a855f7', suffix: 'ليلة' },
   ]
+})
+
+const kpis = computed(() => {
+  const role = auth.userRole
+  const all = allKpis.value
+
+  // CS roles and SECURITY: no financial KPIs
+  if ([ROLES.SITE_CS, ROLES.VILLAGE_CS, ROLES.SECURITY].includes(role)) {
+    return []
+  }
+
+  // SITE_ADMIN, VILLAGE_ADMIN: show all
+  if ([ROLES.SITE_ADMIN, ROLES.VILLAGE_ADMIN].includes(role)) {
+    return all
+  }
+
+  // Role-specific allowed labels
+  const allowedMap = {
+    [ROLES.OPERATOR]: ['عدد الحجوزات', 'إجمالي الليالي'],
+    [ROLES.OWNER]: ['عدد الحجوزات', 'صافي المالك', 'إجمالي الليالي'],
+    [ROLES.BROKER]: ['عدد الحجوزات', 'نسبة البروكر', 'إجمالي الليالي'],
+    [ROLES.AGENT]: ['عدد الحجوزات', 'إجمالي الليالي'],
+  }
+
+  const allowed = allowedMap[role]
+  if (allowed) {
+    return all.filter((k) => allowed.includes(k.label))
+  }
+
+  return all
 })
 </script>
 

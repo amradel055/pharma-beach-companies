@@ -7,9 +7,22 @@
       </div>
       <div class="queue-stats">
         <span class="qs pending"><i class="pi pi-clock" /> {{ pendingCount }} في الانتظار</span>
-        <span class="qs processing"><i class="pi pi-spin pi-spinner" /> {{ processingCount }} قيد المعالجة</span>
+        <span class="qs processing"><i class="pi pi-spin pi-spinner" /> {{ temporaryCount }} مؤقت</span>
         <span class="qs confirmed"><i class="pi pi-check" /> {{ confirmedCount }} مؤكد</span>
       </div>
+    </div>
+
+    <!-- Tabs -->
+    <div class="order-tabs">
+      <button :class="['tab-btn', { active: activeTab === 'pending' }]" @click="activeTab = 'pending'">
+        قيد الانتظار <span class="tab-badge">{{ pendingCount }}</span>
+      </button>
+      <button :class="['tab-btn', { active: activeTab === 'temporary' }]" @click="activeTab = 'temporary'">
+        مؤقت <span class="tab-badge">{{ temporaryCount }}</span>
+      </button>
+      <button :class="['tab-btn', { active: activeTab === 'confirmed' }]" @click="activeTab = 'confirmed'">
+        مؤكد <span class="tab-badge">{{ confirmedCount }}</span>
+      </button>
     </div>
 
     <!-- Table -->
@@ -65,16 +78,25 @@
 </template>
 
 <script setup>
-import { computed } from 'vue'
+import { ref, computed } from 'vue'
 import { useOrdersStore } from '@/stores/orders'
 import OrderTimer from '@/components/admin/cs/OrderTimer.vue'
 
 const ordersStore = useOrdersStore()
 
-const orders = computed(() => ordersStore.queue)
-const pendingCount = computed(() => orders.value.filter((o) => o.status === 'PENDING').length)
-const processingCount = computed(() => orders.value.filter((o) => o.status === 'PROCESSING' || o.status === 'TEMPORARY').length)
-const confirmedCount = computed(() => orders.value.filter((o) => o.status === 'CONFIRMED').length)
+const activeTab = ref('pending')
+
+const allOrders = computed(() => ordersStore.queue)
+const pendingCount = computed(() => allOrders.value.filter((o) => o.status === 'PENDING' || o.status === 'PROCESSING').length)
+const temporaryCount = computed(() => allOrders.value.filter((o) => o.status === 'TEMPORARY').length)
+const confirmedCount = computed(() => allOrders.value.filter((o) => o.status === 'CONFIRMED').length)
+
+const orders = computed(() => {
+  if (activeTab.value === 'pending') return allOrders.value.filter((o) => o.status === 'PENDING' || o.status === 'PROCESSING')
+  if (activeTab.value === 'temporary') return allOrders.value.filter((o) => o.status === 'TEMPORARY')
+  if (activeTab.value === 'confirmed') return allOrders.value.filter((o) => o.status === 'CONFIRMED')
+  return allOrders.value
+})
 
 function statusLabel(s) {
   return { PENDING: 'في الانتظار', PROCESSING: 'قيد المعالجة', TEMPORARY: 'حجز مؤقت', CONFIRMED: 'مؤكد' }[s] || s
@@ -94,6 +116,13 @@ function fmtNum(n) { return Number(n || 0).toLocaleString('ar-EG') }
 .qs.processing { background: rgba(14, 165, 233, 0.08); color: #0ea5e9; }
 .qs.confirmed { background: rgba(16, 185, 129, 0.08); color: #10b981; }
 .qs i { font-size: 13px; }
+
+.order-tabs { display: flex; gap: 8px; margin-bottom: 16px; }
+.tab-btn { display: inline-flex; align-items: center; gap: 8px; padding: 9px 20px; border-radius: 10px; border: 1px solid #e2e8f0; background: #fff; color: #64748b; font-size: 13px; font-weight: 600; font-family: inherit; cursor: pointer; transition: all 0.15s; }
+.tab-btn:hover { border-color: #f97316; color: #f97316; }
+.tab-btn.active { background: linear-gradient(135deg, #f97316, #ea580c); color: #fff; border-color: transparent; }
+.tab-badge { display: inline-flex; align-items: center; justify-content: center; min-width: 22px; height: 22px; padding: 0 6px; border-radius: 6px; font-size: 11.5px; font-weight: 700; background: rgba(0, 0, 0, 0.08); }
+.tab-btn.active .tab-badge { background: rgba(255, 255, 255, 0.25); color: #fff; }
 
 .table-card { background: #fff; border: 1px solid #f1f5f9; border-radius: 14px; overflow: hidden; }
 .data-table { width: 100%; border-collapse: collapse; }
@@ -132,6 +161,7 @@ function fmtNum(n) { return Number(n || 0).toLocaleString('ar-EG') }
 @media (max-width: 768px) {
   .page-header { flex-direction: column; gap: 12px; }
   .queue-stats { flex-wrap: wrap; }
+  .order-tabs { flex-wrap: wrap; }
   .table-card { overflow-x: auto; }
   .data-table { min-width: 650px; }
   .data-table th, .data-table td { padding: 10px 12px; font-size: 12.5px; }

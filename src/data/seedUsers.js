@@ -81,6 +81,33 @@ const SEED_USERS = [
     brokerId: 'seed_broker_001',
     createdAt: '2026-01-01T00:00:00.000Z',
   },
+  {
+    id: 'seed_operator_001',
+    name: 'حسن المشغل',
+    email: 'operator@test.com',
+    phone: '01000000008',
+    password: '123456',
+    role: ROLES.OPERATOR,
+    active: true,
+    avatar: null,
+    commissionPercent: 8,
+    assignedChaletIds: [1, 2, 3],
+    villageId: null,
+    createdAt: '2026-01-01T00:00:00.000Z',
+  },
+  {
+    id: 'seed_security_001',
+    name: 'علي الأمن',
+    email: 'security@test.com',
+    phone: '01000000009',
+    password: '123456',
+    role: ROLES.SECURITY,
+    active: true,
+    avatar: null,
+    nationalId: '29901011234567',
+    villageId: null,
+    createdAt: '2026-01-01T00:00:00.000Z',
+  },
 ]
 
 export function seedUsers() {

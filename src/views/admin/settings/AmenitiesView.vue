@@ -19,7 +19,8 @@
 
       <div v-for="a in amenities" :key="a.id" class="amenity-card">
         <div class="amenity-icon-wrap">
-          <i :class="a.icon" />
+          <img v-if="a.customIcon" :src="a.customIcon" class="amenity-custom-img" />
+          <i v-else :class="a.icon" />
         </div>
         <div class="amenity-info">
           <span class="amenity-name">{{ a.label }}</span>
@@ -44,10 +45,22 @@
           <input v-model="form.label" placeholder="مثال: واي فاي" />
         </div>
         <div class="field">
-          <label>أيقونة PrimeIcons <span class="req">*</span></label>
-          <input v-model="form.icon" placeholder="مثال: pi pi-wifi" dir="ltr" />
-          <div v-if="form.icon" class="icon-preview">
-            <i :class="form.icon" /> <span>{{ form.icon }}</span>
+          <label>الأيقونة <span class="req">*</span></label>
+          <div class="icon-tabs">
+            <button type="button" class="icon-tab" :class="{ active: iconTab === 'picker' }" @click="iconTab = 'picker'">اختر أيقونة</button>
+            <button type="button" class="icon-tab" :class="{ active: iconTab === 'upload' }" @click="iconTab = 'upload'">رفع صورة</button>
+          </div>
+          <div v-if="iconTab === 'picker'">
+            <IconPicker v-model="form.icon" />
+          </div>
+          <div v-else class="upload-area">
+            <input type="file" accept=".svg,.png,.jpg,.jpeg" @change="handleIconUpload" ref="fileInput" />
+            <p class="upload-hint">الحد الأقصى 500KB — SVG, PNG, JPG</p>
+          </div>
+          <div v-if="form.customIcon || form.icon" class="icon-preview">
+            <img v-if="form.customIcon" :src="form.customIcon" class="preview-img" />
+            <i v-else :class="form.icon" />
+            <span>{{ form.customIcon ? 'صورة مرفوعة' : form.icon }}</span>
           </div>
         </div>
       </div>
@@ -74,6 +87,7 @@
 import { ref, reactive, computed } from 'vue'
 import { useToastStore } from '@/stores/toast'
 import AppModal from '@/components/ui/AppModal.vue'
+import IconPicker from '@/components/admin/shared/IconPicker.vue'
 
 const toast = useToastStore()
 const STORAGE_KEY = 'pb_amenities'
@@ -107,19 +121,37 @@ function persist() { localStorage.setItem(STORAGE_KEY, JSON.stringify(amenities.
 // Form
 const formOpen = ref(false)
 const editing = ref(null)
-const form = reactive({ key: '', label: '', icon: '' })
-const isValid = computed(() => form.key.trim() && form.label.trim() && form.icon.trim())
+const form = reactive({ key: '', label: '', icon: '', customIcon: '' })
+const iconTab = ref('picker')
+const fileInput = ref(null)
+const isValid = computed(() => form.key.trim() && form.label.trim() && (form.icon.trim() || form.customIcon))
 
 function openAdd() { resetForm(); editing.value = null; formOpen.value = true }
-function openEdit(a) { resetForm(); editing.value = a; form.key = a.key; form.label = a.label; form.icon = a.icon; formOpen.value = true }
-function resetForm() { Object.assign(form, { key: '', label: '', icon: '' }) }
+function openEdit(a) { resetForm(); editing.value = a; form.key = a.key; form.label = a.label; form.icon = a.icon; form.customIcon = a.customIcon || ''; iconTab.value = a.customIcon ? 'upload' : 'picker'; formOpen.value = true }
+function resetForm() { Object.assign(form, { key: '', label: '', icon: '', customIcon: '' }); iconTab.value = 'picker' }
+
+function handleIconUpload(e) {
+  const file = e.target.files?.[0]
+  if (!file) return
+  if (file.size > 500 * 1024) {
+    toast.error('حجم الملف يتجاوز 500KB')
+    e.target.value = ''
+    return
+  }
+  const reader = new FileReader()
+  reader.onload = () => {
+    form.customIcon = reader.result
+    form.icon = ''
+  }
+  reader.readAsDataURL(file)
+}
 
 function handleSubmit() {
   if (!isValid.value) return
   if (editing.value) {
     const idx = amenities.value.findIndex((a) => a.id === editing.value.id)
     if (idx !== -1) {
-      amenities.value[idx] = { ...amenities.value[idx], label: form.label, icon: form.icon }
+      amenities.value[idx] = { ...amenities.value[idx], label: form.label, icon: form.icon, customIcon: form.customIcon || '' }
     }
     toast.success('تم التحديث')
   } else {
@@ -132,6 +164,7 @@ function handleSubmit() {
       key: form.key.trim(),
       label: form.label.trim(),
       icon: form.icon.trim(),
+      customIcon: form.customIcon || '',
     })
     toast.success('تمت الإضافة')
   }
@@ -194,9 +227,21 @@ function confirmDelete() {
 .field input:disabled { opacity: 0.6; cursor: not-allowed; }
 .field input::placeholder { color: #94a3b8; }
 
+.icon-tabs { display: flex; gap: 4px; margin-bottom: 8px; }
+.icon-tab { padding: 6px 16px; border-radius: 8px; border: 1px solid #e2e8f0; background: #f8fafc; font-size: 12.5px; font-weight: 600; color: #64748b; cursor: pointer; font-family: inherit; transition: all 0.15s; }
+.icon-tab.active { background: #f97316; color: #fff; border-color: #f97316; }
+.icon-tab:hover:not(.active) { border-color: #f97316; color: #f97316; }
+
+.upload-area { margin-top: 4px; }
+.upload-area input[type="file"] { font-size: 13px; font-family: inherit; }
+.upload-hint { font-size: 11px; color: #94a3b8; margin: 4px 0 0; }
+
 .icon-preview { display: flex; align-items: center; gap: 8px; padding: 8px 12px; background: #f8fafc; border-radius: 8px; margin-top: 4px; }
 .icon-preview i { font-size: 18px; color: #f97316; }
 .icon-preview span { font-size: 12px; color: #64748b; direction: ltr; }
+.preview-img { width: 24px; height: 24px; object-fit: contain; }
+
+.amenity-custom-img { width: 22px; height: 22px; object-fit: contain; }
 
 .del-warn { font-size: 13.5px; color: #64748b; margin: 0; }
 .btn-cancel { padding: 10px 24px; border-radius: 10px; background: #f1f5f9; color: #475569; font-size: 13.5px; font-weight: 600; border: none; cursor: pointer; font-family: inherit; }

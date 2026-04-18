@@ -194,6 +194,17 @@ export const useBookingsStore = defineStore('bookings', () => {
       discountAmount: 0,
       discountType: null,
       payments: [],
+      // R2 fields
+      cars: [],
+      carFeesTotal: 0,
+      securityPermitFee: 0,
+      securityPermitWaived: false,
+      securityPermitWaivedBy: null,
+      securityPermitWaiveReason: '',
+      checkedInAt: null,
+      checkedInBy: null,
+      checkedOutAt: null,
+      checkedOutBy: null,
     }
 
     bookings.value.push(booking)
@@ -301,6 +312,52 @@ export const useBookingsStore = defineStore('bookings', () => {
     return bookings.value.filter((b) => b.status === 'CONFIRMED')
   }
 
+  // R2: Check-in / Check-out
+  function checkIn(bookingId, securityMemberId) {
+    const booking = bookings.value.find((b) => b.id === bookingId)
+    if (!booking) return null
+    booking.checkedInAt = new Date().toISOString()
+    booking.checkedInBy = securityMemberId
+    _persist()
+    return booking
+  }
+
+  function checkOut(bookingId, securityMemberId) {
+    const booking = bookings.value.find((b) => b.id === bookingId)
+    if (!booking) return null
+    booking.checkedOutAt = new Date().toISOString()
+    booking.checkedOutBy = securityMemberId
+    _persist()
+    return booking
+  }
+
+  // R2: Car management
+  function addCar(bookingId, carData, carFeePerVehicle = 0) {
+    const booking = bookings.value.find((b) => b.id === bookingId)
+    if (!booking) return null
+    if (!booking.cars) booking.cars = []
+    booking.cars.push({
+      id: Date.now().toString(36) + Math.random().toString(36).slice(2, 6),
+      plateNumber: carData.plateNumber,
+      brand: carData.brand || '',
+      model: carData.model || '',
+      color: carData.color || '',
+      driverName: carData.driverName || '',
+      driverPhone: carData.driverPhone || '',
+    })
+    booking.carFeesTotal = booking.cars.length * carFeePerVehicle
+    _persist()
+    return booking
+  }
+
+  function removeCar(bookingId, carId) {
+    const booking = bookings.value.find((b) => b.id === bookingId)
+    if (!booking || !booking.cars) return null
+    booking.cars = booking.cars.filter((c) => c.id !== carId)
+    _persist()
+    return booking
+  }
+
   init()
 
   return {
@@ -318,5 +375,9 @@ export const useBookingsStore = defineStore('bookings', () => {
     getBookingsByBroker,
     getBlockedDatesForChalet,
     getAllConfirmedBookings,
+    checkIn,
+    checkOut,
+    addCar,
+    removeCar,
   }
 })

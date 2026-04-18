@@ -33,23 +33,23 @@
         </Transition>
 
         <form @submit.prevent="handleLogin" novalidate>
-          <!-- Email -->
+          <!-- Identifier (email or phone) -->
           <div class="field anim-item" style="--i: 2">
-            <label for="email">البريد الإلكتروني</label>
-            <div :class="['input-wrap', { error: touched.email && !isEmailValid, focus: focused === 'email' }]">
-              <i class="pi pi-envelope" />
+            <label for="identifier">البريد الإلكتروني أو رقم الهاتف</label>
+            <div :class="['input-wrap', { error: touched.identifier && !isIdentifierValid, focus: focused === 'identifier' }]">
+              <i :class="identifierLooksLikePhone ? 'pi pi-phone' : 'pi pi-envelope'" />
               <input
-                id="email"
-                v-model="form.email"
-                type="email"
-                placeholder="example@email.com"
-                autocomplete="email"
-                @focus="focused = 'email'"
-                @blur="focused = null; touched.email = true"
+                id="identifier"
+                v-model="form.identifier"
+                type="text"
+                placeholder="example@email.com أو 01xxxxxxxxx"
+                autocomplete="username"
+                @focus="focused = 'identifier'"
+                @blur="focused = null; touched.identifier = true"
               />
             </div>
             <Transition name="fade-msg">
-              <span v-if="touched.email && !isEmailValid" class="field-error">أدخل بريد إلكتروني صحيح</span>
+              <span v-if="touched.identifier && !isIdentifierValid" class="field-error">أدخل بريد إلكتروني أو رقم هاتف صحيح</span>
             </Transition>
           </div>
 
@@ -84,6 +84,20 @@
               تسجيل الدخول
             </template>
           </button>
+
+          <div class="auth-divider">
+            <span>أو</span>
+          </div>
+
+          <button type="button" class="google-btn" @click="handleGoogleLogin">
+            <svg width="18" height="18" viewBox="0 0 24 24">
+              <path d="M22.56 12.25c0-.78-.07-1.53-.2-2.25H12v4.26h5.92a5.06 5.06 0 0 1-2.2 3.32v2.77h3.57c2.08-1.92 3.28-4.74 3.28-8.1z" fill="#4285F4"/>
+              <path d="M12 23c2.97 0 5.46-.98 7.28-2.66l-3.57-2.77c-.98.66-2.23 1.06-3.71 1.06-2.86 0-5.29-1.93-6.16-4.53H2.18v2.84C3.99 20.53 7.7 23 12 23z" fill="#34A853"/>
+              <path d="M5.84 14.09c-.22-.66-.35-1.36-.35-2.09s.13-1.43.35-2.09V7.07H2.18C1.43 8.55 1 10.22 1 12s.43 3.45 1.18 4.93l2.85-2.22.81-.62z" fill="#FBBC05"/>
+              <path d="M12 5.38c1.62 0 3.06.56 4.21 1.64l3.15-3.15C17.45 2.09 14.97 1 12 1 7.7 1 3.99 3.47 2.18 7.07l3.66 2.84c.87-2.6 3.3-4.53 6.16-4.53z" fill="#EA4335"/>
+            </svg>
+            تسجيل الدخول بـ Google
+          </button>
         </form>
 
         <!-- Register link -->
@@ -109,19 +123,28 @@ const auth = useAuthStore()
 const toast = useToastStore()
 
 const form = reactive({
-  email: '',
+  identifier: '',
   password: '',
 })
 
-const touched = reactive({ email: false, password: false })
+const touched = reactive({ identifier: false, password: false })
 const showPass = ref(false)
 const loading = ref(false)
 const errorMsg = ref('')
 const focused = ref(null)
 
 const emailRegex = /^[^\s@]+@[^\s@]+\.[^\s@]+$/
-const isEmailValid = computed(() => emailRegex.test(form.email.trim()))
-const isFormValid = computed(() => isEmailValid.value && form.password.length > 0)
+const phoneRegex = /^[+\d][\d\s\-]{7,}$/
+const identifierLooksLikePhone = computed(() => /^[+\d]/.test(form.identifier.trim()) && !form.identifier.includes('@'))
+const isIdentifierValid = computed(() => {
+  const v = form.identifier.trim()
+  return emailRegex.test(v) || phoneRegex.test(v)
+})
+const isFormValid = computed(() => isIdentifierValid.value && form.password.length > 0)
+
+function handleGoogleLogin() {
+  toast.info('تسجيل الدخول عبر Google غير متاح حالياً في النسخة التجريبية')
+}
 
 function handleLogin() {
   if (!isFormValid.value) return
@@ -129,7 +152,7 @@ function handleLogin() {
   errorMsg.value = ''
 
   setTimeout(() => {
-    const result = auth.login(form.email, form.password)
+    const result = auth.login(form.identifier, form.password)
     loading.value = false
 
     if (result.ok) {
@@ -444,6 +467,54 @@ function handleLogin() {
   color: #94a3b8;
   box-shadow: none;
   cursor: not-allowed;
+}
+
+/* ═══════════════════════════════════
+   AUTH DIVIDER & GOOGLE BUTTON
+   ═══════════════════════════════════ */
+.auth-divider {
+  display: flex;
+  align-items: center;
+  margin: 1.25rem 0;
+}
+
+.auth-divider::before,
+.auth-divider::after {
+  content: '';
+  flex: 1;
+  height: 1px;
+  background: #e2e8f0;
+}
+
+.auth-divider span {
+  padding: 0 0.75rem;
+  font-size: 0.8rem;
+  color: #94a3b8;
+  font-weight: 600;
+}
+
+.google-btn {
+  width: 100%;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: 0.5rem;
+  padding: 0.75rem;
+  border-radius: 12px;
+  border: 1.5px solid #e2e8f0;
+  background: #fff;
+  color: #334155;
+  font-size: 0.9rem;
+  font-weight: 700;
+  cursor: pointer;
+  font-family: inherit;
+  transition: all 0.25s ease;
+}
+
+.google-btn:hover {
+  background: #f8fafc;
+  border-color: #cbd5e1;
+  box-shadow: 0 2px 8px rgba(0, 0, 0, 0.06);
 }
 
 /* ═══════════════════════════════════

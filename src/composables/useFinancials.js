@@ -14,8 +14,18 @@ export function useFinancials() {
    */
   function calcBookingFinancials(booking, chalet) {
     const rentalValue = Number(booking.total || booking.subtotal || 0)
-    const rentalFee = Number(chalet?.rentalFee || 0) * Number(booking.nights || 1)
+    const villageFee = Number(chalet?.rentalFee || 0) * Number(booking.nights || 1)
     const operatingFee = Math.round(rentalValue * OPERATING_PERCENT / 100)
+
+    // R2: Site fee
+    let siteFee = 0
+    if (chalet?.siteFee) {
+      if (chalet.siteFeeType === 'fixed') {
+        siteFee = Number(chalet.siteFee) * Number(booking.nights || 1)
+      } else {
+        siteFee = Math.round(rentalValue * Number(chalet.siteFee) / 100)
+      }
+    }
 
     let brokerCommission = 0
     let villageCommission = 0
@@ -28,7 +38,16 @@ export function useFinancials() {
       villageCommission = Math.round(rentalValue * VILLAGE_COMMISSION_PERCENT / 100)
     }
 
-    const netOwner = rentalValue - rentalFee - operatingFee - brokerCommission - villageCommission
+    // R2: Operator commission
+    let operatorCommission = 0
+    if (chalet?.operatorId) {
+      const operator = usersStore.getById(chalet.operatorId)
+      if (operator?.commissionPercent) {
+        operatorCommission = Math.round(rentalValue * Number(operator.commissionPercent) / 100)
+      }
+    }
+
+    const netOwner = rentalValue - villageFee - operatingFee - brokerCommission - villageCommission - siteFee - operatorCommission
     const totalPaid = (booking.payments || []).reduce((sum, p) => sum + Number(p.amount || 0), 0)
     const remaining = rentalValue - totalPaid
 
@@ -38,11 +57,14 @@ export function useFinancials() {
 
     return {
       rentalValue,
-      rentalFee,
+      villageFee,
+      rentalFee: villageFee, // backward compat
+      siteFee,
       operatingFee,
       operatingPercent: OPERATING_PERCENT,
       brokerCommission,
       villageCommission,
+      operatorCommission,
       netOwner,
       totalPaid,
       remaining,
@@ -55,10 +77,12 @@ export function useFinancials() {
    */
   function aggregateFinancials(bookings, chaletsMap) {
     let totalRentalValue = 0
-    let totalRentalFee = 0
+    let totalVillageFee = 0
+    let totalSiteFee = 0
     let totalOperatingFee = 0
     let totalBrokerCommission = 0
     let totalVillageCommission = 0
+    let totalOperatorCommission = 0
     let totalNetOwner = 0
     let totalPaid = 0
     let totalNights = 0
@@ -71,10 +95,12 @@ export function useFinancials() {
       const fin = calcBookingFinancials(b, chalet)
 
       totalRentalValue += fin.rentalValue
-      totalRentalFee += fin.rentalFee
+      totalVillageFee += fin.villageFee
+      totalSiteFee += fin.siteFee
       totalOperatingFee += fin.operatingFee
       totalBrokerCommission += fin.brokerCommission
       totalVillageCommission += fin.villageCommission
+      totalOperatorCommission += fin.operatorCommission
       totalNetOwner += fin.netOwner
       totalPaid += fin.totalPaid
       totalNights += Number(b.nights || 0)
@@ -90,10 +116,13 @@ export function useFinancials() {
       details,
       totals: {
         rentalValue: totalRentalValue,
-        rentalFee: totalRentalFee,
+        villageFee: totalVillageFee,
+        rentalFee: totalVillageFee, // backward compat
+        siteFee: totalSiteFee,
         operatingFee: totalOperatingFee,
         brokerCommission: totalBrokerCommission,
         villageCommission: totalVillageCommission,
+        operatorCommission: totalOperatorCommission,
         netOwner: totalNetOwner,
         totalPaid,
         totalNights,
@@ -109,7 +138,6 @@ export function useFinancials() {
    * Rank chalets by income/bookings for a given array of booking details
    */
   function rankChalets(details, sortBy = 'income_desc') {
-    // Group by chalet
     const map = {}
     details.forEach(({ booking, chalet, financials }) => {
       const cid = booking.chaletId

@@ -114,7 +114,7 @@ const routes = [
       {
         path: 'terms',
         name: 'terms',
-        component: () => import('@/views/HomeView.vue'),
+        component: () => import('@/views/TermsPageView.vue'),
         meta: { title: 'الشروط والأحكام' },
       },
       {
@@ -234,6 +234,70 @@ const routes = [
         name: 'admin-agent-permits',
         component: () => import('@/views/admin/agent/AgentPermitsView.vue'),
         meta: { title: 'تصاريحي', roles: [ROLES.SITE_ADMIN, ROLES.AGENT] },
+      },
+
+      // Operators — Site Admin, Village Admin
+      {
+        path: 'operators',
+        name: 'admin-operators',
+        component: () => import('@/views/admin/operator/OperatorListView.vue'),
+        meta: { title: 'المشغلين', roles: [ROLES.SITE_ADMIN, ROLES.VILLAGE_ADMIN] },
+      },
+
+      // Operator dashboard — Site Admin, Operator
+      {
+        path: 'operator',
+        name: 'admin-operator-dashboard',
+        component: () => import('@/views/admin/operator/OperatorDashboardView.vue'),
+        meta: { title: 'لوحة المشغل', roles: [ROLES.SITE_ADMIN, ROLES.OPERATOR] },
+      },
+
+      // Security management — Site Admin, Village Admin
+      {
+        path: 'security',
+        name: 'admin-security',
+        component: () => import('@/views/admin/security/SecurityListView.vue'),
+        meta: { title: 'أعضاء الأمن', roles: [ROLES.SITE_ADMIN, ROLES.VILLAGE_ADMIN] },
+      },
+
+      // QR Scanner — Security, Site Admin, Village Admin
+      {
+        path: 'security/scanner',
+        name: 'admin-qr-scanner',
+        component: () => import('@/views/admin/security/QrScannerView.vue'),
+        meta: { title: 'ماسح QR', roles: [ROLES.SECURITY, ROLES.SITE_ADMIN, ROLES.VILLAGE_ADMIN] },
+      },
+
+      // General Settings — Site Admin
+      {
+        path: 'settings/general',
+        name: 'admin-general-settings',
+        component: () => import('@/views/admin/settings/GeneralSettingsView.vue'),
+        meta: { title: 'الإعدادات العامة', roles: [ROLES.SITE_ADMIN] },
+      },
+
+      // Site Terms — Site Admin
+      {
+        path: 'settings/site-terms',
+        name: 'admin-site-terms',
+        component: () => import('@/views/admin/settings/SiteTermsView.vue'),
+        meta: { title: 'شروط الموقع', roles: [ROLES.SITE_ADMIN] },
+      },
+
+      // Village Terms — Site Admin, Village Admin
+      {
+        path: 'settings/village-terms',
+        name: 'admin-village-terms',
+        component: () => import('@/views/admin/settings/VillageTermsView.vue'),
+        meta: { title: 'شروط القرية', roles: [ROLES.SITE_ADMIN, ROLES.VILLAGE_ADMIN] },
+      },
+
+      // Village Daily Report — Site Admin, Village Admin
+      {
+        path: 'village/daily-report',
+        name: 'admin-village-daily-report',
+        component: () => import('@/views/admin/village/VillageDailyReportView.vue'),
+        meta: { title: 'التقرير اليومي', roles: [ROLES.SITE_ADMIN, ROLES.VILLAGE_ADMIN] },
       },
 
       // Coupons — Site Admin, Site CS

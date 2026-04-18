@@ -138,6 +138,34 @@ const allSections = [
     ],
   },
   {
+    label: 'المشغلين',
+    permission: 'manage_operators',
+    items: [
+      { label: 'إدارة المشغلين', to: '/admin/operators', icon: 'pi pi-cog' },
+    ],
+  },
+  {
+    label: 'لوحة المشغل',
+    permission: 'view_operator_dashboard',
+    items: [
+      { label: 'لوحة المشغل', to: '/admin/operator', icon: 'pi pi-objects-column' },
+    ],
+  },
+  {
+    label: 'إدارة الأمن',
+    permission: 'manage_security',
+    items: [
+      { label: 'أعضاء الأمن', to: '/admin/security', icon: 'pi pi-shield' },
+    ],
+  },
+  {
+    label: 'الأمن',
+    permission: 'scan_qr',
+    items: [
+      { label: 'ماسح QR', to: '/admin/security/scanner', icon: 'pi pi-qrcode' },
+    ],
+  },
+  {
     label: 'البروكر',
     permission: 'view_broker_dashboard',
     items: [

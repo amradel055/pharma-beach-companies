@@ -39,13 +39,17 @@ export const useAuthStore = defineStore('auth', () => {
     localStorage.setItem('pb_user', JSON.stringify(u))
   }
 
-  function login(email, password) {
+  function login(identifier, password) {
     const users = _getUsers()
-    const found = users.find(
-      (u) => u.email === email.trim().toLowerCase() && u.password === password,
+    const trimmed = identifier.trim()
+    const isPhone = /^[+\d]/.test(trimmed) && !trimmed.includes('@')
+    const found = users.find((u) =>
+      isPhone
+        ? u.phone === trimmed && u.password === password
+        : u.email === trimmed.toLowerCase() && u.password === password,
     )
     if (!found) {
-      return { ok: false, error: 'البريد الإلكتروني أو كلمة المرور غير صحيحة' }
+      return { ok: false, error: 'بيانات الدخول غير صحيحة' }
     }
 
     // Check if account is inactive

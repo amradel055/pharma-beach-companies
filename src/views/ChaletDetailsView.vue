@@ -184,7 +184,8 @@
           <h2>ما يقدمه الشاليه</h2>
           <div class="amenities-grid">
             <div v-for="key in chalet.amenities" :key="key" class="amenity-item">
-              <i :class="getAmenity(key).icon" />
+              <img v-if="getAmenity(key).customIcon" :src="getAmenity(key).customIcon" class="amenity-custom-img" />
+              <i v-else :class="getAmenity(key).icon" />
               <span>{{ getAmenity(key).label }}</span>
             </div>
           </div>
@@ -330,10 +331,19 @@
             </div>
           </Transition>
 
+          <!-- Booking terms checkbox -->
+          <div class="booking-terms" v-if="nights > 0 && canBook">
+            <label class="terms-check">
+              <input type="checkbox" v-model="bookingTermsAccepted" />
+              <span>أوافق على <button type="button" class="terms-link" @click="showTermsModal = true">شروط حجز القرية</button></span>
+            </label>
+          </div>
+
           <!-- Book button -->
-          <button class="book-btn" :disabled="nights === 0" @click="handleBook">
+          <button class="book-btn" :disabled="nights === 0 || !canBook || !bookingTermsAccepted" @click="handleBook"
+                  :title="!canBook ? 'صلاحيات الحجز متاحة للمستخدمين والمناديب فقط' : ''">
             <i :class="nights > 0 ? 'pi pi-check' : 'pi pi-calendar'" />
-            {{ nights > 0 ? 'احجز الآن' : 'اختر تواريخ الحجز' }}
+            {{ !canBook ? 'غير مصرح لك بالحجز' : nights > 0 ? 'احجز الآن' : 'اختر تواريخ الحجز' }}
           </button>
 
           <!-- Info notice -->
@@ -352,6 +362,26 @@
       </aside>
     </div>
 
+    <!-- Terms Modal -->
+    <Teleport to="body">
+      <Transition name="gallery-modal">
+        <div v-if="showTermsModal" class="terms-overlay" @click.self="showTermsModal = false">
+          <div class="terms-modal">
+            <div class="terms-modal-header">
+              <h3>شروط حجز القرية</h3>
+              <button @click="showTermsModal = false"><i class="pi pi-times" /></button>
+            </div>
+            <div class="terms-modal-body" v-html="settings.villageTerms?.ar?.content || 'لا توجد شروط حالياً'"></div>
+            <div class="terms-modal-footer">
+              <button class="terms-accept-btn" @click="bookingTermsAccepted = true; showTermsModal = false">
+                <i class="pi pi-check" /> أوافق
+              </button>
+            </div>
+          </div>
+        </div>
+      </Transition>
+    </Teleport>
+
     <!-- ══════════════════════════════════════════════
          MOBILE STICKY BOTTOM BAR
          ══════════════════════════════════════════════ -->
@@ -361,8 +391,9 @@
         <span class="mb-unit">/ ليلة</span>
         <span class="mb-rating"><i class="pi pi-star-fill" /> {{ chalet.rating }}</span>
       </div>
-      <button class="mb-book" @click="handleMobileBook">
-        احجز الآن
+      <button class="mb-book" :disabled="!canBook" @click="handleMobileBook"
+              :title="!canBook ? 'صلاحيات الحجز متاحة للمستخدمين والمناديب فقط' : ''">
+        {{ canBook ? 'احجز الآن' : 'غير مصرح لك بالحجز' }}
       </button>
     </div>
   </div>
@@ -391,6 +422,8 @@ import { chalets, amenityMap } from '@/data/chalets'
 import { useAuthStore } from '@/stores/auth'
 import { useBookingsStore } from '@/stores/bookings'
 import { useToastStore } from '@/stores/toast'
+import { useSettingsStore } from '@/stores/settings'
+import { BOOKING_ROLES } from '@/constants/roles'
 
 import 'swiper/css'
 import 'swiper/css/navigation'
@@ -400,7 +433,16 @@ const router = useRouter()
 const auth = useAuthStore()
 const bookingsStore = useBookingsStore()
 const toast = useToastStore()
+const settings = useSettingsStore()
+
+// Booking permission check
+const canBook = computed(() => {
+  if (!auth.isAuthenticated) return true
+  return BOOKING_ROLES.includes(auth.user?.role)
+})
 const dateBlockedError = ref(false)
+const bookingTermsAccepted = ref(false)
+const showTermsModal = ref(false)
 
 // ── Chalet Data ──
 const chalet = computed(() => {
@@ -448,6 +490,11 @@ async function copyLink() {
 
 // ── Amenities ──
 function getAmenity(key) {
+  try {
+    const saved = JSON.parse(localStorage.getItem('pb_amenities') || '[]')
+    const found = saved.find((a) => a.key === key)
+    if (found) return found
+  } catch { /* */ }
   return amenityMap[key] || { label: key, icon: 'pi pi-check' }
 }
 
@@ -512,6 +559,17 @@ const total = computed(() => subtotal.value + (chalet.value?.deposit || 0))
 function handleBook() {
   if (nights.value === 0 || !chalet.value) return
   dateBlockedError.value = false
+
+  if (!bookingTermsAccepted.value) {
+    toast.error('يجب الموافقة على شروط حجز القرية')
+    return
+  }
+
+  // Check booking role permission
+  if (auth.isAuthenticated && !BOOKING_ROLES.includes(auth.user?.role)) {
+    toast.error('غير مصرح لك بالحجز. الحجز متاح للعملاء والمناديب فقط')
+    return
+  }
 
   // Check auth
   if (!auth.isAuthenticated) {
@@ -1137,6 +1195,12 @@ watch(() => route.params.id, () => {
   color: #444;
   width: 24px;
   text-align: center;
+}
+
+.amenity-custom-img {
+  width: 22px;
+  height: 22px;
+  object-fit: contain;
 }
 
 /* ═══════════════════════════════════
@@ -1934,5 +1998,106 @@ watch(() => route.params.id, () => {
     grid-template-columns: 1fr 1fr;
     gap: 0.75rem;
   }
+}
+
+/* ═══════════════════════════════════
+   BOOKING TERMS
+   ═══════════════════════════════════ */
+.booking-terms {
+  margin-bottom: 0.75rem;
+}
+.terms-check {
+  display: flex;
+  align-items: center;
+  gap: 0.5rem;
+  font-size: 0.82rem;
+  color: #475569;
+  cursor: pointer;
+}
+.terms-check input[type="checkbox"] {
+  width: 18px;
+  height: 18px;
+  accent-color: var(--primary, #f97316);
+  cursor: pointer;
+  flex-shrink: 0;
+}
+.terms-link {
+  color: var(--primary, #f97316);
+  font-weight: 700;
+  background: none;
+  border: none;
+  cursor: pointer;
+  font-family: inherit;
+  font-size: inherit;
+  padding: 0;
+  text-decoration: underline;
+}
+.terms-overlay {
+  position: fixed;
+  inset: 0;
+  background: rgba(0,0,0,0.6);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  z-index: 9999;
+  padding: 1rem;
+}
+.terms-modal {
+  background: #fff;
+  border-radius: 16px;
+  max-width: 600px;
+  width: 100%;
+  max-height: 80vh;
+  display: flex;
+  flex-direction: column;
+  box-shadow: 0 20px 60px rgba(0,0,0,0.2);
+}
+.terms-modal-header {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  padding: 1.25rem 1.5rem;
+  border-bottom: 1px solid #e2e8f0;
+}
+.terms-modal-header h3 {
+  font-size: 1.1rem;
+  font-weight: 800;
+  color: #0f172a;
+}
+.terms-modal-header button {
+  background: none;
+  border: none;
+  cursor: pointer;
+  color: #64748b;
+  font-size: 1.1rem;
+  padding: 0.25rem;
+}
+.terms-modal-body {
+  padding: 1.5rem;
+  overflow-y: auto;
+  flex: 1;
+  color: #334155;
+  font-size: 0.88rem;
+  line-height: 1.8;
+}
+.terms-modal-footer {
+  padding: 1rem 1.5rem;
+  border-top: 1px solid #e2e8f0;
+  display: flex;
+  justify-content: flex-end;
+}
+.terms-accept-btn {
+  display: flex;
+  align-items: center;
+  gap: 0.4rem;
+  padding: 0.6rem 1.5rem;
+  border-radius: 10px;
+  background: linear-gradient(135deg, #f97316, #ea580c);
+  color: #fff;
+  border: none;
+  font-weight: 700;
+  font-family: inherit;
+  font-size: 0.85rem;
+  cursor: pointer;
 }
 </style>

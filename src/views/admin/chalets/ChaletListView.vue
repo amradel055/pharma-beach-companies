@@ -50,7 +50,7 @@
             <th>الدور</th>
             <th>الغرف</th>
             <th>السعر</th>
-            <th>رسم الإيجار</th>
+            <th>رسوم القرية</th>
             <th>الحد الأقصى</th>
             <th>الحالة</th>
             <th>الإجراءات</th>
@@ -140,7 +140,7 @@
             <div class="field"><label>العربون (ج.م)</label>
               <input v-model.number="form.deposit" type="number" min="0" placeholder="500" />
             </div>
-            <div class="field"><label>رسم الإيجار (ج.م) <span class="req">*</span></label>
+            <div class="field"><label>رسوم القرية (ج.م) <span class="req">*</span></label>
               <input v-model.number="form.rentalFee" type="number" min="0" placeholder="125" :class="{ error: t.rental && !form.rentalFee }" @blur="t.rental = true" />
             </div>
             <div class="field"><label>المالك</label>

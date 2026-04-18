@@ -58,7 +58,9 @@ export const useOrdersStore = defineStore('orders', () => {
     const chalet = chaletsStore.getById(booking.chaletId)
     const maxPermitted = chalet?.maxPermitted || chalet?.maxGuests || 6
     const extraCharge = chalet?.extraGuestCharge || 150
-    const isExtra = booking.guests.length >= maxPermitted
+    const isChild = guest.isChild || false
+    const adultCount = booking.guests.filter((g) => !g.isChild).length
+    const isExtra = !isChild && adultCount >= maxPermitted
 
     booking.guests.push({
       id: Date.now().toString(36) + Math.random().toString(36).slice(2, 4),
@@ -66,6 +68,7 @@ export const useOrdersStore = defineStore('orders', () => {
       nationalId: guest.nationalId || '',
       relation: guest.relation || '',
       phone: guest.phone || '',
+      isChild,
       isExtra,
     })
 
@@ -93,8 +96,12 @@ export const useOrdersStore = defineStore('orders', () => {
     const maxPermitted = chalet?.maxPermitted || 6
     const extraCharge = chalet?.extraGuestCharge || 150
 
-    // Recalculate isExtra flags
-    booking.guests.forEach((g, i) => { g.isExtra = i >= maxPermitted })
+    // Recalculate isExtra flags (only adults count toward capacity)
+    let adultIdx = 0
+    booking.guests.forEach((g) => {
+      if (g.isChild) { g.isExtra = false }
+      else { g.isExtra = adultIdx >= maxPermitted; adultIdx++ }
+    })
     const extraCount = booking.guests.filter((g) => g.isExtra).length
     booking.guestExtraTotal = extraCount * extraCharge
     booking.total = Number(booking.subtotal || 0) + booking.guestExtraTotal - Number(booking.discountAmount || 0)

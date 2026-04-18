@@ -36,6 +36,8 @@
           <div class="payment-summary">
             <div class="pay-row"><span>سعر الليالي</span><span class="pay-val">{{ fmtNum(order.subtotal) }} ج.م</span></div>
             <div v-if="order.guestExtraTotal > 0" class="pay-row extra"><span>رسوم أعضاء إضافيين</span><span class="pay-val">+ {{ fmtNum(order.guestExtraTotal) }} ج.م</span></div>
+            <div v-if="order.cars?.length > 0" class="pay-row extra"><span>رسوم سيارات ({{ order.cars.length }})</span><span class="pay-val">+ {{ fmtNum(order.carFeesTotal || 0) }} ج.م</span></div>
+            <div class="pay-row extra"><span>رسوم تصريح الأمن</span><span class="pay-val">+ {{ fmtNum(settings.securityPermitFee) }} ج.م</span></div>
             <div v-if="order.discountAmount > 0" class="pay-row discount"><span>خصم كوبون</span><span class="pay-val">- {{ fmtNum(order.discountAmount) }} ج.م</span></div>
             <div class="pay-row total"><span>الإجمالي</span><span class="pay-val">{{ fmtNum(order.total) }} ج.م</span></div>
             <div class="pay-divider" />
@@ -65,7 +67,7 @@
       <!-- Guests Section -->
       <div class="guests-card">
         <div class="guests-header">
-          <h3 class="card-title"><i class="pi pi-users" /> الأعضاء ({{ guestCount }}/{{ maxPermitted }})</h3>
+          <h3 class="card-title"><i class="pi pi-users" /> الأعضاء ({{ adultCount }} بالغ / {{ childCount }} طفل)</h3>
           <button v-if="order.status !== 'CONFIRMED'" class="btn-sm" @click="guestModalOpen = true"><i class="pi pi-plus" /> إضافة عضو</button>
         </div>
 
@@ -82,11 +84,34 @@
             <div class="guest-info">
               <div class="guest-av"><i class="pi pi-user" /></div>
               <div>
-                <span class="guest-name">{{ g.name }} <span v-if="g.isExtra" class="extra-tag">إضافي</span></span>
+                <span class="guest-name">{{ g.name }} <span v-if="g.isChild" class="child-tag">طفل</span><span v-if="g.isExtra" class="extra-tag">إضافي</span></span>
                 <span class="guest-meta">{{ g.nationalId }} · {{ g.relation }} · {{ g.phone }}</span>
               </div>
             </div>
             <button v-if="order.status !== 'CONFIRMED'" class="item-btn danger" @click="handleRemoveGuest(g.id)"><i class="pi pi-trash" /></button>
+          </div>
+        </div>
+      </div>
+
+      <!-- Cars Section -->
+      <div class="guests-card">
+        <div class="guests-header">
+          <h3 class="card-title"><i class="pi pi-car" /> السيارات ({{ order.cars?.length || 0 }})</h3>
+          <button v-if="order.status !== 'CONFIRMED'" class="btn-sm" @click="carModalOpen = true"><i class="pi pi-plus" /> إضافة سيارة</button>
+        </div>
+
+        <div v-if="!order.cars?.length" class="guests-empty">لم يتم إضافة سيارات بعد</div>
+
+        <div v-else class="guests-list">
+          <div v-for="c in order.cars" :key="c.id" class="guest-item">
+            <div class="guest-info">
+              <div class="guest-av"><i class="pi pi-car" /></div>
+              <div>
+                <span class="guest-name">{{ c.plateNumber }} <span v-if="c.brand || c.model" class="car-detail">{{ c.brand }} {{ c.model }}</span></span>
+                <span class="guest-meta">{{ c.color ? c.color + ' · ' : '' }}{{ c.driverName ? c.driverName : '' }}{{ c.driverPhone ? ' · ' + c.driverPhone : '' }}</span>
+              </div>
+            </div>
+            <button v-if="order.status !== 'CONFIRMED'" class="item-btn danger" @click="handleRemoveCar(c.id)"><i class="pi pi-trash" /></button>
           </div>
         </div>
       </div>
@@ -142,6 +167,13 @@
           <label>رقم الموبايل</label>
           <input v-model="guestForm.phone" placeholder="01xxxxxxxxx" dir="ltr" />
         </div>
+        <div class="field full-width">
+          <label>النوع</label>
+          <div class="radio-group">
+            <label class="radio-label"><input type="radio" :value="false" v-model="guestForm.isChild" /> بالغ</label>
+            <label class="radio-label"><input type="radio" :value="true" v-model="guestForm.isChild" /> طفل</label>
+          </div>
+        </div>
       </div>
       <div v-if="willBeExtra" class="extra-notice">
         <i class="pi pi-info-circle" /> هذا العضو سيكون إضافياً — سيتم احتساب {{ fmtNum(chaletExtraCharge) }} ج.م
@@ -153,6 +185,42 @@
         </button>
       </template>
     </AppModal>
+
+    <!-- Add Car Modal -->
+    <AppModal v-model="carModalOpen" title="إضافة سيارة" icon="pi pi-car" size="md" @close="resetCarForm">
+      <div class="fields-grid">
+        <div class="field">
+          <label>رقم اللوحة <span class="req">*</span></label>
+          <input v-model="carForm.plateNumber" placeholder="رقم اللوحة" dir="ltr" />
+        </div>
+        <div class="field">
+          <label>الماركة</label>
+          <input v-model="carForm.brand" placeholder="مثال: تويوتا" />
+        </div>
+        <div class="field">
+          <label>الموديل</label>
+          <input v-model="carForm.model" placeholder="مثال: كامري" />
+        </div>
+        <div class="field">
+          <label>اللون</label>
+          <input v-model="carForm.color" placeholder="مثال: أبيض" />
+        </div>
+        <div class="field">
+          <label>اسم السائق</label>
+          <input v-model="carForm.driverName" placeholder="اسم السائق" />
+        </div>
+        <div class="field">
+          <label>رقم السائق</label>
+          <input v-model="carForm.driverPhone" placeholder="01xxxxxxxxx" dir="ltr" />
+        </div>
+      </div>
+      <template #footer>
+        <button class="btn-cancel" @click="carModalOpen = false">إلغاء</button>
+        <button class="btn-submit" :disabled="!carForm.plateNumber.trim()" @click="handleAddCar">
+          <i class="pi pi-plus" /> إضافة
+        </button>
+      </template>
+    </AppModal>
   </div>
 </template>
 
@@ -160,6 +228,7 @@
 import { ref, reactive, computed, onMounted } from 'vue'
 import { useRoute, useRouter } from 'vue-router'
 import { useOrdersStore } from '@/stores/orders'
+import { useBookingsStore } from '@/stores/bookings'
 import { useChaletsStore } from '@/stores/chalets'
 import { useSettingsStore } from '@/stores/settings'
 import { useToastStore } from '@/stores/toast'
@@ -170,6 +239,7 @@ import OrderTimer from '@/components/admin/cs/OrderTimer.vue'
 const route = useRoute()
 const router = useRouter()
 const ordersStore = useOrdersStore()
+const bookingsStore = useBookingsStore()
 const chaletsStore = useChaletsStore()
 const settings = useSettingsStore()
 const toast = useToastStore()
@@ -220,11 +290,13 @@ function handleConfirm() {
 
 // Guests
 const guestModalOpen = ref(false)
-const guestForm = reactive({ name: '', nationalId: '', relation: '', phone: '' })
-const willBeExtra = computed(() => guestCount.value >= maxPermitted.value)
+const guestForm = reactive({ name: '', nationalId: '', relation: '', phone: '', isChild: false })
+const adultCount = computed(() => (order.value?.guests || []).filter((g) => !g.isChild).length)
+const childCount = computed(() => (order.value?.guests || []).filter((g) => g.isChild).length)
+const willBeExtra = computed(() => !guestForm.isChild && adultCount.value >= maxPermitted.value)
 
 function resetGuestForm() {
-  Object.assign(guestForm, { name: '', nationalId: '', relation: '', phone: '' })
+  Object.assign(guestForm, { name: '', nationalId: '', relation: '', phone: '', isChild: false })
 }
 
 function handleAddGuest() {
@@ -241,6 +313,27 @@ function handleAddGuest() {
 function handleRemoveGuest(guestId) {
   ordersStore.removeGuest(order.value.id, guestId)
   toast.success('تم حذف العضو')
+}
+
+// Cars
+const carModalOpen = ref(false)
+const carForm = reactive({ plateNumber: '', brand: '', model: '', color: '', driverName: '', driverPhone: '' })
+
+function resetCarForm() {
+  Object.assign(carForm, { plateNumber: '', brand: '', model: '', color: '', driverName: '', driverPhone: '' })
+}
+
+function handleAddCar() {
+  if (!carForm.plateNumber.trim()) return
+  bookingsStore.addCar(order.value.id, { ...carForm }, settings.carFee)
+  toast.success('تم إضافة السيارة')
+  carModalOpen.value = false
+  resetCarForm()
+}
+
+function handleRemoveCar(carId) {
+  bookingsStore.removeCar(order.value.id, carId)
+  toast.success('تم حذف السيارة')
 }
 
 // WhatsApp phone — auto-fill from first guest if available
@@ -406,6 +499,13 @@ function fmtNum(n) { return Number(n || 0).toLocaleString('ar-EG') }
 .field input { height: 42px; padding: 0 14px; border: 1px solid #e2e8f0; border-radius: 10px; font-size: 13.5px; font-family: inherit; color: #1e293b; background: #fafbfc; outline: none; transition: all 0.2s; }
 .field input:focus { border-color: #f97316; background: #fff; }
 .field input::placeholder { color: #94a3b8; }
+.full-width { grid-column: 1 / -1; }
+.radio-group { display: flex; gap: 16px; padding-top: 4px; }
+.radio-label { display: inline-flex; align-items: center; gap: 6px; font-size: 13.5px; font-weight: 500; color: #475569; cursor: pointer; }
+.radio-label input[type="radio"] { accent-color: #f97316; }
+.child-tag { font-size: 10.5px; padding: 2px 7px; border-radius: 4px; background: rgba(14, 165, 233, 0.1); color: #0ea5e9; font-weight: 600; margin-right: 4px; }
+.car-detail { font-size: 12px; color: #94a3b8; font-weight: 400; margin-right: 6px; }
+
 .extra-notice { display: flex; align-items: center; gap: 8px; padding: 12px 16px; background: rgba(234, 179, 8, 0.06); border: 1px solid rgba(234, 179, 8, 0.15); border-radius: 10px; font-size: 13px; color: #a16207; margin-top: 14px; }
 .extra-notice i { color: #eab308; }
 .btn-cancel { padding: 10px 24px; border-radius: 10px; background: #f1f5f9; color: #475569; font-size: 13.5px; font-weight: 600; border: none; cursor: pointer; font-family: inherit; }

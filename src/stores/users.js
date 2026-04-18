@@ -95,6 +95,15 @@ export const useUsersStore = defineStore('users', () => {
     if (data.role === ROLES.OWNER) {
       newUser.chaletIds = data.chaletIds || []
     }
+    if (data.role === ROLES.OPERATOR) {
+      newUser.commissionPercent = Number(data.commissionPercent) || 0
+      newUser.assignedChaletIds = data.assignedChaletIds || []
+      newUser.villageId = data.villageId || null
+    }
+    if (data.role === ROLES.SECURITY) {
+      newUser.nationalId = (data.nationalId || '').trim() || null
+      newUser.villageId = data.villageId || null
+    }
 
     users.value.push(newUser)
     _persist()
@@ -120,6 +129,9 @@ export const useUsersStore = defineStore('users', () => {
     if (data.commissionPercent !== undefined) updated.commissionPercent = Number(data.commissionPercent)
     if (data.brokerId !== undefined) updated.brokerId = data.brokerId
     if (data.chaletIds !== undefined) updated.chaletIds = data.chaletIds
+    if (data.assignedChaletIds !== undefined) updated.assignedChaletIds = data.assignedChaletIds
+    if (data.villageId !== undefined) updated.villageId = data.villageId
+    if (data.nationalId !== undefined) updated.nationalId = (data.nationalId || '').trim() || null
 
     users.value[index] = updated
     _persist()
@@ -144,6 +156,22 @@ export const useUsersStore = defineStore('users', () => {
     return { ok: true }
   }
 
+  function getOperators(villageId = null) {
+    return users.value.filter((u) => {
+      if (u.role !== ROLES.OPERATOR) return false
+      if (villageId && u.villageId !== villageId) return false
+      return true
+    })
+  }
+
+  function getSecurityMembers(villageId = null) {
+    return users.value.filter((u) => {
+      if (u.role !== ROLES.SECURITY) return false
+      if (villageId && u.villageId !== villageId) return false
+      return true
+    })
+  }
+
   const totalInternal = computed(() => {
     return users.value.filter((u) => u.role && u.role !== ROLES.CUSTOMER).length
   })
@@ -160,6 +188,8 @@ export const useUsersStore = defineStore('users', () => {
     getByRole,
     getBrokers,
     getBrokerAgents,
+    getOperators,
+    getSecurityMembers,
     create,
     update,
     toggleActive,
