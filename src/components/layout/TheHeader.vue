@@ -85,7 +85,7 @@ import { useRouter } from 'vue-router'
 import { useAuthStore } from '@/stores/auth'
 import { useToastStore } from '@/stores/toast'
 import { ADMIN_ROLES } from '@/constants/roles'
-import logo from '@/assets/images/logo.jpeg'
+import logo from '@/assets/images/logo.png'
 
 const router = useRouter()
 const auth = useAuthStore()
@@ -161,14 +161,15 @@ onUnmounted(() => {
   height: 52px;
   width: auto;
   border-radius: 6px;
-  box-shadow: 0 4px 16px rgba(0, 0, 0, 0.15);
-  transition: height 0.3s ease;
+  transition: height 0.3s ease, filter 0.4s ease, box-shadow 0.4s ease;
   animation: logoFloat 3s ease-in-out infinite;
+  /* At top of page (transparent header over dark hero) — force logo to pure white */
+  filter: brightness(0) invert(1) drop-shadow(0 2px 10px rgba(0, 0, 0, 0.3));
 }
 
 @keyframes logoFloat {
-  0%, 100% { transform: translateY(0); box-shadow: 0 4px 16px rgba(0, 0, 0, 0.15); }
-  50% { transform: translateY(-4px); box-shadow: 0 8px 24px rgba(0, 0, 0, 0.2); }
+  0%, 100% { transform: translateY(0); }
+  50%      { transform: translateY(-4px); }
 }
 
 .header.scrolled .header-logo img {
@@ -176,6 +177,8 @@ onUnmounted(() => {
   border-radius: 0;
   box-shadow: none;
   animation: none;
+  /* Restore original colors once navbar has its white glass background */
+  filter: none;
 }
 
 .header-actions {

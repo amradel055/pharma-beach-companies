@@ -52,7 +52,7 @@ import { ref, computed, onMounted, onUnmounted } from 'vue'
 import { useRoute, useRouter } from 'vue-router'
 import { useAuthStore } from '@/stores/auth'
 import { useToastStore } from '@/stores/toast'
-import logo from '@/assets/images/logo.jpeg'
+import logo from '@/assets/images/logo.png'
 
 const route = useRoute()
 const router = useRouter()

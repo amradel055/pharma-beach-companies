@@ -52,6 +52,7 @@
             <th>السعر</th>
             <th>رسوم القرية</th>
             <th>الحد الأقصى</th>
+            <th>المشغل</th>
             <th>الحالة</th>
             <th>الإجراءات</th>
           </tr>
@@ -75,6 +76,7 @@
             <td class="cell-num">{{ c.price }} ج.م</td>
             <td class="cell-num">{{ c.rentalFee }} ج.م</td>
             <td>{{ c.maxPermitted }} فرد</td>
+            <td>{{ getOperatorName(c.operatorId) }}</td>
             <td>
               <span :class="['status-badge', c.status]">
                 {{ statusLabel(c.status) }}
@@ -169,6 +171,10 @@
             </div>
             <div class="field"><label>رابط الصورة الرئيسية</label>
               <input v-model="form.image" placeholder="https://..." dir="ltr" />
+              <span class="field-hint">
+                <i class="pi pi-info-circle" />
+                الصورة الرئيسية: 1920×1080 (16:9) — الصور الثانوية: 800×450 (16:9)
+              </span>
             </div>
           </div>
           <div class="field" style="margin-top: 14px">
@@ -262,6 +268,12 @@ const stats = computed(() => [
 
 function statusLabel(s) {
   return { published: 'منشور', draft: 'مسودة', pending: 'قيد الاعتماد' }[s] || s
+}
+
+function getOperatorName(operatorId) {
+  if (!operatorId) return '—'
+  const user = usersStore.getById(operatorId)
+  return user?.name || '—'
 }
 
 // Delete
@@ -429,6 +441,8 @@ function handleSubmit() {
 .field input, .field textarea { height: 42px; padding: 0 14px; border: 1px solid #e2e8f0; border-radius: 10px; font-size: 13.5px; font-family: inherit; color: #1e293b; background: #fafbfc; outline: none; transition: all 0.2s; }
 .field textarea { height: auto; padding: 10px 14px; resize: vertical; }
 .field input:focus, .field textarea:focus { border-color: #f97316; background: #fff; box-shadow: 0 0 0 3px rgba(249, 115, 22, 0.08); }
+.field-hint { display: flex; align-items: center; gap: 4px; font-size: 11.5px; color: #94a3b8; }
+.field-hint i { font-size: 11px; }
 .field input.error { border-color: #ef4444; background: #fef2f2; }
 .field input::placeholder, .field textarea::placeholder { color: #94a3b8; }
 .form-error { display: flex; align-items: center; gap: 8px; padding: 12px 16px; background: #fef2f2; border: 1px solid #fecaca; border-radius: 10px; color: #ef4444; font-size: 13.5px; font-weight: 500; margin-bottom: 8px; }

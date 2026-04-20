@@ -66,7 +66,7 @@ import { ref, computed } from 'vue'
 import { useRoute } from 'vue-router'
 import { usePermissions } from '@/composables/usePermissions'
 import { useApprovalsStore } from '@/stores/approvals'
-import logo from '@/assets/images/logo.jpeg'
+import logo from '@/assets/images/logo.png'
 
 const props = defineProps({
   collapsed: Boolean,

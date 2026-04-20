@@ -32,7 +32,23 @@
       "Bash(find C:/web/pharma-beach/src -type f \\\\\\(-name *.vue -o -name *.js -o -name *.ts \\\\\\))",
       "Bash(xargs grep:*)",
       "Bash(python:*)",
-      "Bash(node:*)"
+      "Bash(node:*)",
+      "Bash(grep -E \"\\(package\\\\.json|README|\\\\.md$|\\\\.txt$\\)\")",
+      "Bash(npm uninstall *)",
+      "WebFetch(domain:gathern.co)",
+      "WebFetch(domain:www.booking.com)",
+      "WebFetch(domain:www.nawy.com)",
+      "WebFetch(domain:www.vrbo.com)",
+      "WebFetch(domain:www.gathern.co)",
+      "WebFetch(domain:news.airbnb.com)",
+      "Bash(sed -i '2325,2766d' src/views/HomeView.vue)",
+      "Bash(sed -n '2320,2330p' src/views/HomeView.vue)",
+      "Bash(sed -i '2282,2587d' src/views/HomeView.vue)",
+      "Bash(sed -n '2278,2290p' src/views/HomeView.vue)",
+      "Bash(sed -i '2360,2618d' src/views/HomeView.vue)",
+      "Bash(sed -n '2356,2370p' src/views/HomeView.vue)",
+      "Bash(sed -i '2459,2526d' src/views/HomeView.vue)",
+      "Bash(sed -n '2455,2462p' src/views/HomeView.vue)"
     ]
   }
 }

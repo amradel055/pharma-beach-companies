@@ -556,7 +556,7 @@ const subtotal = computed(() => (chalet.value?.price || 0) * nights.value)
 const total = computed(() => subtotal.value + (chalet.value?.deposit || 0))
 
 // ── Booking flow ──
-function handleBook() {
+async function handleBook() {
   if (nights.value === 0 || !chalet.value) return
   dateBlockedError.value = false
 
@@ -603,6 +603,25 @@ function handleBook() {
     chaletNumber: chalet.value.chaletNumber,
     chaletImage: chalet.value.image,
   })
+
+  // Send booking notifications to owner and operator
+  try {
+    const { useNotificationsStore } = await import('@/stores/notifications')
+    const { useChaletsStore } = await import('@/stores/chalets')
+    const notifStore = useNotificationsStore()
+    const chaletsStore = useChaletsStore()
+    const chaletData = chaletsStore.getById(chalet.value.id)
+    const notifBody = `حجز جديد — شاليه ${chalet.value.chaletNumber} من ${new Date(checkIn).toLocaleDateString('ar-EG')} إلى ${new Date(checkOut).toLocaleDateString('ar-EG')}`
+
+    // Notify owner
+    if (chaletData?.ownerId) {
+      notifStore.send({ toUserId: chaletData.ownerId, title: 'حجز جديد على شاليهك', body: notifBody, type: 'booking', meta: { bookingId: booking.id, chaletNumber: chalet.value.chaletNumber } })
+    }
+    // Notify operator
+    if (chaletData?.operatorId) {
+      notifStore.send({ toUserId: chaletData.operatorId, title: 'حجز جديد على شاليه تشغيلك', body: notifBody, type: 'booking', meta: { bookingId: booking.id, chaletNumber: chalet.value.chaletNumber } })
+    }
+  } catch {}
 
   toast.success('تم إنشاء الحجز بنجاح')
   router.push(`/booking-confirmation/${booking.id}`)

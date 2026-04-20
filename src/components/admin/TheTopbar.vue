@@ -20,10 +20,34 @@
 
       <!-- Left Side (RTL end) -->
       <div class="topbar-end">
-        <button class="tb-icon-btn" title="الإشعارات">
-          <i class="pi pi-bell" />
-          <span class="tb-dot" />
-        </button>
+        <!-- Notifications -->
+        <div class="tb-notif-wrap" ref="notifRef">
+          <button class="tb-icon-btn" @click="notifOpen = !notifOpen" title="الإشعارات">
+            <i class="pi pi-bell" />
+            <span v-if="notifUnread > 0" class="tb-dot">{{ notifUnread }}</span>
+          </button>
+          <Transition name="dropdown">
+            <div v-if="notifOpen" class="notif-dropdown">
+              <div class="notif-header">
+                <strong>الإشعارات</strong>
+                <button v-if="notifUnread > 0" class="notif-read-all" @click="markAllRead">تحديد الكل كمقروء</button>
+              </div>
+              <div class="notif-list" v-if="userNotifs.length > 0">
+                <div v-for="n in userNotifs.slice(0, 10)" :key="n.id"
+                     :class="['notif-item', { unread: !n.read }]"
+                     @click="notifStore.markAsRead(n.id)">
+                  <div class="notif-icon"><i class="pi pi-calendar" /></div>
+                  <div class="notif-body">
+                    <strong>{{ n.title }}</strong>
+                    <p>{{ n.body }}</p>
+                    <span class="notif-time">{{ formatTime(n.createdAt) }}</span>
+                  </div>
+                </div>
+              </div>
+              <div v-else class="notif-empty">لا توجد إشعارات</div>
+            </div>
+          </Transition>
+        </div>
 
         <div class="tb-separator" />
 
@@ -74,6 +98,7 @@
 import { ref, computed, onMounted, onUnmounted } from 'vue'
 import { useRoute, useRouter } from 'vue-router'
 import { useAuthStore } from '@/stores/auth'
+import { useNotificationsStore } from '@/stores/notifications'
 import { ROLE_LABELS } from '@/constants/roles'
 
 defineProps({
@@ -84,9 +109,34 @@ defineEmits(['toggleMobile'])
 const route = useRoute()
 const router = useRouter()
 const auth = useAuthStore()
+const notifStore = useNotificationsStore()
 
 const menuOpen = ref(false)
 const userMenuRef = ref(null)
+const notifOpen = ref(false)
+const notifRef = ref(null)
+
+const userNotifs = computed(() => notifStore.getForUser(auth.user?.id))
+const notifUnread = computed(() => notifStore.unreadCount(auth.user?.id))
+
+function markAllRead() {
+  notifStore.markAllRead(auth.user?.id)
+}
+
+function formatTime(dateStr) {
+  const d = new Date(dateStr)
+  const now = new Date()
+  const diff = Math.floor((now - d) / 60000)
+  if (diff < 1) return 'الآن'
+  if (diff < 60) return `منذ ${diff} دقيقة`
+  if (diff < 1440) return `منذ ${Math.floor(diff / 60)} ساعة`
+  return d.toLocaleDateString('ar-EG')
+}
+
+// Close notification dropdown on outside click
+function onClickOutside(e) {
+  if (notifRef.value && !notifRef.value.contains(e.target)) notifOpen.value = false
+}
 
 const pageTitle = computed(() => route.meta?.title || 'لوحة التحكم')
 const userInitial = computed(() => auth.user?.name?.charAt(0) || '?')
@@ -104,8 +154,14 @@ function handleClickOutside(e) {
   }
 }
 
-onMounted(() => document.addEventListener('click', handleClickOutside))
-onUnmounted(() => document.removeEventListener('click', handleClickOutside))
+onMounted(() => {
+  document.addEventListener('click', handleClickOutside)
+  document.addEventListener('click', onClickOutside)
+})
+onUnmounted(() => {
+  document.removeEventListener('click', handleClickOutside)
+  document.removeEventListener('click', onClickOutside)
+})
 </script>
 
 <style scoped>
@@ -495,5 +551,123 @@ onUnmounted(() => document.removeEventListener('click', handleClickOutside))
     text-overflow: ellipsis;
     white-space: nowrap;
   }
+}
+
+/* ═══════════════════════════════════
+   NOTIFICATIONS
+   ═══════════════════════════════════ */
+.tb-notif-wrap {
+  position: relative;
+}
+
+.tb-dot {
+  position: absolute;
+  top: 4px;
+  right: 4px;
+  min-width: 16px;
+  height: 16px;
+  border-radius: 8px;
+  background: #ef4444;
+  color: #fff;
+  font-size: 0.6rem;
+  font-weight: 700;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  padding: 0 4px;
+}
+
+.notif-dropdown {
+  position: absolute;
+  top: calc(100% + 8px);
+  left: 0;
+  width: 340px;
+  max-height: 400px;
+  background: #fff;
+  border-radius: 16px;
+  box-shadow: 0 12px 40px rgba(0,0,0,0.12);
+  border: 1px solid #e2e8f0;
+  overflow: hidden;
+  z-index: 100;
+}
+
+.notif-header {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  padding: 1rem 1.25rem;
+  border-bottom: 1px solid #f1f5f9;
+}
+
+.notif-header strong {
+  font-size: 0.92rem;
+  color: #0f172a;
+}
+
+.notif-read-all {
+  background: none;
+  border: none;
+  color: var(--primary, #f97316);
+  font-size: 0.72rem;
+  font-weight: 600;
+  cursor: pointer;
+  font-family: inherit;
+}
+
+.notif-list {
+  overflow-y: auto;
+  max-height: 320px;
+}
+
+.notif-item {
+  display: flex;
+  gap: 0.75rem;
+  padding: 0.85rem 1.25rem;
+  cursor: pointer;
+  transition: background 0.2s ease;
+  border-bottom: 1px solid #f8fafc;
+}
+
+.notif-item:hover { background: #f8fafc; }
+
+.notif-item.unread {
+  background: rgba(249, 115, 22, 0.04);
+  border-right: 3px solid var(--primary, #f97316);
+}
+
+.notif-icon {
+  width: 36px;
+  height: 36px;
+  border-radius: 10px;
+  background: rgba(249, 115, 22, 0.08);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  flex-shrink: 0;
+}
+
+.notif-icon i { font-size: 0.85rem; color: var(--primary, #f97316); }
+
+.notif-body { flex: 1; min-width: 0; }
+.notif-body strong { display: block; font-size: 0.8rem; color: #0f172a; margin-bottom: 0.15rem; }
+.notif-body p { font-size: 0.75rem; color: #64748b; margin: 0; line-height: 1.4; }
+.notif-time { font-size: 0.65rem; color: #94a3b8; margin-top: 0.25rem; display: block; }
+
+.notif-empty {
+  padding: 2rem;
+  text-align: center;
+  color: #94a3b8;
+  font-size: 0.85rem;
+}
+
+.dropdown-enter-active,
+.dropdown-leave-active {
+  transition: all 0.2s ease;
+}
+
+.dropdown-enter-from,
+.dropdown-leave-to {
+  opacity: 0;
+  transform: translateY(-8px);
 }
 </style>

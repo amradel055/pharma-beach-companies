@@ -30,7 +30,11 @@ import TheFooter from '@/components/layout/TheFooter.vue'
 const showPromo = ref(false)
 
 function onScroll() {
-  showPromo.value = window.scrollY > 100
+  const scrolled = window.scrollY
+  const viewportBottom = scrolled + window.innerHeight
+  const pageHeight = document.documentElement.scrollHeight
+  const nearBottom = viewportBottom >= pageHeight - 120
+  showPromo.value = scrolled > 100 && !nearBottom
 }
 
 onMounted(() => {

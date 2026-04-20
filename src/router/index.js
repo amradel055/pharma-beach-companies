@@ -23,31 +23,31 @@ const routes = [
   // Default layout — empty page (no header, no footer)
   {
     path: '/',
-    component: DefaultLayout,
+    component: () => import('@/components/layout/AuthLayout.vue'),
     children: [
       {
         path: 'login',
         name: 'login',
         component: () => import('@/views/LoginView.vue'),
-        meta: { title: 'تسجيل الدخول', guest: true },
+        meta: { title: 'تسجيل الدخول', guest: true, layout: 'auth' },
       },
       {
         path: 'register',
         name: 'register',
         component: () => import('@/views/RegisterView.vue'),
-        meta: { title: 'إنشاء حساب', guest: true },
+        meta: { title: 'إنشاء حساب', guest: true, layout: 'auth' },
       },
       {
         path: 'forgot-password',
         name: 'forgot-password',
         component: () => import('@/views/ForgotPasswordView.vue'),
-        meta: { title: 'نسيت كلمة المرور', guest: true },
+        meta: { title: 'نسيت كلمة المرور', guest: true, layout: 'auth' },
       },
       {
         path: 'reset-password',
         name: 'reset-password',
         component: () => import('@/views/ResetPasswordView.vue'),
-        meta: { title: 'إعادة تعيين كلمة المرور' },
+        meta: { title: 'إعادة تعيين كلمة المرور', layout: 'auth' },
       },
     ],
   },
