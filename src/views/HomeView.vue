@@ -42,7 +42,11 @@
           </span>
         </h1>
         <div class="hero-line-deco" />
-        <p class="hero-arabic">شاليهات فاخرة على ساحل البحر الأبيض المتوسط</p>
+        <div class="hero-arabic-wrap">
+          <Transition name="tagline-wipe" mode="out-in">
+            <p class="hero-arabic" :key="heroTaglineIdx">{{ heroTaglines[heroTaglineIdx] }}</p>
+          </Transition>
+        </div>
         <div class="hero-meta">
           <div class="meta-card">
             <div class="meta-card-icon"><i class="pi pi-map-marker" /></div>
@@ -700,6 +704,17 @@ const mouseX = ref(50)
 const mouseY = ref(50)
 const scrollY = ref(0)
 
+// ---- Hero: rotating Arabic tagline (3D flip cycle) ----
+const heroTaglines = [
+  'شاليهات فاخرة على ساحل البحر الأبيض المتوسط',
+  'إقامة استثنائية مع خدمة 24 ساعة',
+  'شاطئ خاص، مسبح، ومطاعم في مكان واحد',
+  'أمان كامل ومساحات خضراء لعائلتك',
+  'احجز بسهولة، وصل، واستمتع',
+]
+const heroTaglineIdx = ref(0)
+let heroTaglineTimer = null
+
 const spotlightStyle = computed(() => ({
   background: `radial-gradient(600px circle at ${mouseX.value}% ${mouseY.value}%, rgba(255,255,255,0.04) 0%, transparent 100%)`,
 }))
@@ -877,6 +892,14 @@ const featuresData = [
 onMounted(() => {
   window.addEventListener('scroll', onHeroScroll, { passive: true })
 
+  // Rotate the Arabic tagline every 4.5s — kicks in after the initial entrance
+  // animation settles (~3s) so the first read is unhurried.
+  setTimeout(() => {
+    heroTaglineTimer = setInterval(() => {
+      heroTaglineIdx.value = (heroTaglineIdx.value + 1) % heroTaglines.length
+    }, 4500)
+  }, 3000)
+
   aboutObserver = new IntersectionObserver(
     ([entry]) => { if (entry.isIntersecting) { aboutVisible.value = true; aboutObserver.disconnect() } },
     { threshold: 0.15 }
@@ -918,6 +941,7 @@ onUnmounted(() => {
   faqObserver?.disconnect()
   featuresObserver?.disconnect()
   locObserver?.disconnect()
+  if (heroTaglineTimer) clearInterval(heroTaglineTimer)
   window.removeEventListener('scroll', onFeatStackScroll)
   window.removeEventListener('scroll', onHeroScroll)
 })
@@ -968,8 +992,11 @@ function openLightbox(item) {
   height: 100%;
   object-fit: cover;
   display: block;
-  opacity: 0;
-  animation: kb 35s ease-in-out infinite alternate, img-reveal 2.5s ease-out 0.3s forwards;
+  /* Slight warmth + brightness lift so the scene feels more lit */
+  filter: saturate(1.1) brightness(1.08);
+  /* Show the image at full brightness immediately — no dark → light fade-in.
+     The splash screen already covers the initial load. */
+  animation: kb 35s ease-in-out infinite alternate;
 }
 
 @keyframes kb {
@@ -977,18 +1004,14 @@ function openLightbox(item) {
   100% { transform: scale(1.06) translate(-0.5%, -0.3%); }
 }
 
-@keyframes img-reveal {
-  from { opacity: 0; }
-  to { opacity: 1; }
-}
-
 .hero-overlay {
   position: absolute;
   inset: 0;
   z-index: 1;
+  /* Lightened — lower dark-overlay opacities so more of the photo shows through */
   background:
-    radial-gradient(ellipse at center, rgba(10, 14, 26, 0.3) 0%, rgba(10, 14, 26, 0.65) 100%),
-    linear-gradient(180deg, rgba(10, 14, 26, 0.5) 0%, rgba(10, 14, 26, 0.2) 40%, rgba(10, 14, 26, 0.2) 60%, rgba(10, 14, 26, 0.6) 100%);
+    radial-gradient(ellipse at center, rgba(10, 14, 26, 0.15) 0%, rgba(10, 14, 26, 0.45) 100%),
+    linear-gradient(180deg, rgba(10, 14, 26, 0.3) 0%, rgba(10, 14, 26, 0.1) 40%, rgba(10, 14, 26, 0.1) 60%, rgba(10, 14, 26, 0.45) 100%);
 }
 
 /* ---- Mouse spotlight ---- */
@@ -1164,51 +1187,57 @@ function openLightbox(item) {
   transform-style: preserve-3d;
 }
 
-/* Both words — neon outlined stroke with depth */
+/* "Pharma" — now wears the OLD BEACH look: filled primary with a thin gold
+   stroke + breathing beach-glow. Gets the wider letter-spacing too. */
 .hero-word {
   font-family: 'Playfair Display', Georgia, serif;
   font-size: 9rem;
   font-weight: 900;
-  color: rgba(249, 115, 22, 0.06);
-  -webkit-text-stroke: 3px #fbbf24;
-  letter-spacing: 8px;
+  color: rgba(249, 115, 22, 0.8);
+  -webkit-text-stroke: 1.5px #fbbf24;
+  letter-spacing: 10px;
   display: inline-block;
   position: relative;
   opacity: 0;
-  animation: word-in 1s cubic-bezier(0.22, 1, 0.36, 1) 1s forwards, neon-glow 5s ease-in-out 3s infinite;
+  animation:
+    word-in 1s cubic-bezier(0.22, 1, 0.36, 1) 1s forwards,
+    beach-glow 5s ease-in-out 3s infinite;
   text-shadow:
-    0 0 8px rgba(249, 115, 22, 0.08),
-    0 0 20px rgba(249, 115, 22, 0.05);
+    0 0 12px rgba(249, 115, 22, 0.2),
+    0 4px 30px rgba(0, 0, 0, 0.3);
 }
 
-/* White outline behind (depth layer) */
+/* Pharma's blurred-orange depth halo (was the old Beach ::before) */
 .hero-word::before {
   content: attr(data-text);
   position: absolute;
   inset: 0;
   color: transparent;
-  -webkit-text-stroke: 5px rgba(255, 255, 255, 0.08);
+  -webkit-text-stroke: 4px rgba(249, 115, 22, 0.12);
+  filter: blur(3px);
   z-index: -1;
   pointer-events: none;
 }
 
-/* "Beach" — filled primary with outlined gold stroke on top */
+/* "Beach" — now wears the OLD PHARMA look: neon outlined stroke, minimal fill,
+   narrower letter-spacing + gentle neon glow breathing. */
 .hero-word--accent {
-  letter-spacing: 10px;
-  color: rgba(249, 115, 22, 0.55);
-  -webkit-text-stroke: 1.5px #fbbf24;
+  letter-spacing: 8px;
+  color: rgba(249, 115, 22, 0.16);
+  -webkit-text-stroke: 3px #fbbf24;
   text-shadow:
-    0 0 12px rgba(249, 115, 22, 0.2),
-    0 4px 30px rgba(0, 0, 0, 0.3);
+    0 0 8px rgba(249, 115, 22, 0.08),
+    0 0 20px rgba(249, 115, 22, 0.05);
   animation:
     word-in 1s cubic-bezier(0.22, 1, 0.36, 1) 1.3s forwards,
-    beach-glow 5s ease-in-out 3.5s infinite;
+    neon-glow 5s ease-in-out 3.5s infinite;
 }
 
+/* Beach's soft white depth halo (was the old Pharma ::before) */
 .hero-word--accent::before {
-  -webkit-text-stroke: 4px rgba(249, 115, 22, 0.12);
+  -webkit-text-stroke: 5px rgba(255, 255, 255, 0.08);
   color: transparent;
-  filter: blur(3px);
+  filter: none;
 }
 
 @keyframes beach-glow {
@@ -1258,20 +1287,112 @@ function openLightbox(item) {
 }
 
 /* ---- Arabic tagline ---- */
+/* Wrapper establishes perspective + reserves vertical space so the page doesn't
+   jump when the tagline swaps. */
+.hero-arabic-wrap {
+  perspective: 900px;
+  transform-style: preserve-3d;
+  min-height: 2.3em;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  margin-top: 0.5rem;
+}
+
 .hero-arabic {
   font-size: 1.15rem;
-  color: rgba(255, 255, 255, 0.5);
+  color: rgba(255, 255, 255, 0.8);
   font-weight: 600;
-  margin-top: 0.5rem;
+  text-shadow: 0 2px 10px rgba(0, 0, 0, 0.35);
   max-width: 500px;
   line-height: 1.7;
-  opacity: 0;
-  animation: text-rise 0.8s ease 2.2s forwards;
+  margin: 0;
+  perspective: 900px;
+  /* Entrance is handled per-word by .hero-tag-word; the paragraph itself stays visible. */
 }
 
 @keyframes text-rise {
   from { opacity: 0; transform: translateY(12px); filter: blur(3px); }
   to { opacity: 1; transform: translateY(0); filter: blur(0); }
+}
+
+/* ── Curtain-wipe transition ──
+   Outgoing: visible band shrinks left → right (leftmost chars disappear first)
+   Incoming: visible band grows right → left (mirrors the RTL reading direction)
+   A thin gold "wipe line" trails the edge on both phases for cinematic polish. */
+.tagline-wipe-enter-active {
+  animation: tagline-wipe-in 0.85s cubic-bezier(0.65, 0, 0.35, 1) forwards;
+  position: relative;
+}
+.tagline-wipe-leave-active {
+  animation: tagline-wipe-out 0.55s cubic-bezier(0.65, 0, 0.35, 1) forwards;
+  position: absolute;
+  inset: 0;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  pointer-events: none;
+}
+
+@keyframes tagline-wipe-out {
+  0%   {
+    clip-path: inset(0 0 0 0);
+    -webkit-clip-path: inset(0 0 0 0);
+    transform: translateX(0);
+    opacity: 1;
+  }
+  100% {
+    clip-path: inset(0 0 0 100%);
+    -webkit-clip-path: inset(0 0 0 100%);
+    transform: translateX(-24px);
+    opacity: 0.85;
+  }
+}
+
+@keyframes tagline-wipe-in {
+  0%   {
+    clip-path: inset(0 0 0 100%);
+    -webkit-clip-path: inset(0 0 0 100%);
+    transform: translateX(24px);
+    opacity: 0.85;
+    filter: blur(4px);
+  }
+  50%  { filter: blur(1px); }
+  100% {
+    clip-path: inset(0 0 0 0);
+    -webkit-clip-path: inset(0 0 0 0);
+    transform: translateX(0);
+    opacity: 1;
+    filter: blur(0);
+  }
+}
+
+/* The wipe "edge" — a thin gold bar that travels across with the reveal */
+.tagline-wipe-enter-active::after,
+.tagline-wipe-leave-active::after {
+  content: '';
+  position: absolute;
+  top: -4px;
+  bottom: -4px;
+  width: 2px;
+  background: linear-gradient(180deg, transparent, #fbbf24 30%, #f97316 70%, transparent);
+  box-shadow: 0 0 12px rgba(251, 191, 36, 0.8), 0 0 24px rgba(249, 115, 22, 0.4);
+  pointer-events: none;
+}
+.tagline-wipe-enter-active::after {
+  animation: wipe-edge-in 0.85s cubic-bezier(0.65, 0, 0.35, 1) forwards;
+}
+.tagline-wipe-leave-active::after {
+  animation: wipe-edge-out 0.55s cubic-bezier(0.65, 0, 0.35, 1) forwards;
+}
+
+@keyframes wipe-edge-in {
+  0%   { right: 0;    opacity: 1; }
+  100% { right: 100%; opacity: 0; }
+}
+@keyframes wipe-edge-out {
+  0%   { left: 0;     opacity: 1; }
+  100% { left: 100%;  opacity: 0; }
 }
 
 /* ---- Meta: location, rating, weather ---- */
@@ -1290,8 +1411,8 @@ function openLightbox(item) {
   gap: 0.65rem;
   padding: 0.65rem 1.1rem;
   border-radius: 14px;
-  background: rgba(255, 255, 255, 0.06);
-  border: 1px solid rgba(255, 255, 255, 0.08);
+  background: rgba(255, 255, 255, 0.14);
+  border: 1px solid rgba(255, 255, 255, 0.22);
   backdrop-filter: blur(16px);
   -webkit-backdrop-filter: blur(16px);
   transition: transform 0.4s cubic-bezier(0.22, 1, 0.36, 1), background 0.35s ease, border-color 0.35s ease, box-shadow 0.35s ease;
@@ -1347,7 +1468,7 @@ function openLightbox(item) {
 
 .meta-card-text strong {
   font-size: 0.62rem;
-  color: rgba(255, 255, 255, 0.35);
+  color: rgba(255, 255, 255, 0.6);
   font-weight: 600;
   letter-spacing: 1px;
   text-transform: uppercase;
@@ -1355,7 +1476,7 @@ function openLightbox(item) {
 
 .meta-card-text span {
   font-size: 0.82rem;
-  color: rgba(255, 255, 255, 0.7);
+  color: rgba(255, 255, 255, 0.95);
   font-weight: 700;
 }
 
@@ -1369,7 +1490,7 @@ function openLightbox(item) {
   display: inline-block;
   margin-top: 1.75rem;
   padding: 0.9rem 3.5rem;
-  border: 1.5px solid rgba(249, 115, 22, 0.5);
+  border: 1.5px solid rgba(249, 115, 22, 0.75);
   color: #fff;
   text-decoration: none;
   font-size: 0.88rem;
@@ -1382,7 +1503,8 @@ function openLightbox(item) {
   opacity: 0;
   animation: text-rise 0.8s ease 2.8s forwards;
   transition: all 0.4s ease;
-  background: transparent;
+  background: rgba(249, 115, 22, 0.18);
+  box-shadow: 0 4px 16px rgba(249, 115, 22, 0.2);
 }
 
 .hero-cta::before {
@@ -1390,7 +1512,7 @@ function openLightbox(item) {
   position: absolute;
   inset: 0;
   border-radius: 50px;
-  background: linear-gradient(135deg, rgba(249, 115, 22, 0.15), rgba(249, 115, 22, 0.05));
+  background: linear-gradient(135deg, rgba(249, 115, 22, 0.3), rgba(251, 191, 36, 0.15));
   opacity: 0;
   transition: opacity 0.4s ease;
 }
@@ -1414,7 +1536,7 @@ function openLightbox(item) {
   z-index: 5;
   font-size: 0.55rem;
   letter-spacing: 4px;
-  color: rgba(255, 255, 255, 0.08);
+  color: rgba(255, 255, 255, 0.22);
   font-weight: 600;
   text-transform: uppercase;
   writing-mode: vertical-lr;

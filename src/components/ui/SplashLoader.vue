@@ -1,11 +1,17 @@
 <template>
   <div class="sl" role="status" aria-label="Loading">
-    <!-- Mesh blobs + grain -->
+    <!-- Layered background: rotating soft rays → radial spotlight → mesh blobs →
+         faint dot pattern → grain → edge vignette -->
     <div class="sl-mesh">
+      <div class="sl-mesh__rays" />
+      <div class="sl-mesh__spotlight" />
       <div class="sl-mesh__blob sl-mesh__blob--a" />
       <div class="sl-mesh__blob sl-mesh__blob--b" />
       <div class="sl-mesh__blob sl-mesh__blob--c" />
+      <div class="sl-mesh__blob sl-mesh__blob--d" />
+      <div class="sl-mesh__dots" />
       <div class="sl-mesh__noise" />
+      <div class="sl-mesh__vignette" />
     </div>
 
     <!-- Floating particles -->
@@ -53,32 +59,108 @@ const particleStyle = (n) => {
   font-family: 'Cairo', sans-serif;
 }
 
-/* ── Light mesh background ── */
+/* ── Light premium mesh background (dialed down — warmer, less bright) ── */
 .sl-mesh {
   position: absolute;
   inset: 0;
   z-index: 1;
-  background: linear-gradient(180deg, #ffffff 0%, #fdf6ef 55%, #fff8ee 100%);
+  background:
+    radial-gradient(ellipse 80% 60% at 50% 40%, #f4ead9 0%, #ecdec6 50%, #e2d0ae 100%),
+    linear-gradient(135deg, #f1e6d1 0%, #e9dbbe 100%);
 }
+
+/* Rotating soft light rays — conic gradient creates a sunburst feel behind the loader */
+.sl-mesh__rays {
+  position: absolute;
+  top: 50%;
+  left: 50%;
+  width: 140vmax;
+  height: 140vmax;
+  transform: translate(-50%, -50%);
+  background: conic-gradient(
+    from 0deg,
+    transparent 0deg,
+    rgba(251, 191, 36, 0.08) 18deg,
+    transparent 36deg,
+    transparent 90deg,
+    rgba(249, 115, 22, 0.06) 108deg,
+    transparent 126deg,
+    transparent 180deg,
+    rgba(251, 191, 36, 0.08) 198deg,
+    transparent 216deg,
+    transparent 270deg,
+    rgba(249, 115, 22, 0.06) 288deg,
+    transparent 306deg,
+    transparent 360deg
+  );
+  animation: sl-rays-spin 60s linear infinite;
+  filter: blur(4px);
+  pointer-events: none;
+}
+@keyframes sl-rays-spin { to { transform: translate(-50%, -50%) rotate(360deg); } }
+
+/* Soft spotlight glow — toned down so it doesn't bleach out the center */
+.sl-mesh__spotlight {
+  position: absolute;
+  top: 50%;
+  left: 50%;
+  width: 60vmax;
+  height: 60vmax;
+  transform: translate(-50%, -50%);
+  background: radial-gradient(circle, rgba(249, 115, 22, 0.12) 0%, rgba(249, 115, 22, 0.05) 35%, transparent 65%);
+  animation: sl-spotlight-breathe 5s ease-in-out infinite;
+  pointer-events: none;
+}
+@keyframes sl-spotlight-breathe {
+  0%, 100% { opacity: 0.7; transform: translate(-50%, -50%) scale(1); }
+  50%      { opacity: 0.9; transform: translate(-50%, -50%) scale(1.06); }
+}
+
+/* Blobs — warmer base, lower opacity overall */
 .sl-mesh__blob {
   position: absolute;
   border-radius: 50%;
-  filter: blur(100px);
+  filter: blur(110px);
+  pointer-events: none;
 }
-.sl-mesh__blob--a { width: 55%; height: 55%; top: -10%; left: -8%; background: #f97316; opacity: 0.18; animation: sl-m1 16s ease-in-out infinite alternate; }
-.sl-mesh__blob--b { width: 45%; height: 45%; bottom: -5%; right: -5%; background: #fbbf24; opacity: 0.22; animation: sl-m2 14s ease-in-out infinite alternate; }
-.sl-mesh__blob--c { width: 40%; height: 40%; top: 40%; left: 40%; background: #fcd34d; opacity: 0.14; animation: sl-m3 18s ease-in-out infinite alternate; }
+.sl-mesh__blob--a { width: 60%; height: 60%; top: -12%; left: -10%;   background: #c2410c; opacity: 0.14; animation: sl-m1 18s ease-in-out infinite alternate; }
+.sl-mesh__blob--b { width: 50%; height: 50%; bottom: -8%; right: -8%; background: #d97706; opacity: 0.18; animation: sl-m2 15s ease-in-out infinite alternate; }
+.sl-mesh__blob--c { width: 42%; height: 42%; top: 38%; left: 38%;     background: #ca8a04; opacity: 0.1;  animation: sl-m3 20s ease-in-out infinite alternate; }
+.sl-mesh__blob--d { width: 38%; height: 38%; top: 10%; right: 12%;    background: #9a3412; opacity: 0.1;  animation: sl-m4 22s ease-in-out infinite alternate; }
+
+@keyframes sl-m1 { from { transform: translate(0, 0)  scale(1); } to { transform: translate(70px, 50px)   scale(1.18); } }
+@keyframes sl-m2 { from { transform: translate(0, 0)  scale(1); } to { transform: translate(-55px, -35px) scale(1.12); } }
+@keyframes sl-m3 { from { transform: translate(0, 0)  scale(1); } to { transform: translate(45px, -60px)  scale(1.22); } }
+@keyframes sl-m4 { from { transform: translate(0, 0)  scale(1); } to { transform: translate(-40px, 45px)  scale(1.1);  } }
+
+/* Faint dot-grid texture — adds structure without dominating */
+.sl-mesh__dots {
+  position: absolute;
+  inset: 0;
+  background-image: radial-gradient(rgba(249, 115, 22, 0.18) 1px, transparent 1.5px);
+  background-size: 28px 28px;
+  opacity: 0.35;
+  mask: radial-gradient(ellipse at center, #000 20%, transparent 75%);
+  -webkit-mask: radial-gradient(ellipse at center, #000 20%, transparent 75%);
+  pointer-events: none;
+}
+
 .sl-mesh__noise {
   position: absolute;
   inset: 0;
-  opacity: 0.035;
+  opacity: 0.04;
   background: url("data:image/svg+xml,%3Csvg viewBox='0 0 256 256' xmlns='http://www.w3.org/2000/svg'%3E%3Cfilter id='n'%3E%3CfeTurbulence type='fractalNoise' baseFrequency='0.9' numOctaves='3' stitchTiles='stitch'/%3E%3C/filter%3E%3Crect width='100%25' height='100%25' filter='url(%23n)'/%3E%3C/svg%3E");
   background-size: 256px;
+  pointer-events: none;
 }
 
-@keyframes sl-m1 { from { transform: translate(0, 0) scale(1); } to { transform: translate(60px, 40px) scale(1.15); } }
-@keyframes sl-m2 { from { transform: translate(0, 0) scale(1); } to { transform: translate(-50px, -30px) scale(1.1); } }
-@keyframes sl-m3 { from { transform: translate(0, 0) scale(1); } to { transform: translate(40px, -50px) scale(1.2); } }
+/* Edge vignette — deeper so the warm cream doesn't feel washed out at the corners */
+.sl-mesh__vignette {
+  position: absolute;
+  inset: 0;
+  background: radial-gradient(ellipse at center, transparent 40%, rgba(69, 26, 3, 0.22) 100%);
+  pointer-events: none;
+}
 
 /* ── Particles ── */
 .sl-particles {
