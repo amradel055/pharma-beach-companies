@@ -35,7 +35,7 @@
       <div class="lp-field lp-anim-r" style="--d:0.26s">
         <div class="lp-label-row">
           <label class="lp-label" for="password">كلمة المرور</label>
-          <RouterLink to="/forgot-password" class="lp-forgot">نسيت كلمة المرور؟</RouterLink>
+          <RouterLink :to="{ name: 'forgot-password' }" class="lp-forgot">نسيت كلمة المرور؟</RouterLink>
         </div>
         <div class="lp-input-group">
           <input
@@ -61,27 +61,7 @@
           <template v-else>تسجيل الدخول</template>
         </button>
       </div>
-
-      <!-- Divider -->
-      <div class="lp-or lp-anim-r" style="--d:0.36s"><span>أو</span></div>
-
-      <!-- Google -->
-      <div class="lp-anim-r" style="--d:0.4s">
-        <button type="button" class="lp-google" @click="handleGoogleLogin">
-          <svg width="18" height="18" viewBox="0 0 24 24">
-            <path d="M22.56 12.25c0-.78-.07-1.53-.2-2.25H12v4.26h5.92a5.06 5.06 0 0 1-2.2 3.32v2.77h3.57c2.08-1.92 3.28-4.74 3.28-8.1z" fill="#4285F4"/>
-            <path d="M12 23c2.97 0 5.46-.98 7.28-2.66l-3.57-2.77c-.98.66-2.23 1.06-3.71 1.06-2.86 0-5.29-1.93-6.16-4.53H2.18v2.84C3.99 20.53 7.7 23 12 23z" fill="#34A853"/>
-            <path d="M5.84 14.09c-.22-.66-.35-1.36-.35-2.09s.13-1.43.35-2.09V7.07H2.18C1.43 8.55 1 10.22 1 12s.43 3.45 1.18 4.93l2.85-2.22.81-.62z" fill="#FBBC05"/>
-            <path d="M12 5.38c1.62 0 3.06.56 4.21 1.64l3.15-3.15C17.45 2.09 14.97 1 12 1 7.7 1 3.99 3.47 2.18 7.07l3.66 2.84c.87-2.6 3.3-4.53 6.16-4.53z" fill="#EA4335"/>
-          </svg>
-          تسجيل الدخول بـ Google
-        </button>
-      </div>
     </form>
-
-    <p class="lp-signup lp-anim-r" style="--d:0.44s">
-      ليس لديك حساب؟ <RouterLink to="/register">سجل الآن</RouterLink>
-    </p>
   </div>
 </template>
 
@@ -90,11 +70,11 @@ import { ref, reactive, computed } from 'vue'
 import { useRouter, RouterLink } from 'vue-router'
 import { useAuthStore } from '@/stores/auth'
 import { useToastStore } from '@/stores/toast'
-import { ADMIN_ROLES } from '@/constants/roles'
 
 const router = useRouter()
 const auth = useAuthStore()
 const toast = useToastStore()
+
 
 const form = reactive({
   identifier: '',
@@ -114,10 +94,6 @@ const isIdentifierValid = computed(() => {
 })
 const isFormValid = computed(() => isIdentifierValid.value && form.password.length > 0)
 
-function handleGoogleLogin() {
-  toast.info('تسجيل الدخول عبر Google غير متاح حالياً في النسخة التجريبية')
-}
-
 function handleLogin() {
   if (!isFormValid.value) return
   loading.value = true
@@ -129,8 +105,7 @@ function handleLogin() {
 
     if (result.ok) {
       toast.success('تم تسجيل الدخول بنجاح')
-      const isAdminUser = ADMIN_ROLES.includes(auth.user?.role)
-      const redirect = auth.returnUrl || (isAdminUser ? '/admin' : '/')
+      const redirect = auth.returnUrl || '/admin'
       auth.returnUrl = null
       router.push(redirect)
     } else {

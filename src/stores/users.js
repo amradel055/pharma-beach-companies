@@ -19,11 +19,10 @@ export const useUsersStore = defineStore('users', () => {
     localStorage.setItem(STORAGE_KEY, JSON.stringify(users.value))
   }
 
-  // Get all internal users (non-customer) with optional filters
+  // Get all internal users with optional filters
   function getAll({ search = '', role = '', status = '' } = {}) {
     return users.value.filter((u) => {
-      // Exclude customers
-      if (!u.role || u.role === ROLES.CUSTOMER) return false
+      if (!u.role) return false
 
       // Search by name or phone
       if (search) {
@@ -173,7 +172,7 @@ export const useUsersStore = defineStore('users', () => {
   }
 
   const totalInternal = computed(() => {
-    return users.value.filter((u) => u.role && u.role !== ROLES.CUSTOMER).length
+    return users.value.filter((u) => !!u.role).length
   })
 
   // Init immediately

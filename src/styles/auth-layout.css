@@ -3,24 +3,20 @@
     position: fixed !important;
     inset: 0 !important;
     z-index: 9999 !important;
-    display: grid;
-    /* In RTL, first grid track is on the RIGHT.
-       We want the form on the RIGHT (first slot) and the visual on the LEFT (second slot).
-       DOM order: form-side then visual. */
-    grid-template-columns: 1fr 1.4fr;
     background: #ffffff;
     direction: rtl;
+    overflow: hidden;
 }
 
-/* ══════════════════════ LEFT VISUAL PANEL ══════════════════════ */
+/* ══════════════════════ FULL-SCREEN VISUAL BACKDROP ══════════════════════ */
 .lp-visual {
-    position: relative;
+    position: absolute;
+    inset: 0;
     overflow: hidden;
     display: flex;
     align-items: center;
     justify-content: center;
-    /* Visual sits on the LEFT in our RTL layout; round the INNER edge (right side) */
-    border-radius: 0 1rem 1rem 0;
+    z-index: 1;
 }
 
 /* Full-bleed photo backdrop — sits behind the mesh blobs (z-index 0).
@@ -505,17 +501,41 @@
 .lp-slide-prev-enter-from { opacity: 0; transform: translateX(-50px); }
 .lp-slide-prev-leave-to { opacity: 0; transform: translateX(50px); }
 
-/* ══════════════════════ RIGHT FORM PANEL ══════════════════════ */
-.lp-form-side { display: flex; align-items: center; justify-content: center; padding: 40px 48px; overflow: hidden; background: #ffffff; position: relative; }
+/* ══════════════════════ CENTERED FORM CARD ══════════════════════ */
+.lp-form-side {
+    position: absolute;
+    inset: 0;
+    z-index: 10;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    padding: 32px 20px;
+    pointer-events: none;
+}
 
-.lp-form-side::before, .lp-form-side::after { content: ''; position: absolute; border-radius: 50%; pointer-events: none; filter: blur(80px); opacity: 0.4; }
-.lp-form-side::before { width: 300px; height: 300px; top: -80px; right: -60px; background: radial-gradient(circle, rgba(249, 115, 22,0.15), transparent 70%); animation: lp-forb1 10s ease-in-out infinite alternate; }
-.lp-form-side::after { width: 250px; height: 250px; bottom: -60px; left: -40px; background: radial-gradient(circle, rgba(251, 191, 36,0.12), transparent 70%); animation: lp-forb2 12s ease-in-out infinite alternate; }
+.lp-form-wrap {
+    width: min(440px, 100%);
+    padding: 40px 36px;
+    text-align: center;
+    position: relative;
+    z-index: 1;
+    background: rgba(255, 255, 255, 0.96);
+    backdrop-filter: blur(18px) saturate(1.2);
+    -webkit-backdrop-filter: blur(18px) saturate(1.2);
+    border: 1px solid rgba(255, 255, 255, 0.6);
+    border-radius: 22px;
+    box-shadow:
+        0 20px 60px -12px rgba(15, 23, 42, 0.45),
+        0 8px 24px -8px rgba(15, 23, 42, 0.25),
+        inset 0 1px 0 rgba(255, 255, 255, 0.8);
+    pointer-events: auto;
+    animation: lp-card-enter 0.7s cubic-bezier(0.16, 1, 0.3, 1) both;
+}
 
-@keyframes lp-forb1 { 0% { transform: translate(0,0) scale(1); } 100% { transform: translate(-30px,20px) scale(1.15); } }
-@keyframes lp-forb2 { 0% { transform: translate(0,0) scale(1); } 100% { transform: translate(20px,-25px) scale(1.1); } }
-
-.lp-form-wrap { width: min(420px, 100%); text-align: center; position: relative; z-index: 1; }
+@keyframes lp-card-enter {
+    from { opacity: 0; transform: translateY(20px) scale(0.96); }
+    to   { opacity: 1; transform: translateY(0) scale(1); }
+}
 
 /* ── Animations ── */
 .lp-anim { opacity: 0; transform: translateY(20px); animation: lp-anim-up 0.6s cubic-bezier(0.16,1,0.3,1) forwards; animation-delay: var(--d, 0s); }
@@ -662,12 +682,14 @@
 
 /* ══════════════════════ RESPONSIVE ══════════════════════ */
 @media (max-width: 900px) {
-    .lp { grid-template-columns: 1fr; }
-    .lp-visual { display: none; }
-    .lp-form-side { padding: 32px 24px; }
+    .lp-form-side { padding: 24px 16px; }
+    .lp-form-wrap { padding: 32px 24px; border-radius: 18px; }
+    .lp-visual__brand { padding: 20px 24px; }
+    .lp-visual__logo { height: 48px; }
 }
 
 @media (max-width: 480px) {
     .lp-title { font-size: 20px; }
-    .lp-form-side { padding: 24px 16px; }
+    .lp-form-side { padding: 16px 12px; }
+    .lp-form-wrap { padding: 28px 20px; border-radius: 16px; }
 }

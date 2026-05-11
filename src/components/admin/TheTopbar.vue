@@ -145,7 +145,7 @@ const roleLabel = computed(() => ROLE_LABELS[auth.user?.role] || 'مستخدم')
 function handleLogout() {
   menuOpen.value = false
   auth.logout()
-  router.push('/')
+  router.push({ name: 'login' })
 }
 
 function handleClickOutside(e) {

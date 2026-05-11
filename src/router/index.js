@@ -1,26 +1,20 @@
 import { createRouter, createWebHistory } from 'vue-router'
 import { useAuthStore } from '@/stores/auth'
 import { ROLES, ADMIN_ROLES } from '@/constants/roles'
-import MainLayout from '@/layouts/MainLayout.vue'
-import DefaultLayout from '@/layouts/DefaultLayout.vue'
-import NestedLayout from '@/layouts/NestedLayout.vue'
 import DashboardLayout from '@/layouts/DashboardLayout.vue'
 
 const routes = [
-  // Main layout — header + footer
+  // Root — redirect based on auth state
   {
     path: '/',
-    component: MainLayout,
-    children: [
-      {
-        path: '',
-        name: 'home',
-        component: () => import('@/views/HomeView.vue'),
-      },
-    ],
+    name: 'root',
+    redirect: () => {
+      const auth = useAuthStore()
+      return auth.isAuthenticated ? { name: 'admin-home' } : { name: 'login' }
+    },
   },
 
-  // Default layout — empty page (no header, no footer)
+  // Auth pages — login / forgot / reset (no public sign-up)
   {
     path: '/',
     component: () => import('@/components/layout/AuthLayout.vue'),
@@ -30,12 +24,6 @@ const routes = [
         name: 'login',
         component: () => import('@/views/LoginView.vue'),
         meta: { title: 'تسجيل الدخول', guest: true, layout: 'auth' },
-      },
-      {
-        path: 'register',
-        name: 'register',
-        component: () => import('@/views/RegisterView.vue'),
-        meta: { title: 'إنشاء حساب', guest: true, layout: 'auth' },
       },
       {
         path: 'forgot-password',
@@ -48,80 +36,6 @@ const routes = [
         name: 'reset-password',
         component: () => import('@/views/ResetPasswordView.vue'),
         meta: { title: 'إعادة تعيين كلمة المرور', layout: 'auth' },
-      },
-    ],
-  },
-
-  // Booking wizard
-  {
-    path: '/booking',
-    component: NestedLayout,
-    children: [
-      {
-        path: '',
-        name: 'booking',
-        component: () => import('@/views/BookingView.vue'),
-        meta: { title: 'البحث عن شاليه' },
-      },
-      {
-        path: ':id',
-        name: 'chalet-details',
-        component: () => import('@/views/ChaletDetailsView.vue'),
-        meta: { title: 'تفاصيل الشاليه' },
-      },
-    ],
-  },
-
-  // Booking confirmation (requires auth)
-  {
-    path: '/booking-confirmation',
-    component: NestedLayout,
-    children: [
-      {
-        path: ':id',
-        name: 'booking-confirmation',
-        component: () => import('@/views/BookingConfirmationView.vue'),
-        meta: { title: 'تأكيد الحجز', requiresAuth: true },
-      },
-    ],
-  },
-
-  // Entry permit (requires auth)
-  {
-    path: '/entry-permit',
-    component: NestedLayout,
-    children: [
-      {
-        path: ':id',
-        name: 'entry-permit',
-        component: () => import('@/views/EntryPermitView.vue'),
-        meta: { title: 'تصريح الدخول', requiresAuth: true },
-      },
-    ],
-  },
-
-  // Nested layout — different navbar, no footer
-  {
-    path: '/app',
-    component: NestedLayout,
-    children: [
-      {
-        path: 'privacy',
-        name: 'privacy',
-        component: () => import('@/views/HomeView.vue'),
-        meta: { title: 'السياسات والخصوصية' },
-      },
-      {
-        path: 'terms',
-        name: 'terms',
-        component: () => import('@/views/TermsPageView.vue'),
-        meta: { title: 'الشروط والأحكام' },
-      },
-      {
-        path: 'contact',
-        name: 'contact',
-        component: () => import('@/views/HomeView.vue'),
-        meta: { title: 'تواصل معنا' },
       },
     ],
   },
@@ -315,6 +229,12 @@ const routes = [
       },
     ],
   },
+
+  // Catch-all — redirect to root (which then routes by auth state)
+  {
+    path: '/:pathMatch(.*)*',
+    redirect: { name: 'root' },
+  },
 ]
 
 const router = createRouter({
@@ -334,20 +254,20 @@ router.beforeEach((to) => {
     return { name: 'login' }
   }
 
-  // Guest-only routes — redirect to home if already authenticated
+  // Guest-only routes — redirect to admin dashboard if already authenticated
   if (to.meta.guest && auth.isAuthenticated) {
-    return { name: 'home' }
+    return { name: 'admin-home' }
   }
 
   // Role-based guard for admin routes
   if (to.meta.roles && auth.isAuthenticated) {
     const userRole = auth.user?.role
     if (!to.meta.roles.includes(userRole)) {
-      // User doesn't have the required role
+      // User doesn't have the required role — send them to their dashboard home
       if (ADMIN_ROLES.includes(userRole)) {
         return { name: 'admin-home' }
       }
-      return { name: 'home' }
+      return { name: 'login' }
     }
   }
 })

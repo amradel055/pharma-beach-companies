@@ -1,13 +1,13 @@
 import { defineStore } from 'pinia'
 import { ref, computed } from 'vue'
-import { ROLES, ADMIN_ROLES } from '@/constants/roles'
+import { ADMIN_ROLES } from '@/constants/roles'
 
 export const useAuthStore = defineStore('auth', () => {
   const user = ref(null)
   const returnUrl = ref(null)
 
   const isAuthenticated = computed(() => !!user.value)
-  const userRole = computed(() => user.value?.role || ROLES.CUSTOMER)
+  const userRole = computed(() => user.value?.role || null)
   const isAdmin = computed(() => ADMIN_ROLES.includes(userRole.value))
 
   // Restore session on init
@@ -58,34 +58,6 @@ export const useAuthStore = defineStore('auth', () => {
     }
 
     const { password: _, ...safeUser } = found
-    _setUser(safeUser)
-    return { ok: true }
-  }
-
-  function register({ name, email, phone, password }) {
-    const users = _getUsers()
-    const normalizedEmail = email.trim().toLowerCase()
-
-    if (users.some((u) => u.email === normalizedEmail)) {
-      return { ok: false, error: 'البريد الإلكتروني مسجل بالفعل' }
-    }
-
-    const newUser = {
-      id: Date.now().toString(36) + Math.random().toString(36).slice(2, 6),
-      name: name.trim(),
-      email: normalizedEmail,
-      phone: phone.trim(),
-      avatar: null,
-      role: ROLES.CUSTOMER,
-      active: true,
-      createdAt: new Date().toISOString(),
-      password,
-    }
-
-    users.push(newUser)
-    _saveUsers(users)
-
-    const { password: _, ...safeUser } = newUser
     _setUser(safeUser)
     return { ok: true }
   }
@@ -171,7 +143,6 @@ export const useAuthStore = defineStore('auth', () => {
     userRole,
     isAdmin,
     login,
-    register,
     logout,
     requestPasswordReset,
     validateResetToken,

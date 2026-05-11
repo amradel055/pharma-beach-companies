@@ -8,7 +8,6 @@ export const ROLES = {
   AGENT: 'agent',
   OPERATOR: 'operator',
   SECURITY: 'security',
-  CUSTOMER: 'customer',
 }
 
 export const ROLE_LABELS = {
@@ -21,7 +20,6 @@ export const ROLE_LABELS = {
   [ROLES.AGENT]: 'مندوب',
   [ROLES.OPERATOR]: 'مشغل',
   [ROLES.SECURITY]: 'أمن',
-  [ROLES.CUSTOMER]: 'عميل',
 }
 
 // Ordered from highest to lowest privilege
@@ -35,10 +33,9 @@ export const ROLE_HIERARCHY = [
   ROLES.AGENT,
   ROLES.OPERATOR,
   ROLES.SECURITY,
-  ROLES.CUSTOMER,
 ]
 
-// All roles that can access the admin dashboard
+// All roles that can access the admin dashboard (every internal role)
 export const ADMIN_ROLES = [
   ROLES.SITE_ADMIN,
   ROLES.SITE_CS,
@@ -50,9 +47,6 @@ export const ADMIN_ROLES = [
   ROLES.OPERATOR,
   ROLES.SECURITY,
 ]
-
-// Roles that are allowed to make bookings
-export const BOOKING_ROLES = [ROLES.AGENT, ROLES.CUSTOMER]
 
 // Permission-to-roles mapping
 export const PERMISSIONS = {
