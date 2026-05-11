@@ -7,50 +7,12 @@
         </button>
 
         <nav class="breadcrumb">
-          <RouterLink to="/admin" class="breadcrumb-link">
-            <i class="pi pi-objects-column" />
-            <span>لوحة التحكم</span>
-          </RouterLink>
-          <template v-if="pageTitle !== 'لوحة التحكم'">
-            <i class="pi pi-angle-left breadcrumb-sep" />
-            <span class="breadcrumb-current">{{ pageTitle }}</span>
-          </template>
+          <span class="breadcrumb-current">{{ pageTitle }}</span>
         </nav>
       </div>
 
       <!-- Left Side (RTL end) -->
       <div class="topbar-end">
-        <!-- Notifications -->
-        <div class="tb-notif-wrap" ref="notifRef">
-          <button class="tb-icon-btn" @click="notifOpen = !notifOpen" title="الإشعارات">
-            <i class="pi pi-bell" />
-            <span v-if="notifUnread > 0" class="tb-dot">{{ notifUnread }}</span>
-          </button>
-          <Transition name="dropdown">
-            <div v-if="notifOpen" class="notif-dropdown">
-              <div class="notif-header">
-                <strong>الإشعارات</strong>
-                <button v-if="notifUnread > 0" class="notif-read-all" @click="markAllRead">تحديد الكل كمقروء</button>
-              </div>
-              <div class="notif-list" v-if="userNotifs.length > 0">
-                <div v-for="n in userNotifs.slice(0, 10)" :key="n.id"
-                     :class="['notif-item', { unread: !n.read }]"
-                     @click="notifStore.markAsRead(n.id)">
-                  <div class="notif-icon"><i class="pi pi-calendar" /></div>
-                  <div class="notif-body">
-                    <strong>{{ n.title }}</strong>
-                    <p>{{ n.body }}</p>
-                    <span class="notif-time">{{ formatTime(n.createdAt) }}</span>
-                  </div>
-                </div>
-              </div>
-              <div v-else class="notif-empty">لا توجد إشعارات</div>
-            </div>
-          </Transition>
-        </div>
-
-        <div class="tb-separator" />
-
         <!-- User -->
         <div class="user-area" ref="userMenuRef">
           <button class="user-btn" @click="menuOpen = !menuOpen">
@@ -94,7 +56,6 @@
 import { ref, computed, onMounted, onUnmounted } from 'vue'
 import { useRoute, useRouter } from 'vue-router'
 import { useAuthStore } from '@/stores/auth'
-import { useNotificationsStore } from '@/stores/notifications'
 import { ROLE_LABELS } from '@/constants/roles'
 
 defineProps({
@@ -105,34 +66,9 @@ defineEmits(['toggleMobile'])
 const route = useRoute()
 const router = useRouter()
 const auth = useAuthStore()
-const notifStore = useNotificationsStore()
 
 const menuOpen = ref(false)
 const userMenuRef = ref(null)
-const notifOpen = ref(false)
-const notifRef = ref(null)
-
-const userNotifs = computed(() => notifStore.getForUser(auth.user?.id))
-const notifUnread = computed(() => notifStore.unreadCount(auth.user?.id))
-
-function markAllRead() {
-  notifStore.markAllRead(auth.user?.id)
-}
-
-function formatTime(dateStr) {
-  const d = new Date(dateStr)
-  const now = new Date()
-  const diff = Math.floor((now - d) / 60000)
-  if (diff < 1) return 'الآن'
-  if (diff < 60) return `منذ ${diff} دقيقة`
-  if (diff < 1440) return `منذ ${Math.floor(diff / 60)} ساعة`
-  return d.toLocaleDateString('ar-EG')
-}
-
-// Close notification dropdown on outside click
-function onClickOutside(e) {
-  if (notifRef.value && !notifRef.value.contains(e.target)) notifOpen.value = false
-}
 
 const pageTitle = computed(() => route.meta?.title || 'لوحة التحكم')
 const userInitial = computed(() => auth.user?.name?.charAt(0) || '?')
@@ -152,11 +88,9 @@ function handleClickOutside(e) {
 
 onMounted(() => {
   document.addEventListener('click', handleClickOutside)
-  document.addEventListener('click', onClickOutside)
 })
 onUnmounted(() => {
   document.removeEventListener('click', handleClickOutside)
-  document.removeEventListener('click', onClickOutside)
 })
 </script>
 

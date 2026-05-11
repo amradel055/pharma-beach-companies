@@ -94,12 +94,20 @@ const routes = [
         meta: { title: 'طلبات الاعتماد', roles: [ROLES.SITE_ADMIN] },
       },
 
-      // Owner dashboard — Site Admin, Owner — primary landing for /admin
+      // Bookings calendar — Site Admin, Owner — primary landing for /admin
       {
         path: 'owner',
         name: 'admin-owner',
         component: () => import('@/views/admin/owner/OwnerDashboardView.vue'),
-        meta: { title: 'الحجوزات', roles: [ROLES.SITE_ADMIN, ROLES.OWNER] },
+        meta: { title: 'تقويم الحجوزات', roles: [ROLES.SITE_ADMIN, ROLES.OWNER] },
+      },
+
+      // Bookings register — Site Admin, Owner
+      {
+        path: 'bookings',
+        name: 'admin-bookings',
+        component: () => import('@/views/admin/bookings/BookingsRegisterView.vue'),
+        meta: { title: 'سجل الحجوزات', roles: [ROLES.SITE_ADMIN, ROLES.OWNER] },
       },
 
       // Village dashboard — Site Admin, Village CS (reports only, not for CS operational)

@@ -120,7 +120,6 @@ export const useAuthStore = defineStore('auth', () => {
 
       setTokens({ accessToken: access, refreshToken: refresh })
       _setUser(_normalizeUser(rawUser))
-      _clearStaleMockData()
       _startRefreshTimer()
 
       return { ok: true }
