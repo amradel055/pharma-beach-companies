@@ -1,24 +1,24 @@
 <template>
     <div class="lp">
-        <!-- RIGHT (in RTL) — Form panel. DOM first => first grid track => right side in RTL. -->
+        <!-- Form card layer (above visual). Brand sits above the card on the backdrop. -->
         <div class="lp-form-side">
-            <div class="lp-form-wrap">
-                <!-- Child auth views render here. The left visual panel (below) lives outside
-                     the router-view, so it persists across /login → /forgot etc. —
-                     only the form swaps (with a fade). -->
-                <RouterView v-slot="{ Component }">
-                    <Transition name="lp-form-swap" mode="out-in">
-                        <component :is="Component" />
-                    </Transition>
-                </RouterView>
+            <div class="lp-stack">
+                <div class="lp-brand lp-brand--external">
+                    <img :src="logoUrl" alt="فارما بيتش" class="lp-brand__logo" />
+                    <span class="lp-brand__tag">لوحة تحكم فارما بيتش</span>
+                </div>
+                <div class="lp-form-wrap">
+                    <RouterView v-slot="{ Component }">
+                        <Transition name="lp-form-swap" mode="out-in">
+                            <component :is="Component" />
+                        </Transition>
+                    </RouterView>
+                </div>
             </div>
         </div>
 
-        <!-- LEFT (in RTL) — Visual panel. DOM second => second grid track => left side in RTL. -->
+        <!-- Full-screen visual backdrop. -->
         <div class="lp-visual">
-            <!-- Background photo for the whole visual section (sits beneath the mesh blobs) -->
-            <img src="https://picsum.photos/seed/pharma-resort-view/1400/1600" alt="" class="lp-visual__bg" aria-hidden="true" />
-
             <div class="lp-mesh">
                 <div class="lp-mesh__blob lp-mesh__blob--a"></div>
                 <div class="lp-mesh__blob lp-mesh__blob--b"></div>
@@ -29,12 +29,6 @@
 
             <div class="lp-particles">
                 <span v-for="n in 12" :key="n" class="lp-particle" :style="particleStyle(n)"></span>
-            </div>
-
-            <div class="lp-visual__content">
-                <div class="lp-visual__brand lp-anim" style="--d:0s">
-                    <img :src="logoUrl" alt="فارما بيتش" class="lp-visual__logo" />
-                </div>
             </div>
         </div>
     </div>

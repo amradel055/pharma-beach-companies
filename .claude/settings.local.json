@@ -48,7 +48,9 @@
       "Bash(sed -i '2360,2618d' src/views/HomeView.vue)",
       "Bash(sed -n '2356,2370p' src/views/HomeView.vue)",
       "Bash(sed -i '2459,2526d' src/views/HomeView.vue)",
-      "Bash(sed -n '2455,2462p' src/views/HomeView.vue)"
+      "Bash(sed -n '2455,2462p' src/views/HomeView.vue)",
+      "WebFetch(domain:alali.igma-it.com)",
+      "Bash(curl *)"
     ]
   }
 }

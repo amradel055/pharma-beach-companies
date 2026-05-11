@@ -2,8 +2,8 @@
   <div class="owner-page">
     <div class="page-header">
       <div>
-        <h1 class="page-title">لوحة المالك</h1>
-        <p class="page-desc">متابعة شاليهاتك والتقارير المالية والحجوزات</p>
+        <h1 class="page-title">الحجوزات</h1>
+        <p class="page-desc">متابعة حجوزات الشاليهات والتقارير المالية وأداء كل وحدة</p>
       </div>
     </div>
 

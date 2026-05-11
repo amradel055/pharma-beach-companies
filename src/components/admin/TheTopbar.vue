@@ -71,10 +71,6 @@
               </div>
               <div class="drop-sep" />
               <div class="drop-section">
-                <RouterLink to="/admin" class="drop-item" @click="menuOpen = false">
-                  <i class="pi pi-objects-column" />
-                  لوحة التحكم
-                </RouterLink>
                 <RouterLink to="/admin/profile" class="drop-item" @click="menuOpen = false">
                   <i class="pi pi-user" />
                   الملف الشخصي
@@ -142,9 +138,9 @@ const pageTitle = computed(() => route.meta?.title || 'لوحة التحكم')
 const userInitial = computed(() => auth.user?.name?.charAt(0) || '?')
 const roleLabel = computed(() => ROLE_LABELS[auth.user?.role] || 'مستخدم')
 
-function handleLogout() {
+async function handleLogout() {
   menuOpen.value = false
-  auth.logout()
+  await auth.logout()
   router.push({ name: 'login' })
 }
 

@@ -6,38 +6,11 @@
   </RouterView>
   <ScrollToTop />
   <AppToast />
-
-  <!-- Splash loader — forced ON for testing. Toggle `splashVisible` to false when done. -->
-  <Transition name="splash-fade">
-    <SplashLoader v-if="splashVisible" />
-  </Transition>
 </template>
 
 <script setup>
-import { ref, onMounted } from 'vue'
 import ScrollToTop from '@/components/ui/ScrollToTop.vue'
 import AppToast from '@/components/ui/AppToast.vue'
-import SplashLoader from '@/components/ui/SplashLoader.vue'
-
-// Splash shows during initial app load, then fades out once the window + its
-// stylesheets/fonts have finished loading (plus a small minimum display time so
-// the animation is visible on fast connections).
-const splashVisible = ref(true)
-const MIN_SPLASH_MS = 700
-
-onMounted(() => {
-  const mountTime = performance.now()
-  const hide = () => {
-    const elapsed = performance.now() - mountTime
-    const wait = Math.max(0, MIN_SPLASH_MS - elapsed)
-    setTimeout(() => { splashVisible.value = false }, wait)
-  }
-  if (document.readyState === 'complete') {
-    hide()
-  } else {
-    window.addEventListener('load', hide, { once: true })
-  }
-})
 </script>
 
 <style>
@@ -133,14 +106,5 @@ body {
 .fade-slide-leave-to {
   opacity: 0;
   transform: translateX(-20px);
-}
-
-/* Splash fade-out when the app is ready */
-.splash-fade-leave-active {
-  transition: opacity 0.6s cubic-bezier(0.16, 1, 0.3, 1), visibility 0.6s;
-}
-.splash-fade-leave-to {
-  opacity: 0;
-  visibility: hidden;
 }
 </style>

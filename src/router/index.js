@@ -10,7 +10,7 @@ const routes = [
     name: 'root',
     redirect: () => {
       const auth = useAuthStore()
-      return auth.isAuthenticated ? { name: 'admin-home' } : { name: 'login' }
+      return auth.isAuthenticated ? { name: 'admin-owner' } : { name: 'login' }
     },
   },
 
@@ -46,12 +46,10 @@ const routes = [
     component: DashboardLayout,
     meta: { requiresAuth: true, roles: [...ADMIN_ROLES] },
     children: [
-      // Everyone with admin access
+      // Default landing for /admin — redirect to the owner dashboard.
       {
         path: '',
-        name: 'admin-home',
-        component: () => import('@/views/admin/DashboardHomeView.vue'),
-        meta: { title: 'لوحة التحكم', roles: [...ADMIN_ROLES] },
+        redirect: { name: 'admin-owner' },
       },
       {
         path: 'profile',
@@ -96,12 +94,12 @@ const routes = [
         meta: { title: 'طلبات الاعتماد', roles: [ROLES.SITE_ADMIN] },
       },
 
-      // Owner dashboard — Site Admin, Owner
+      // Owner dashboard — Site Admin, Owner — primary landing for /admin
       {
         path: 'owner',
         name: 'admin-owner',
         component: () => import('@/views/admin/owner/OwnerDashboardView.vue'),
-        meta: { title: 'شاليهاتي', roles: [ROLES.SITE_ADMIN, ROLES.OWNER] },
+        meta: { title: 'الحجوزات', roles: [ROLES.SITE_ADMIN, ROLES.OWNER] },
       },
 
       // Village dashboard — Site Admin, Village CS (reports only, not for CS operational)
@@ -247,6 +245,8 @@ const router = createRouter({
 
 router.beforeEach((to) => {
   const auth = useAuthStore()
+  const userRole = auth.user?.role
+  const hasValidAdminRole = ADMIN_ROLES.includes(userRole)
 
   // Protected routes — redirect to login if not authenticated
   if (to.meta.requiresAuth && !auth.isAuthenticated) {
@@ -254,19 +254,25 @@ router.beforeEach((to) => {
     return { name: 'login' }
   }
 
-  // Guest-only routes — redirect to admin dashboard if already authenticated
-  if (to.meta.guest && auth.isAuthenticated) {
-    return { name: 'admin-home' }
+  // Guest-only routes — only bounce away if the user has a VALID admin role.
+  // Without this check, a partially-broken session (authenticated but no
+  // recognized role) would ping-pong between /login and /admin forever.
+  if (to.meta.guest && auth.isAuthenticated && hasValidAdminRole) {
+    return { name: 'admin-owner' }
   }
 
   // Role-based guard for admin routes
   if (to.meta.roles && auth.isAuthenticated) {
-    const userRole = auth.user?.role
     if (!to.meta.roles.includes(userRole)) {
-      // User doesn't have the required role — send them to their dashboard home
-      if (ADMIN_ROLES.includes(userRole)) {
-        return { name: 'admin-home' }
+      if (hasValidAdminRole) {
+        // Has admin access but not for THIS specific route — bounce to dashboard home
+        return { name: 'admin-owner' }
       }
+      // No valid role at all — wipe the broken session so the next nav doesn't loop
+      localStorage.removeItem('pb_user')
+      localStorage.removeItem('pb_access_token')
+      localStorage.removeItem('pb_refresh_token')
+      auth.user = null
       return { name: 'login' }
     }
   }

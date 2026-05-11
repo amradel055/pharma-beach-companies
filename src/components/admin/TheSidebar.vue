@@ -87,9 +87,9 @@ function isActive(path) {
 const allSections = [
   {
     label: 'الرئيسية',
-    permission: null,
+    permission: 'view_owner_dashboard',
     items: [
-      { label: 'لوحة التحكم', to: '/admin', icon: 'pi pi-objects-column' },
+      { label: 'الحجوزات', to: '/admin/owner', icon: 'pi pi-calendar' },
     ],
   },
   {
@@ -113,13 +113,6 @@ const allSections = [
     permission: 'manage_approvals',
     items: [
       { label: 'طلبات الاعتماد', to: '/admin/approvals', icon: 'pi pi-check-circle', badge: computed(() => approvalsStore.pendingCount || null) },
-    ],
-  },
-  {
-    label: 'لوحة المالك',
-    permission: 'view_owner_dashboard',
-    items: [
-      { label: 'شاليهاتي', to: '/admin/owner', icon: 'pi pi-home' },
     ],
   },
   {
