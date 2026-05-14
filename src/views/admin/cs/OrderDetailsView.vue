@@ -1,543 +1,679 @@
 <template>
-  <div class="order-details-page">
-    <!-- Header -->
-    <div class="page-header">
-      <div class="page-header-right">
-        <RouterLink to="/admin/orders" class="back-link"><i class="pi pi-arrow-right" /></RouterLink>
-        <div>
-          <h1 class="page-title">تفاصيل الطلب <span class="order-id-title">#{{ shortId }}</span></h1>
-          <p class="page-desc">{{ order?.chaletName }} — {{ order?.chaletNumber }}</p>
-        </div>
-      </div>
-      <span :class="['status-badge lg', order?.status?.toLowerCase()]">{{ statusLabel(order?.status) }}</span>
+  <div class="detail-page">
+    <nav class="page-crumbs" aria-label="مسار التنقل">
+      <RouterLink to="/admin/village-bookings" class="crumb">الحجوزات</RouterLink>
+      <i class="pi pi-angle-left crumb-sep" />
+      <span class="crumb crumb-current" aria-current="page">
+        {{ booking?.booking_code || 'تفاصيل الحجز' }}
+      </span>
+    </nav>
+
+    <div v-if="loading" class="loading-state">
+      <i class="pi pi-spin pi-spinner" /> جاري التحميل...
     </div>
 
-    <div v-if="!order" class="empty-state">
-      <div class="empty-icon"><i class="pi pi-exclamation-triangle" /></div>
-      <h3>الطلب غير موجود</h3>
+    <div v-else-if="!booking" class="card error-card">
+      <i class="pi pi-exclamation-triangle" />
+      <p>الحجز غير موجود</p>
+      <RouterLink to="/admin/village-bookings" class="btn-primary">العودة للقائمة</RouterLink>
     </div>
 
     <template v-else>
-      <div class="details-grid">
-        <!-- Booking Info Card -->
-        <div class="info-card">
-          <h3 class="card-title"><i class="pi pi-calendar" /> بيانات الحجز</h3>
-          <div class="info-rows">
-            <div class="info-row"><span class="info-label">تسجيل الدخول</span><span>{{ fmtDate(order.checkIn) }}</span></div>
-            <div class="info-row"><span class="info-label">تسجيل الخروج</span><span>{{ fmtDate(order.checkOut) }}</span></div>
-            <div class="info-row"><span class="info-label">عدد الليالي</span><span>{{ order.nights }}</span></div>
-            <div class="info-row"><span class="info-label">الوقت المنقضي</span><OrderTimer :created-at="order.createdAt" /></div>
-          </div>
+      <!-- Page header with action -->
+      <div class="page-header">
+        <div class="page-icon"><i class="pi pi-file" /></div>
+        <div class="page-header-text">
+          <h1 class="page-title">{{ booking.booking_code }}</h1>
+          <p class="page-desc">
+            تم الإنشاء في {{ toDisplayDateTime(booking.created_at) }}
+          </p>
+        </div>
+        <div class="page-header-actions">
+          <button
+            v-if="canManagePermit && !booking.permit_exists"
+            class="btn-confirm"
+            :disabled="confirmingPermit"
+            @click="handleConfirmPermit"
+          >
+            <i v-if="confirmingPermit" class="pi pi-spin pi-spinner" />
+            <i v-else class="pi pi-check" />
+            تأكيد التصريح
+          </button>
+          <RouterLink
+            v-else-if="canManagePermit && booking.permit_exists"
+            :to="`/admin/village-bookings/${booking.id}/permit`"
+            class="btn-secondary"
+          >
+            <i class="pi pi-print" /> عرض التصريح
+          </RouterLink>
+        </div>
+      </div>
+
+      <!-- Chalet hero card — includes booking status chips -->
+      <section class="bf-section chalet-card">
+        <div class="bf-section-head">
+          <h4 class="bf-section-title"><i class="pi pi-home" /> الشاليه</h4>
         </div>
 
-        <!-- Payment Card -->
-        <div class="info-card">
-          <h3 class="card-title"><i class="pi pi-wallet" /> إدارة الدفع</h3>
-          <div class="payment-summary">
-            <div class="pay-row"><span>سعر الليالي</span><span class="pay-val">{{ fmtNum(order.subtotal) }} ج.م</span></div>
-            <div v-if="order.guestExtraTotal > 0" class="pay-row extra"><span>رسوم أعضاء إضافيين</span><span class="pay-val">+ {{ fmtNum(order.guestExtraTotal) }} ج.م</span></div>
-            <div v-if="order.cars?.length > 0" class="pay-row extra"><span>رسوم سيارات ({{ order.cars.length }})</span><span class="pay-val">+ {{ fmtNum(order.carFeesTotal || 0) }} ج.م</span></div>
-            <div class="pay-row extra"><span>رسوم تصريح الأمن</span><span class="pay-val">+ {{ fmtNum(settings.securityPermitFee) }} ج.م</span></div>
-            <div v-if="order.discountAmount > 0" class="pay-row discount"><span>خصم كوبون</span><span class="pay-val">- {{ fmtNum(order.discountAmount) }} ج.م</span></div>
-            <div class="pay-row total"><span>الإجمالي</span><span class="pay-val">{{ fmtNum(order.total) }} ج.م</span></div>
-            <div class="pay-divider" />
-            <div class="pay-row"><span>المدفوع</span><span class="pay-val green">{{ fmtNum(totalPaid) }} ج.م</span></div>
-            <div class="pay-row"><span>المتبقي</span><span class="pay-val" :class="remaining > 0 ? 'red' : 'green'">{{ fmtNum(remaining) }} ج.م</span></div>
-          </div>
-
-          <!-- Add Payment -->
-          <div v-if="order.status !== 'CONFIRMED'" class="add-payment">
-            <input v-model.number="paymentAmount" type="number" min="1" :max="remaining" placeholder="المبلغ المدفوع" />
-            <button class="pay-btn" :disabled="!paymentAmount || paymentAmount <= 0 || paymentAmount > remaining" @click="handleAddPayment">
-              <i class="pi pi-plus" /> إضافة دفعة
-            </button>
-          </div>
-
-          <!-- Payment History -->
-          <div v-if="order.payments?.length" class="pay-history">
-            <h5>سجل الدفعات</h5>
-            <div v-for="(p, i) in order.payments" :key="i" class="pay-entry">
-              <span>{{ fmtNum(p.amount) }} ج.م</span>
-              <span class="pay-date">{{ fmtDate(p.date) }}</span>
+        <div class="chalet-hero">
+          <div class="chalet-avatar"><i class="pi pi-home" /></div>
+          <div class="chalet-id">
+            <h3 class="chalet-name">{{ booking.chalet?.name || '—' }}</h3>
+            <div class="chalet-tags">
+              <span v-if="booking.chalet?.chalet_number" class="chip neutral">
+                <i class="pi pi-hashtag" /> رقم {{ booking.chalet.chalet_number }}
+              </span>
+              <span :class="['chip', 'status', booking.status?.toLowerCase()]">
+                <i class="pi pi-circle-fill tiny" />
+                {{ statusLabel(booking.status) }}
+              </span>
+              <span v-if="booking.payment_type" :class="['chip', 'pay', booking.payment_type?.toLowerCase()]">
+                <i class="pi pi-credit-card" /> {{ paymentLabel(booking.payment_type) }}
+              </span>
+              <span :class="['chip', 'permit', booking.permit_exists ? 'ok' : 'warn']">
+                <i :class="booking.permit_exists ? 'pi pi-shield' : 'pi pi-clock'" />
+                {{ booking.permit_exists ? 'التصريح مؤكد' : 'التصريح قيد الانتظار' }}
+              </span>
+              <span v-if="booking.check_in_confirmed" class="chip ok">
+                <i class="pi pi-sign-in" /> دخول مؤكد
+              </span>
+              <span v-if="booking.check_out_confirmed" class="chip ok">
+                <i class="pi pi-sign-out" /> خروج مؤكد
+              </span>
             </div>
           </div>
         </div>
-      </div>
+      </section>
 
-      <!-- Guests Section -->
-      <div class="guests-card">
-        <div class="guests-header">
-          <h3 class="card-title"><i class="pi pi-users" /> الأعضاء ({{ adultCount }} بالغ / {{ childCount }} طفل)</h3>
-          <button v-if="order.status !== 'CONFIRMED'" class="btn-sm" @click="guestModalOpen = true"><i class="pi pi-plus" /> إضافة عضو</button>
+      <!-- Stay + headline money -->
+      <section class="bf-section stay-card">
+        <div class="bf-section-head">
+          <h4 class="bf-section-title"><i class="pi pi-calendar" /> الإقامة</h4>
         </div>
 
-        <!-- Extra warning -->
-        <div v-if="order.guestExtraTotal > 0" class="extra-warn">
-          <i class="pi pi-exclamation-triangle" />
-          تم تجاوز الحد المسموح — سيتم احتساب {{ fmtNum(chaletExtraCharge) }} ج.م لكل فرد زائد ({{ extraGuestCount }} فرد إضافي = {{ fmtNum(order.guestExtraTotal) }} ج.م)
-        </div>
-
-        <div v-if="!order.guests?.length" class="guests-empty">لم يتم إضافة أعضاء بعد</div>
-
-        <div v-else class="guests-list">
-          <div v-for="g in order.guests" :key="g.id" :class="['guest-item', { extra: g.isExtra }]">
-            <div class="guest-info">
-              <div class="guest-av"><i class="pi pi-user" /></div>
-              <div>
-                <span class="guest-name">{{ g.name }} <span v-if="g.isChild" class="child-tag">طفل</span><span v-if="g.isExtra" class="extra-tag">إضافي</span></span>
-                <span class="guest-meta">{{ g.nationalId }} · {{ g.relation }} · {{ g.phone }}</span>
-              </div>
-            </div>
-            <button v-if="order.status !== 'CONFIRMED'" class="item-btn danger" @click="handleRemoveGuest(g.id)"><i class="pi pi-trash" /></button>
+        <div class="stay-band">
+          <div class="stay-date">
+            <span class="stay-date-label"><i class="pi pi-sign-in" /> الدخول</span>
+            <strong class="stay-date-value">{{ toDisplayDate(booking.check_in) }}</strong>
+          </div>
+          <div class="stay-mid">
+            <span class="stay-nights">
+              <i class="pi pi-moon" /> {{ booking.nights }} {{ booking.nights === 1 ? 'ليلة' : 'ليالٍ' }}
+            </span>
+          </div>
+          <div class="stay-date">
+            <span class="stay-date-label"><i class="pi pi-sign-out" /> الخروج</span>
+            <strong class="stay-date-value">{{ toDisplayDate(booking.check_out) }}</strong>
           </div>
         </div>
-      </div>
 
-      <!-- Cars Section -->
-      <div class="guests-card">
-        <div class="guests-header">
-          <h3 class="card-title"><i class="pi pi-car" /> السيارات ({{ order.cars?.length || 0 }})</h3>
-          <button v-if="order.status !== 'CONFIRMED'" class="btn-sm" @click="carModalOpen = true"><i class="pi pi-plus" /> إضافة سيارة</button>
-        </div>
-
-        <div v-if="!order.cars?.length" class="guests-empty">لم يتم إضافة سيارات بعد</div>
-
-        <div v-else class="guests-list">
-          <div v-for="c in order.cars" :key="c.id" class="guest-item">
-            <div class="guest-info">
-              <div class="guest-av"><i class="pi pi-car" /></div>
-              <div>
-                <span class="guest-name">{{ c.plateNumber }} <span v-if="c.brand || c.model" class="car-detail">{{ c.brand }} {{ c.model }}</span></span>
-                <span class="guest-meta">{{ c.color ? c.color + ' · ' : '' }}{{ c.driverName ? c.driverName : '' }}{{ c.driverPhone ? ' · ' + c.driverPhone : '' }}</span>
-              </div>
-            </div>
-            <button v-if="order.status !== 'CONFIRMED'" class="item-btn danger" @click="handleRemoveCar(c.id)"><i class="pi pi-trash" /></button>
+        <div class="money-row">
+          <div class="money-card total">
+            <span class="money-label">الإجمالي</span>
+            <span class="money-value">{{ fmt(booking.total) }} <small>ج.م</small></span>
+          </div>
+          <div class="money-card paid">
+            <span class="money-label">المدفوع</span>
+            <span class="money-value">{{ fmt(booking.deposit) }} <small>ج.م</small></span>
+          </div>
+          <div class="money-card" :class="Number(booking.remaining_amount) === 0 ? 'done' : 'remaining'">
+            <span class="money-label">المتبقي</span>
+            <span class="money-value">{{ fmt(booking.remaining_amount) }} <small>ج.م</small></span>
           </div>
         </div>
-      </div>
+      </section>
 
-      <!-- Action Buttons -->
-      <div v-if="order.status !== 'CONFIRMED'" class="action-bar">
-        <button class="btn-temp" @click="handleSetTemporary" :disabled="order.status === 'TEMPORARY'">
-          <i class="pi pi-clock" /> حجز مؤقت
-        </button>
-        <button class="btn-confirm" :disabled="remaining > 0" @click="handleConfirm">
-          <i class="pi pi-check-circle" /> تم الحجز
-        </button>
-        <span v-if="remaining > 0" class="confirm-hint">يجب سداد المبلغ كاملاً قبل التأكيد</span>
-      </div>
-
-      <!-- QR & WhatsApp (after confirmation) -->
-      <div v-if="order.status === 'CONFIRMED'" class="confirmed-section">
-        <div class="qr-card">
-          <h3 class="card-title"><i class="pi pi-qrcode" /> تصريح الدخول</h3>
-          <div class="qr-content">
-            <img v-if="qrDataUrl" :src="qrDataUrl" alt="QR Code" class="qr-img" />
-            <div v-else class="qr-loading"><i class="pi pi-spin pi-spinner" /></div>
+      <!-- Cost breakdown -->
+      <section class="bf-section">
+        <div class="bf-section-head">
+          <h4 class="bf-section-title"><i class="pi pi-calculator" /> تفاصيل التكلفة</h4>
+        </div>
+        <div class="cost-lines">
+          <div class="cost-line">
+            <span class="cost-label">
+              إجمالي الليالي
+              <span class="cost-sub">{{ fmt(pricePerNight) }} × {{ booking.nights }}</span>
+            </span>
+            <span class="cost-value">{{ fmt(booking.nights_total) }} ج.م</span>
           </div>
-          <div class="wa-send">
-            <div class="wa-phone-field">
-              <label>رقم واتساب المستأجر</label>
-              <input v-model="waPhone" type="tel" placeholder="مثال: 201012345678" dir="ltr" />
-            </div>
-            <a :href="whatsappLink" target="_blank" class="whatsapp-btn" :class="{ disabled: !waPhone }">
-              <i class="pi pi-whatsapp" /> إرسال التصريح عبر واتساب
-            </a>
+          <div class="cost-line">
+            <span class="cost-label">
+              رسوم القرية
+              <span v-if="booking.nights" class="cost-sub">{{ fmt(booking.village_fee) }} × {{ booking.nights }}</span>
+            </span>
+            <span class="cost-value">{{ fmt(booking.total_village_fee) }} ج.م</span>
+          </div>
+          <div class="cost-line">
+            <span class="cost-label">تصريح أمني</span>
+            <span class="cost-value">{{ fmt(booking.security_permit_price) }} ج.م</span>
+          </div>
+          <div class="cost-line">
+            <span class="cost-label">تصريح إلكتروني</span>
+            <span class="cost-value">{{ fmt(booking.electronic_permit_price) }} ج.م</span>
+          </div>
+          <div v-if="booking.extra_guest_count" class="cost-line">
+            <span class="cost-label">
+              أفراد إضافيون
+              <span class="cost-sub">{{ booking.extra_guest_count }} × {{ fmt(booking.additional_person_price) }}</span>
+            </span>
+            <span class="cost-value">{{ fmt(booking.extra_guest_total) }} ج.م</span>
+          </div>
+          <div v-if="booking.cars_count" class="cost-line">
+            <span class="cost-label">
+              السيارات
+              <span class="cost-sub">{{ booking.cars_count }} سيارة</span>
+            </span>
+            <span class="cost-value">{{ fmt(booking.car_price_total) }} ج.م</span>
+          </div>
+          <div v-if="booking.discount_amount" class="cost-line discount">
+            <span class="cost-label"><i class="pi pi-tag" /> الخصم</span>
+            <span class="cost-value">− {{ fmt(booking.discount_amount) }} ج.م</span>
+          </div>
+          <div class="cost-line cost-line-total">
+            <span class="cost-label">الإجمالي</span>
+            <span class="cost-value">{{ fmt(booking.total) }} ج.م</span>
           </div>
         </div>
-      </div>
+      </section>
+
+      <!-- Guests -->
+      <section class="bf-section">
+        <div class="bf-section-head">
+          <h4 class="bf-section-title">
+            <i class="pi pi-users" /> الضيوف
+            <span class="bf-counter">{{ booking.guests?.length || 0 }}</span>
+          </h4>
+        </div>
+        <div v-if="!booking.guests?.length" class="bf-section-empty">لا يوجد ضيوف مسجلين</div>
+        <table v-else class="list-table">
+          <thead>
+            <tr>
+              <th>الاسم</th>
+              <th>الرقم القومي</th>
+              <th>الصفة</th>
+              <th>النوع</th>
+              <th>الهاتف</th>
+              <th>السعر</th>
+            </tr>
+          </thead>
+          <tbody>
+            <tr v-for="g in booking.guests" :key="g.id">
+              <td>{{ g.name }}</td>
+              <td class="ltr">{{ g.identity_number || '—' }}</td>
+              <td>{{ g.role || '—' }}</td>
+              <td>{{ g.type === 'ADULT' ? 'بالغ' : g.type === 'CHILD' ? 'طفل' : g.type }}</td>
+              <td class="ltr">{{ g.phone || '—' }}</td>
+              <td>{{ fmt(g.price) }}</td>
+            </tr>
+          </tbody>
+        </table>
+      </section>
+
+      <!-- Cars -->
+      <section class="bf-section">
+        <div class="bf-section-head">
+          <h4 class="bf-section-title">
+            <i class="pi pi-car" /> السيارات
+            <span class="bf-counter">{{ booking.cars?.length || 0 }}</span>
+          </h4>
+        </div>
+        <div v-if="!booking.cars?.length" class="bf-section-empty">لا توجد سيارات</div>
+        <table v-else class="list-table">
+          <thead>
+            <tr>
+              <th>رقم اللوحة</th>
+              <th>السعر</th>
+            </tr>
+          </thead>
+          <tbody>
+            <tr v-for="c in booking.cars" :key="c.id">
+              <td class="ltr">{{ c.plate_number }}</td>
+              <td>{{ fmt(c.price) }} ج.م</td>
+            </tr>
+          </tbody>
+        </table>
+      </section>
+
+      <!-- Payments -->
+      <section class="bf-section">
+        <div class="bf-section-head">
+          <h4 class="bf-section-title">
+            <i class="pi pi-wallet" /> الدفعات
+            <span class="bf-counter">{{ booking.payments?.length || 0 }}</span>
+          </h4>
+        </div>
+        <div v-if="!booking.payments?.length" class="bf-section-empty">لا توجد دفعات مسجلة</div>
+        <table v-else class="list-table">
+          <thead>
+            <tr>
+              <th>المبلغ</th>
+              <th>الطريقة</th>
+              <th>التاريخ</th>
+              <th>ملاحظات</th>
+            </tr>
+          </thead>
+          <tbody>
+            <tr v-for="(p, i) in booking.payments" :key="i">
+              <td>{{ fmt(p.amount) }} ج.م</td>
+              <td>{{ paymentLabel(p.method) }}</td>
+              <td>{{ toDisplayDateTime(p.paid_at) }}</td>
+              <td>{{ p.notes || '—' }}</td>
+            </tr>
+          </tbody>
+        </table>
+      </section>
     </template>
-
-    <!-- Add Guest Modal -->
-    <AppModal v-model="guestModalOpen" title="إضافة عضو" icon="pi pi-user-plus" size="md" @close="resetGuestForm">
-      <div class="fields-grid">
-        <div class="field">
-          <label>الاسم <span class="req">*</span></label>
-          <input v-model="guestForm.name" placeholder="اسم العضو" />
-        </div>
-        <div class="field">
-          <label>الرقم القومي <span class="req">*</span></label>
-          <input v-model="guestForm.nationalId" placeholder="رقم الهوية" dir="ltr" />
-        </div>
-        <div class="field">
-          <label>الصفة</label>
-          <input v-model="guestForm.relation" placeholder="مثال: زوجة، ابن، صديق" />
-        </div>
-        <div class="field">
-          <label>رقم الموبايل</label>
-          <input v-model="guestForm.phone" placeholder="01xxxxxxxxx" dir="ltr" />
-        </div>
-        <div class="field full-width">
-          <label>النوع</label>
-          <div class="radio-group">
-            <label class="radio-label"><input type="radio" :value="false" v-model="guestForm.isChild" /> بالغ</label>
-            <label class="radio-label"><input type="radio" :value="true" v-model="guestForm.isChild" /> طفل</label>
-          </div>
-        </div>
-      </div>
-      <div v-if="willBeExtra" class="extra-notice">
-        <i class="pi pi-info-circle" /> هذا العضو سيكون إضافياً — سيتم احتساب {{ fmtNum(chaletExtraCharge) }} ج.م
-      </div>
-      <template #footer>
-        <button class="btn-cancel" @click="guestModalOpen = false">إلغاء</button>
-        <button class="btn-submit" :disabled="!guestForm.name.trim() || !guestForm.nationalId.trim()" @click="handleAddGuest">
-          <i class="pi pi-plus" /> إضافة
-        </button>
-      </template>
-    </AppModal>
-
-    <!-- Add Car Modal -->
-    <AppModal v-model="carModalOpen" title="إضافة سيارة" icon="pi pi-car" size="md" @close="resetCarForm">
-      <div class="fields-grid">
-        <div class="field">
-          <label>رقم اللوحة <span class="req">*</span></label>
-          <input v-model="carForm.plateNumber" placeholder="رقم اللوحة" dir="ltr" />
-        </div>
-        <div class="field">
-          <label>الماركة</label>
-          <input v-model="carForm.brand" placeholder="مثال: تويوتا" />
-        </div>
-        <div class="field">
-          <label>الموديل</label>
-          <input v-model="carForm.model" placeholder="مثال: كامري" />
-        </div>
-        <div class="field">
-          <label>اللون</label>
-          <input v-model="carForm.color" placeholder="مثال: أبيض" />
-        </div>
-        <div class="field">
-          <label>اسم السائق</label>
-          <input v-model="carForm.driverName" placeholder="اسم السائق" />
-        </div>
-        <div class="field">
-          <label>رقم السائق</label>
-          <input v-model="carForm.driverPhone" placeholder="01xxxxxxxxx" dir="ltr" />
-        </div>
-      </div>
-      <template #footer>
-        <button class="btn-cancel" @click="carModalOpen = false">إلغاء</button>
-        <button class="btn-submit" :disabled="!carForm.plateNumber.trim()" @click="handleAddCar">
-          <i class="pi pi-plus" /> إضافة
-        </button>
-      </template>
-    </AppModal>
   </div>
 </template>
 
 <script setup>
-import { ref, reactive, computed, onMounted } from 'vue'
-import { useRoute, useRouter } from 'vue-router'
-import { useOrdersStore } from '@/stores/orders'
-import { useBookingsStore } from '@/stores/bookings'
-import { useChaletsStore } from '@/stores/chalets'
-import { useSettingsStore } from '@/stores/settings'
+import { ref, computed, onMounted } from 'vue'
+import { useRoute } from 'vue-router'
+import { useCsBookingsStore } from '@/stores/csBookings'
 import { useToastStore } from '@/stores/toast'
-import QRCode from 'qrcode'
-import AppModal from '@/components/ui/AppModal.vue'
-import OrderTimer from '@/components/admin/cs/OrderTimer.vue'
+import { usePermissions } from '@/composables/usePermissions'
+import { ROLES } from '@/constants/roles'
+import { toDisplayDate, toDisplayDateTime } from '@/utils/date'
 
 const route = useRoute()
-const router = useRouter()
-const ordersStore = useOrdersStore()
-const bookingsStore = useBookingsStore()
-const chaletsStore = useChaletsStore()
-const settings = useSettingsStore()
+const csBookings = useCsBookingsStore()
 const toast = useToastStore()
+const { hasRole } = usePermissions()
 
-const order = computed(() => ordersStore.getOrderById(route.params.id))
-const shortId = computed(() => order.value?.id?.slice(-6).toUpperCase() || '')
+const loading = ref(true)
+const booking = ref(null)
+const confirmingPermit = ref(false)
 
-const chalet = computed(() => order.value ? chaletsStore.getById(order.value.chaletId) : null)
-const maxPermitted = computed(() => chalet.value?.maxPermitted || chalet.value?.maxGuests || 6)
-const chaletExtraCharge = computed(() => chalet.value?.extraGuestCharge || 150)
-const guestCount = computed(() => order.value?.guests?.length || 0)
-const extraGuestCount = computed(() => (order.value?.guests || []).filter((g) => g.isExtra).length)
+const canManagePermit = computed(() =>
+  hasRole(ROLES.CUSTOMER_SERVICE_VILLAGE) ||
+  hasRole(ROLES.HEAD_CUSTOMER_SERVICE_VILLAGE) ||
+  hasRole(ROLES.FINANCIAL_MEMBER),
+)
 
-const totalPaid = computed(() => (order.value?.payments || []).reduce((s, p) => s + Number(p.amount || 0), 0))
-const remaining = computed(() => Math.max(0, Number(order.value?.total || 0) - totalPaid.value))
-
-// Start processing on first visit
-onMounted(() => {
-  if (order.value && order.value.status === 'PENDING') {
-    ordersStore.startProcessing(order.value.id)
-  }
+const pricePerNight = computed(() => {
+  if (!booking.value?.nights) return 0
+  return Math.round((booking.value.nights_total || 0) / booking.value.nights)
 })
 
-// Payment
-const paymentAmount = ref(null)
-function handleAddPayment() {
-  if (!paymentAmount.value || paymentAmount.value <= 0) return
-  ordersStore.addPayment(order.value.id, paymentAmount.value)
-  toast.success('تم إضافة الدفعة')
-  paymentAmount.value = null
+async function load() {
+  loading.value = true
+  const r = await csBookings.getBooking(route.params.id)
+  loading.value = false
+  if (r.ok) booking.value = r.data
+  else toast.error(r.error)
 }
 
-// Status
-function handleSetTemporary() {
-  ordersStore.setTemporary(order.value.id)
-  toast.success('تم تعيين الحجز كمؤقت')
-}
-
-function handleConfirm() {
-  const r = ordersStore.confirmOrder(order.value.id)
+async function handleConfirmPermit() {
+  if (!booking.value) return
+  confirmingPermit.value = true
+  const r = await csBookings.confirmPermit(booking.value.id)
+  confirmingPermit.value = false
   if (r.ok) {
-    toast.success('تم تأكيد الحجز بنجاح')
-    generateQR()
+    toast.success('تم تأكيد التصريح')
+    if (r.data && typeof r.data === 'object') {
+      booking.value = { ...booking.value, ...r.data, permit_exists: true }
+    } else {
+      booking.value.permit_exists = true
+    }
   } else {
     toast.error(r.error)
   }
 }
 
-// Guests
-const guestModalOpen = ref(false)
-const guestForm = reactive({ name: '', nationalId: '', relation: '', phone: '', isChild: false })
-const adultCount = computed(() => (order.value?.guests || []).filter((g) => !g.isChild).length)
-const childCount = computed(() => (order.value?.guests || []).filter((g) => g.isChild).length)
-const willBeExtra = computed(() => !guestForm.isChild && adultCount.value >= maxPermitted.value)
-
-function resetGuestForm() {
-  Object.assign(guestForm, { name: '', nationalId: '', relation: '', phone: '', isChild: false })
-}
-
-function handleAddGuest() {
-  if (!guestForm.name.trim() || !guestForm.nationalId.trim()) return
-  const r = ordersStore.addGuest(order.value.id, { ...guestForm })
-  if (r.ok) {
-    if (r.isExtra) toast.info(`تم إضافة عضو إضافي — ${fmtNum(r.extraCharge)} ج.م رسوم إضافية`)
-    else toast.success('تم إضافة العضو')
-    guestModalOpen.value = false
-    resetGuestForm()
-  }
-}
-
-function handleRemoveGuest(guestId) {
-  ordersStore.removeGuest(order.value.id, guestId)
-  toast.success('تم حذف العضو')
-}
-
-// Cars
-const carModalOpen = ref(false)
-const carForm = reactive({ plateNumber: '', brand: '', model: '', color: '', driverName: '', driverPhone: '' })
-
-function resetCarForm() {
-  Object.assign(carForm, { plateNumber: '', brand: '', model: '', color: '', driverName: '', driverPhone: '' })
-}
-
-function handleAddCar() {
-  if (!carForm.plateNumber.trim()) return
-  bookingsStore.addCar(order.value.id, { ...carForm }, settings.carFee)
-  toast.success('تم إضافة السيارة')
-  carModalOpen.value = false
-  resetCarForm()
-}
-
-function handleRemoveCar(carId) {
-  bookingsStore.removeCar(order.value.id, carId)
-  toast.success('تم حذف السيارة')
-}
-
-// WhatsApp phone — auto-fill from first guest if available
-const waPhone = ref('')
-
-// QR Code
-const qrDataUrl = ref('')
-
-async function generateQR() {
-  if (!order.value) return
-  try {
-    const data = JSON.stringify({
-      bookingId: order.value.id,
-      chalet: order.value.chaletName,
-      chaletNumber: order.value.chaletNumber,
-      checkIn: order.value.checkIn,
-      checkOut: order.value.checkOut,
-      guests: order.value.guests?.length || 0,
-    })
-    qrDataUrl.value = await QRCode.toDataURL(data, { width: 250, margin: 2 })
-  } catch { /* */ }
-}
-
-onMounted(() => {
-  if (order.value?.status === 'CONFIRMED') generateQR()
-})
-
-// WhatsApp
-// Auto-fill waPhone from first guest
-onMounted(() => {
-  if (order.value?.guests?.length) {
-    const firstGuest = order.value.guests.find((g) => g.phone)
-    if (firstGuest) waPhone.value = firstGuest.phone
-  }
-})
-
-const whatsappLink = computed(() => {
-  if (!order.value || !waPhone.value) return '#'
-  const phone = waPhone.value.replace(/^0/, '2')
-  const msg = `تصريح دخول - فارما بيتش\n\nالشاليه: ${order.value.chaletName} (${order.value.chaletNumber})\nرقم الحجز: #${shortId.value}\nتسجيل الدخول: ${fmtDate(order.value.checkIn)}\nتسجيل الخروج: ${fmtDate(order.value.checkOut)}\nعدد الأعضاء: ${order.value.guests?.length || 0}\n\nبرجاء إبراز هذا التصريح عند الدخول.`
-  return `https://wa.me/${phone}?text=${encodeURIComponent(msg)}`
-})
-
-// Helpers
 function statusLabel(s) {
-  return { PENDING: 'في الانتظار', PROCESSING: 'قيد المعالجة', TEMPORARY: 'حجز مؤقت', CONFIRMED: 'مؤكد' }[s] || s
+  return {
+    PENDING: 'في الانتظار',
+    PROCESSING: 'قيد المعالجة',
+    TEMPORARY: 'مؤقت',
+    CONFIRMED: 'مؤكد',
+    EXPIRED: 'منتهي',
+    COMPLETED: 'مكتمل',
+    CANCELLED: 'ملغي',
+  }[s] || s || '—'
 }
-function fmtDate(iso) {
-  if (!iso) return '—'
-  return new Date(iso).toLocaleDateString('ar-EG', { year: 'numeric', month: 'short', day: 'numeric' })
+
+function paymentLabel(p) {
+  return {
+    CASH: 'نقدي',
+    BANK: 'تحويل بنكي',
+    WITHDRAW_BALANCE: 'خصم من الرصيد',
+  }[p] || p || '—'
 }
-function fmtNum(n) { return Number(n || 0).toLocaleString('ar-EG') }
+
+function fmt(n) { return Number(n || 0).toLocaleString('ar-EG') }
+
+onMounted(load)
 </script>
 
 <style scoped>
-.page-header { display: flex; align-items: flex-start; justify-content: space-between; margin-bottom: 24px; }
-.page-header-right { display: flex; align-items: center; gap: 14px; }
-.back-link { width: 40px; height: 40px; border-radius: 10px; border: 1px solid #e2e8f0; background: #fff; display: flex; align-items: center; justify-content: center; color: #475569; text-decoration: none; transition: all 0.15s; flex-shrink: 0; }
-.back-link:hover { background: #f8fafc; }
-.page-title { font-size: 22px; font-weight: 800; color: #0f172a; margin: 0 0 4px; }
-.order-id-title { color: #f97316; direction: ltr; display: inline-block; }
-.page-desc { font-size: 13.5px; color: #94a3b8; margin: 0; }
+.detail-page { display: flex; flex-direction: column; gap: 16px; }
 
-.status-badge { padding: 4px 12px; border-radius: 8px; font-size: 12px; font-weight: 600; }
-.status-badge.lg { padding: 8px 18px; font-size: 13px; border-radius: 10px; }
-.status-badge.pending { background: rgba(234, 179, 8, 0.08); color: #eab308; }
-.status-badge.processing { background: rgba(14, 165, 233, 0.08); color: #0ea5e9; }
-.status-badge.temporary { background: rgba(249, 115, 22, 0.08); color: #f97316; }
-.status-badge.confirmed { background: rgba(16, 185, 129, 0.08); color: #10b981; }
+/* Breadcrumb (matches sub-page convention) */
+.page-crumbs { display: flex; align-items: center; gap: 8px; margin-bottom: 6px; font-size: 13px; font-weight: 600; }
+.crumb { color: #94a3b8; text-decoration: none; transition: color 0.15s; }
+.crumb:hover { color: #f97316; }
+.crumb-current { color: #0f172a; font-weight: 700; cursor: default; }
+.crumb-current:hover { color: #0f172a; }
+.crumb-sep { font-size: 12px; color: #cbd5e1; }
 
-/* Details Grid */
-.details-grid { display: grid; grid-template-columns: 1fr 1fr; gap: 16px; margin-bottom: 16px; }
-
-.info-card { background: #fff; border: 1px solid #f1f5f9; border-radius: 14px; padding: 20px; }
-.card-title { display: flex; align-items: center; gap: 8px; font-size: 15px; font-weight: 700; color: #0f172a; margin: 0 0 16px; }
-.card-title i { color: #f97316; font-size: 16px; }
-
-.info-rows { display: flex; flex-direction: column; gap: 10px; }
-.info-row { display: flex; justify-content: space-between; align-items: center; font-size: 13.5px; padding: 6px 0; border-bottom: 1px solid #f8fafc; }
-.info-row:last-child { border-bottom: none; }
-.info-label { color: #94a3b8; font-weight: 500; }
-
-/* Payment */
-.payment-summary { display: flex; flex-direction: column; gap: 6px; margin-bottom: 16px; }
-.pay-row { display: flex; justify-content: space-between; font-size: 13.5px; padding: 4px 0; }
-.pay-row.total { font-weight: 700; font-size: 15px; color: #0f172a; padding: 8px 0; }
-.pay-row.extra { color: #eab308; }
-.pay-row.discount { color: #10b981; }
-.pay-val { font-weight: 600; }
-.pay-val.green { color: #10b981; }
-.pay-val.red { color: #ef4444; }
-.pay-divider { height: 1px; background: #f1f5f9; margin: 6px 0; }
-
-.add-payment { display: flex; gap: 8px; margin-bottom: 14px; }
-.add-payment input { flex: 1; height: 40px; padding: 0 14px; border: 1px solid #e2e8f0; border-radius: 10px; font-size: 13.5px; font-family: inherit; color: #1e293b; background: #fafbfc; outline: none; }
-.add-payment input:focus { border-color: #f97316; background: #fff; }
-.pay-btn { display: flex; align-items: center; gap: 6px; padding: 0 16px; height: 40px; background: #10b981; color: #fff; border: none; border-radius: 10px; font-size: 12.5px; font-weight: 600; font-family: inherit; cursor: pointer; white-space: nowrap; transition: all 0.15s; }
-.pay-btn:hover:not(:disabled) { background: #059669; }
-.pay-btn:disabled { opacity: 0.5; cursor: not-allowed; }
-
-.pay-history { border-top: 1px solid #f1f5f9; padding-top: 12px; }
-.pay-history h5 { font-size: 12.5px; font-weight: 600; color: #64748b; margin: 0 0 8px; }
-.pay-entry { display: flex; justify-content: space-between; font-size: 13px; padding: 6px 0; border-bottom: 1px solid #f8fafc; }
-.pay-entry:last-child { border-bottom: none; }
-.pay-date { font-size: 12px; color: #94a3b8; }
-
-/* Guests */
-.guests-card { background: #fff; border: 1px solid #f1f5f9; border-radius: 14px; padding: 20px; margin-bottom: 16px; }
-.guests-header { display: flex; align-items: center; justify-content: space-between; margin-bottom: 14px; }
-.btn-sm { display: inline-flex; align-items: center; gap: 6px; padding: 8px 16px; background: linear-gradient(135deg, #f97316, #ea580c); color: #fff; border: none; border-radius: 8px; font-size: 12.5px; font-weight: 600; font-family: inherit; cursor: pointer; }
-.btn-sm:hover { transform: translateY(-1px); }
-
-.extra-warn { display: flex; align-items: center; gap: 8px; padding: 12px 16px; background: rgba(234, 179, 8, 0.06); border: 1px solid rgba(234, 179, 8, 0.15); border-radius: 10px; font-size: 13px; color: #a16207; margin-bottom: 14px; }
-.extra-warn i { font-size: 16px; color: #eab308; flex-shrink: 0; }
-
-.guests-empty { padding: 24px; text-align: center; color: #94a3b8; font-size: 13.5px; }
-
-.guests-list { display: flex; flex-direction: column; gap: 6px; }
-.guest-item { display: flex; align-items: center; justify-content: space-between; padding: 12px 14px; border-radius: 10px; border: 1px solid #f1f5f9; transition: all 0.15s; }
-.guest-item:hover { background: #fafbfc; }
-.guest-item.extra { border-color: rgba(234, 179, 8, 0.2); background: rgba(234, 179, 8, 0.02); }
-.guest-info { display: flex; align-items: center; gap: 12px; }
-.guest-av { width: 36px; height: 36px; border-radius: 10px; background: #f1f5f9; display: flex; align-items: center; justify-content: center; color: #94a3b8; flex-shrink: 0; }
-.guest-name { display: block; font-weight: 600; color: #1e293b; font-size: 13.5px; }
-.extra-tag { font-size: 10.5px; padding: 2px 7px; border-radius: 4px; background: rgba(234, 179, 8, 0.1); color: #eab308; font-weight: 600; margin-right: 4px; }
-.guest-meta { display: block; font-size: 12px; color: #94a3b8; direction: ltr; text-align: right; }
-.item-btn { width: 30px; height: 30px; border-radius: 6px; border: none; background: none; color: #94a3b8; cursor: pointer; display: flex; align-items: center; justify-content: center; font-size: 13px; }
-.item-btn.danger { color: #ef4444; }
-.item-btn.danger:hover { background: rgba(239, 68, 68, 0.08); }
-
-/* Action Bar */
-.action-bar { display: flex; align-items: center; gap: 10px; padding: 20px; background: #fff; border: 1px solid #f1f5f9; border-radius: 14px; margin-bottom: 16px; }
-.btn-temp { display: inline-flex; align-items: center; gap: 6px; padding: 10px 24px; border-radius: 10px; border: 1px solid #e2e8f0; background: #fff; color: #f97316; font-size: 13.5px; font-weight: 600; font-family: inherit; cursor: pointer; transition: all 0.15s; }
-.btn-temp:hover:not(:disabled) { background: rgba(249, 115, 22, 0.04); border-color: #f97316; }
-.btn-temp:disabled { opacity: 0.4; cursor: not-allowed; }
-.btn-confirm { display: inline-flex; align-items: center; gap: 6px; padding: 10px 28px; background: linear-gradient(135deg, #10b981, #059669); color: #fff; border: none; border-radius: 10px; font-size: 13.5px; font-weight: 600; font-family: inherit; cursor: pointer; transition: all 0.15s; box-shadow: 0 2px 8px rgba(16, 185, 129, 0.25); }
-.btn-confirm:hover:not(:disabled) { transform: translateY(-1px); }
-.btn-confirm:disabled { opacity: 0.4; cursor: not-allowed; box-shadow: none; }
-.confirm-hint { font-size: 12.5px; color: #94a3b8; }
-
-/* Confirmed Section */
-.confirmed-section { margin-bottom: 16px; }
-.qr-card { background: #fff; border: 1px solid #f1f5f9; border-radius: 14px; padding: 24px; text-align: center; }
-.qr-content { margin: 20px 0; }
-.qr-img { width: 200px; height: 200px; border-radius: 12px; border: 1px solid #f1f5f9; }
-.qr-loading { padding: 60px; color: #94a3b8; font-size: 24px; }
-
-.wa-send { display: flex; flex-direction: column; align-items: center; gap: 14px; }
-.wa-phone-field { display: flex; flex-direction: column; gap: 5px; width: 100%; max-width: 280px; }
-.wa-phone-field label { font-size: 12.5px; font-weight: 600; color: #64748b; text-align: center; }
-.wa-phone-field input { height: 40px; padding: 0 14px; border: 1px solid #e2e8f0; border-radius: 10px; font-size: 13.5px; font-family: inherit; color: #1e293b; background: #fafbfc; outline: none; text-align: center; transition: all 0.2s; }
-.wa-phone-field input:focus { border-color: #25d366; background: #fff; box-shadow: 0 0 0 3px rgba(37, 211, 102, 0.08); }
-.whatsapp-btn { display: inline-flex; align-items: center; gap: 8px; padding: 12px 28px; background: #25d366; color: #fff; border-radius: 10px; font-size: 14px; font-weight: 600; text-decoration: none; transition: all 0.15s; }
-.whatsapp-btn:hover:not(.disabled) { background: #20bd5a; transform: translateY(-1px); }
-.whatsapp-btn.disabled { opacity: 0.5; pointer-events: none; }
-.whatsapp-btn i { font-size: 18px; }
-
-/* Modal form */
-.fields-grid { display: grid; grid-template-columns: 1fr 1fr; gap: 14px; }
-.field { display: flex; flex-direction: column; gap: 5px; }
-.field label { font-size: 13px; font-weight: 600; color: #475569; }
-.req { color: #ef4444; }
-.field input { height: 42px; padding: 0 14px; border: 1px solid #e2e8f0; border-radius: 10px; font-size: 13.5px; font-family: inherit; color: #1e293b; background: #fafbfc; outline: none; transition: all 0.2s; }
-.field input:focus { border-color: #f97316; background: #fff; }
-.field input::placeholder { color: #94a3b8; }
-.full-width { grid-column: 1 / -1; }
-.radio-group { display: flex; gap: 16px; padding-top: 4px; }
-.radio-label { display: inline-flex; align-items: center; gap: 6px; font-size: 13.5px; font-weight: 500; color: #475569; cursor: pointer; }
-.radio-label input[type="radio"] { accent-color: #f97316; }
-.child-tag { font-size: 10.5px; padding: 2px 7px; border-radius: 4px; background: rgba(14, 165, 233, 0.1); color: #0ea5e9; font-weight: 600; margin-right: 4px; }
-.car-detail { font-size: 12px; color: #94a3b8; font-weight: 400; margin-right: 6px; }
-
-.extra-notice { display: flex; align-items: center; gap: 8px; padding: 12px 16px; background: rgba(234, 179, 8, 0.06); border: 1px solid rgba(234, 179, 8, 0.15); border-radius: 10px; font-size: 13px; color: #a16207; margin-top: 14px; }
-.extra-notice i { color: #eab308; }
-.btn-cancel { padding: 10px 24px; border-radius: 10px; background: #f1f5f9; color: #475569; font-size: 13.5px; font-weight: 600; border: none; cursor: pointer; font-family: inherit; }
-.btn-cancel:hover { background: #e2e8f0; }
-.btn-submit { display: inline-flex; align-items: center; gap: 8px; padding: 10px 24px; background: linear-gradient(135deg, #f97316, #ea580c); color: #fff; border: none; border-radius: 10px; font-size: 13.5px; font-weight: 600; font-family: inherit; cursor: pointer; }
-.btn-submit:disabled { opacity: 0.5; cursor: not-allowed; }
-
-.empty-state { text-align: center; padding: 60px 20px; background: #fff; border: 1px solid #f1f5f9; border-radius: 14px; }
-.empty-icon { width: 64px; height: 64px; border-radius: 16px; background: rgba(148, 163, 184, 0.08); display: flex; align-items: center; justify-content: center; margin: 0 auto 16px; }
-.empty-icon i { font-size: 28px; color: #94a3b8; }
-.empty-state h3 { font-size: 16px; font-weight: 700; color: #1e293b; margin: 0; }
-
-@media (max-width: 768px) {
-  .page-header { flex-direction: column; gap: 10px; align-items: flex-start; }
-  .page-header .status-badge.lg { align-self: flex-start; }
-  .details-grid { grid-template-columns: 1fr; }
-  .info-card { padding: 16px; }
-  .card-title { font-size: 14px; }
-  .action-bar { flex-direction: column; gap: 8px; }
-  .btn-temp, .btn-confirm { width: 100%; justify-content: center; }
-  .confirm-hint { text-align: center; }
-  .guests-card { padding: 16px; }
-  .guests-header { flex-direction: column; gap: 10px; align-items: flex-start; }
-  .btn-sm { width: 100%; justify-content: center; }
-  .guest-item { flex-direction: column; gap: 8px; align-items: flex-start; }
-  .guest-item .item-btn { align-self: flex-end; }
-  .fields-grid { grid-template-columns: 1fr; }
-  .add-payment { flex-direction: column; }
-  .pay-btn { width: 100%; justify-content: center; }
-  .qr-card { padding: 20px 16px; }
-  .qr-img { width: 160px; height: 160px; }
-  .wa-phone-field { max-width: 100%; }
-  .whatsapp-btn { width: 100%; justify-content: center; }
+/* Page header */
+.page-header { display: flex; align-items: center; gap: 14px; margin-bottom: 4px; }
+.page-icon {
+  width: 52px; height: 52px;
+  border-radius: 14px;
+  background: linear-gradient(135deg, rgba(249, 115, 22, 0.12), rgba(251, 191, 36, 0.12));
+  color: #ea580c;
+  display: inline-flex; align-items: center; justify-content: center;
+  flex-shrink: 0;
 }
+.page-icon i { font-size: 22px; }
+.page-header-text { display: flex; flex-direction: column; gap: 4px; min-width: 0; flex: 1; }
+.page-title { font-size: 22px; font-weight: 800; color: #0f172a; margin: 0; line-height: 1.2; direction: ltr; text-align: right; }
+.page-desc { font-size: 13.5px; color: #94a3b8; margin: 0; }
+.page-header-actions { display: flex; gap: 10px; flex-shrink: 0; }
+
+.btn-confirm {
+  display: inline-flex; align-items: center; gap: 8px;
+  padding: 10px 22px;
+  border-radius: 10px;
+  background: linear-gradient(135deg, #10b981, #059669);
+  border: 1px solid #059669;
+  color: #fff;
+  font-family: inherit;
+  font-size: 13.5px;
+  font-weight: 700;
+  cursor: pointer;
+  text-decoration: none;
+  box-shadow: 0 2px 10px rgba(16, 185, 129, 0.35);
+  transition: all 0.15s;
+}
+.btn-confirm:hover:not(:disabled) { transform: translateY(-1px); box-shadow: 0 6px 18px rgba(16, 185, 129, 0.45); }
+.btn-confirm:disabled { opacity: 0.6; cursor: not-allowed; }
+
+.btn-secondary {
+  display: inline-flex; align-items: center; gap: 8px;
+  padding: 10px 22px;
+  border-radius: 10px;
+  background: #fff;
+  border: 1px solid #e2e8f0;
+  color: #475569;
+  font-family: inherit;
+  font-size: 13.5px;
+  font-weight: 700;
+  cursor: pointer;
+  text-decoration: none;
+  transition: all 0.15s;
+}
+.btn-secondary:hover { border-color: #f97316; color: #f97316; }
+
+.btn-primary {
+  display: inline-flex; align-items: center; gap: 6px;
+  padding: 10px 18px; border-radius: 10px;
+  background: linear-gradient(135deg, #f97316, #ea580c);
+  color: #fff; font-size: 13.5px; font-weight: 700;
+  text-decoration: none;
+}
+
+/* Chalet hero (inside chalet card) */
+.chalet-card { position: relative; overflow: hidden; }
+.chalet-card::before {
+  content: '';
+  position: absolute;
+  inset: 0;
+  background: radial-gradient(circle at top right, rgba(249, 115, 22, 0.06), transparent 55%);
+  pointer-events: none;
+}
+.chalet-hero {
+  position: relative;
+  display: flex;
+  align-items: center;
+  gap: 16px;
+  padding: 4px 0;
+}
+.chalet-avatar {
+  width: 56px; height: 56px;
+  border-radius: 14px;
+  background: linear-gradient(135deg, rgba(249, 115, 22, 0.14), rgba(251, 191, 36, 0.14));
+  color: #ea580c;
+  display: inline-flex; align-items: center; justify-content: center;
+  flex-shrink: 0;
+  border: 1px solid rgba(249, 115, 22, 0.18);
+}
+.chalet-avatar i { font-size: 22px; }
+.chalet-id { display: flex; flex-direction: column; gap: 10px; min-width: 0; flex: 1; }
+.chalet-name { font-size: 20px; font-weight: 800; color: #0f172a; margin: 0; line-height: 1.2; }
+.chalet-tags { display: flex; flex-wrap: wrap; gap: 6px; }
+
+/* Unified chip system inside the chalet card */
+.chip {
+  display: inline-flex;
+  align-items: center;
+  gap: 5px;
+  padding: 5px 11px;
+  border-radius: 999px;
+  font-size: 11.5px;
+  font-weight: 700;
+  border: 1px solid transparent;
+  white-space: nowrap;
+}
+.chip i { font-size: 10.5px; }
+.chip i.tiny { font-size: 7px; }
+
+.chip.neutral { background: #f8fafc; border-color: #f1f5f9; color: #475569; }
+.chip.neutral i { color: #94a3b8; }
+
+.chip.ok { background: rgba(16, 185, 129, 0.10); color: #047857; border-color: rgba(16, 185, 129, 0.22); }
+.chip.warn { background: rgba(234, 179, 8, 0.10); color: #b45309; border-color: rgba(234, 179, 8, 0.22); }
+
+.chip.status.pending { background: rgba(234, 179, 8, 0.12); color: #b45309; border-color: rgba(234, 179, 8, 0.22); }
+.chip.status.processing { background: rgba(14, 165, 233, 0.12); color: #0369a1; border-color: rgba(14, 165, 233, 0.22); }
+.chip.status.temporary { background: rgba(249, 115, 22, 0.12); color: #c2410c; border-color: rgba(249, 115, 22, 0.22); }
+.chip.status.confirmed { background: rgba(16, 185, 129, 0.12); color: #047857; border-color: rgba(16, 185, 129, 0.22); }
+.chip.status.expired,
+.chip.status.cancelled { background: rgba(239, 68, 68, 0.10); color: #b91c1c; border-color: rgba(239, 68, 68, 0.22); }
+.chip.status.completed { background: rgba(100, 116, 139, 0.12); color: #475569; border-color: rgba(100, 116, 139, 0.22); }
+
+.chip.pay.cash { background: rgba(16, 185, 129, 0.12); color: #047857; border-color: rgba(16, 185, 129, 0.22); }
+.chip.pay.bank { background: rgba(14, 165, 233, 0.12); color: #0369a1; border-color: rgba(14, 165, 233, 0.22); }
+.chip.pay.withdraw_balance { background: rgba(139, 92, 246, 0.12); color: #6d28d9; border-color: rgba(139, 92, 246, 0.22); }
+
+.chip.permit.ok { background: rgba(16, 185, 129, 0.10); color: #047857; border-color: rgba(16, 185, 129, 0.22); }
+.chip.permit.warn { background: rgba(234, 179, 8, 0.10); color: #b45309; border-color: rgba(234, 179, 8, 0.22); }
+
+/* Cards (matches BookingFormView style) */
+.bf-section {
+  background: #fff;
+  border: 1px solid #f1f5f9;
+  border-radius: 14px;
+  padding: 18px 20px;
+  box-shadow: 0 2px 8px rgba(15, 23, 42, 0.04);
+}
+.bf-section-head { display: flex; justify-content: space-between; align-items: center; margin-bottom: 12px; gap: 10px; }
+.bf-section-title {
+  display: inline-flex; align-items: center; gap: 8px;
+  font-size: 14px; font-weight: 800; color: #0f172a; margin: 0;
+}
+.bf-section-title i { color: #f97316; }
+.bf-counter { margin-inline-start: 6px; padding: 3px 10px; border-radius: 999px; background: #f1f5f9; color: #475569; font-size: 11px; font-weight: 700; }
+.bf-section-empty {
+  padding: 18px;
+  text-align: center;
+  color: #94a3b8;
+  font-size: 13px;
+  background: #fafbfc;
+  border: 1px dashed #e2e8f0;
+  border-radius: 10px;
+}
+
+/* Stay band — dates + nights pill (matches BookingFormView trip-dates) */
+.stay-card { display: flex; flex-direction: column; gap: 14px; }
+.stay-band {
+  display: grid;
+  grid-template-columns: 1fr auto 1fr;
+  align-items: center;
+  gap: 14px;
+  padding: 14px 16px;
+  background: #fafbfc;
+  border: 1px dashed #e2e8f0;
+  border-radius: 14px;
+}
+.stay-date { display: flex; flex-direction: column; gap: 4px; }
+.stay-date-label {
+  display: inline-flex; align-items: center; gap: 5px;
+  font-size: 11px;
+  color: #94a3b8;
+  font-weight: 700;
+  text-transform: uppercase;
+  letter-spacing: 0.5px;
+}
+.stay-date-label i { font-size: 11px; }
+.stay-date-value { font-size: 14.5px; font-weight: 800; color: #0f172a; }
+.stay-mid { display: flex; justify-content: center; }
+.stay-nights {
+  display: inline-flex;
+  align-items: center;
+  gap: 5px;
+  padding: 5px 12px;
+  border-radius: 999px;
+  background: linear-gradient(135deg, #f97316, #ea580c);
+  color: #fff;
+  font-size: 11.5px;
+  font-weight: 800;
+  box-shadow: 0 3px 10px rgba(249, 115, 22, 0.35);
+  white-space: nowrap;
+  border: 1px solid #ea580c;
+}
+.stay-nights i { font-size: 11px; }
+
+/* Money cards — three headline numbers */
+.money-row {
+  display: grid;
+  grid-template-columns: repeat(3, 1fr);
+  gap: 10px;
+}
+.money-card {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  gap: 6px;
+  padding: 16px 14px;
+  border-radius: 14px;
+  border: 1px solid #f1f5f9;
+  background: #fff;
+}
+.money-label {
+  font-size: 11.5px;
+  color: #94a3b8;
+  font-weight: 800;
+  text-transform: uppercase;
+  letter-spacing: 0.5px;
+}
+.money-value {
+  font-size: 22px;
+  font-weight: 900;
+  color: #0f172a;
+  line-height: 1;
+  display: inline-flex;
+  align-items: baseline;
+  gap: 4px;
+}
+.money-value small { font-size: 11px; font-weight: 700; color: #94a3b8; }
+.money-card.total {
+  background: linear-gradient(135deg, rgba(249, 115, 22, 0.10), rgba(251, 191, 36, 0.10));
+  border-color: rgba(249, 115, 22, 0.22);
+}
+.money-card.total .money-label { color: #c2410c; }
+.money-card.total .money-value { color: #ea580c; }
+.money-card.total .money-value small { color: #c2410c; }
+
+.money-card.paid {
+  background: linear-gradient(135deg, rgba(14, 165, 233, 0.08), rgba(56, 189, 248, 0.08));
+  border-color: rgba(14, 165, 233, 0.22);
+}
+.money-card.paid .money-label { color: #0284c7; }
+.money-card.paid .money-value { color: #0284c7; }
+.money-card.paid .money-value small { color: #0369a1; }
+
+.money-card.remaining {
+  background: linear-gradient(135deg, rgba(239, 68, 68, 0.08), rgba(248, 113, 113, 0.08));
+  border-color: rgba(239, 68, 68, 0.22);
+}
+.money-card.remaining .money-label { color: #b91c1c; }
+.money-card.remaining .money-value { color: #b91c1c; }
+.money-card.remaining .money-value small { color: #b91c1c; }
+
+.money-card.done {
+  background: linear-gradient(135deg, rgba(16, 185, 129, 0.10), rgba(52, 211, 153, 0.10));
+  border-color: rgba(16, 185, 129, 0.22);
+}
+.money-card.done .money-label { color: #047857; }
+.money-card.done .money-value { color: #059669; }
+.money-card.done .money-value small { color: #047857; }
+
+/* Cost breakdown line items (matches BookingFormView cost-card) */
+.cost-lines { display: flex; flex-direction: column; }
+.cost-line {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 12px;
+  padding: 11px 4px;
+  border-bottom: 1px dashed #f1f5f9;
+  font-size: 13.5px;
+}
+.cost-label {
+  display: inline-flex;
+  align-items: center;
+  gap: 8px;
+  color: #475569;
+  font-weight: 600;
+}
+.cost-label i { font-size: 11px; color: #94a3b8; }
+.cost-sub { font-size: 11.5px; color: #94a3b8; font-weight: 500; }
+.cost-value { color: #0f172a; font-weight: 700; }
+
+.cost-line.discount .cost-label,
+.cost-line.discount .cost-value { color: #047857; }
+.cost-line.discount .cost-label i { color: #059669; }
+
+.cost-line-total {
+  margin-top: 6px;
+  padding: 14px 16px;
+  background: linear-gradient(135deg, rgba(249, 115, 22, 0.08), rgba(251, 191, 36, 0.08));
+  border: 1px solid rgba(249, 115, 22, 0.20);
+  border-radius: 12px;
+}
+.cost-line-total .cost-label { color: #0f172a; font-weight: 800; font-size: 14px; }
+.cost-line-total .cost-value { color: #ea580c; font-weight: 900; font-size: 16px; }
+
+@media (max-width: 540px) {
+  .stay-band { grid-template-columns: 1fr; text-align: center; }
+  .money-row { grid-template-columns: 1fr; }
+}
+
+.list-table { width: 100%; border-collapse: collapse; }
+.list-table th {
+  padding: 10px 14px;
+  text-align: right;
+  font-size: 11.5px;
+  font-weight: 700;
+  color: #64748b;
+  text-transform: uppercase;
+  letter-spacing: 0.5px;
+  background: #fafbfc;
+  border-bottom: 1px solid #f1f5f9;
+}
+.list-table td { padding: 11px 14px; font-size: 13px; color: #475569; border-bottom: 1px solid #f8fafc; }
+.list-table tr:last-child td { border-bottom: none; }
+.ltr { direction: ltr; text-align: right; }
+
+/* States */
+.loading-state { padding: 60px 20px; text-align: center; color: #64748b; font-size: 14px; background: #fff; border: 1px solid #f1f5f9; border-radius: 14px; }
+.loading-state i { font-size: 18px; margin-left: 8px; color: #f97316; }
+
+.card { background: #fff; border: 1px solid #f1f5f9; border-radius: 14px; padding: 18px; }
+.error-card { display: flex; flex-direction: column; align-items: center; gap: 12px; padding: 40px 20px; text-align: center; color: #b91c1c; }
+.error-card i { font-size: 28px; }
+.error-card p { margin: 0; font-size: 14px; }
 </style>

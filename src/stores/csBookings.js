@@ -135,6 +135,59 @@ export const useCsBookingsStore = defineStore('csBookings', () => {
     }
   }
 
+  // GET /v1/bookings?page=0&limit=10 — paginated quick list (Screen 2 tab 1).
+  async function listBookings({ page = 0, limit = 10 } = {}) {
+    try {
+      const res = await api.get('/v1/bookings', { params: cleanParams({ page, limit }) })
+      const payload = unwrap(res) || {}
+      return { ok: true, data: { content: payload.content || [], total: payload.total || 0 } }
+    } catch (error) {
+      return { ok: false, error: getErrorMessage(error, 'تعذر جلب الحجوزات') }
+    }
+  }
+
+  // GET /v1/bookings-list — slim list with optional filters (Screen 2 tab 2).
+  async function listBookingsSlim({ company_id, owner_id, group_id, check_in, check_out } = {}) {
+    try {
+      const res = await api.get('/v1/bookings-list', {
+        params: cleanParams({ company_id, owner_id, group_id, check_in, check_out }),
+      })
+      return { ok: true, data: unwrap(res) || [] }
+    } catch (error) {
+      return { ok: false, error: getErrorMessage(error, 'تعذر جلب قائمة الحجوزات') }
+    }
+  }
+
+  // GET /v1/bookings/{id} — full detail (Screen 4).
+  async function getBooking(bookingId) {
+    try {
+      const res = await api.get(`/v1/bookings/${bookingId}`)
+      return { ok: true, data: unwrap(res) }
+    } catch (error) {
+      return { ok: false, error: getErrorMessage(error, 'تعذر جلب الحجز') }
+    }
+  }
+
+  // PUT /v1/bookings/{id}/confirm-permit — Screen 4 action.
+  async function confirmPermit(bookingId) {
+    try {
+      const res = await api.put(`/v1/bookings/${bookingId}/confirm-permit`)
+      return { ok: true, data: unwrap(res) }
+    } catch (error) {
+      return { ok: false, error: getErrorMessage(error, 'تعذر تأكيد التصريح') }
+    }
+  }
+
+  // GET /v1/bookings/{id}/permit — Screen 5 print payload.
+  async function getPermit(bookingId) {
+    try {
+      const res = await api.get(`/v1/bookings/${bookingId}/permit`)
+      return { ok: true, data: unwrap(res) }
+    } catch (error) {
+      return { ok: false, error: getErrorMessage(error, 'تعذر جلب التصريح') }
+    }
+  }
+
   return {
     listCompanies,
     listOwners,
@@ -145,5 +198,10 @@ export const useCsBookingsStore = defineStore('csBookings', () => {
     getChaletBookings,
     getBookingInfo,
     createVillageBooking,
+    listBookings,
+    listBookingsSlim,
+    getBooking,
+    confirmPermit,
+    getPermit,
   }
 })

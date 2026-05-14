@@ -1,169 +1,507 @@
 <template>
   <div class="orders-page">
+    <!-- Page header -->
     <div class="page-header">
-      <div>
-        <h1 class="page-title">الطلبات</h1>
-        <p class="page-desc">استقبال ومعالجة طلبات الحجز</p>
+      <div class="page-icon"><i class="pi pi-list" /></div>
+      <div class="page-header-text">
+        <h1 class="page-title">الحجوزات</h1>
+        <p class="page-desc">قائمة حجوزات القرية</p>
       </div>
-      <div class="queue-stats">
-        <span class="qs pending"><i class="pi pi-clock" /> {{ pendingCount }} في الانتظار</span>
-        <span class="qs processing"><i class="pi pi-spin pi-spinner" /> {{ temporaryCount }} مؤقت</span>
-        <span class="qs confirmed"><i class="pi pi-check" /> {{ confirmedCount }} مؤكد</span>
+      <RouterLink to="/admin/village-bookings/new" class="btn-confirm page-header-action">
+        <i class="pi pi-plus" /> حجز جديد
+      </RouterLink>
+    </div>
+
+    <!-- Stats row -->
+    <div class="stats-row">
+      <div class="stat-card">
+        <div class="stat-icon orange"><i class="pi pi-bookmark" /></div>
+        <div class="stat-body">
+          <span class="stat-label">إجمالي الحجوزات</span>
+          <strong class="stat-value">{{ stats.total }}</strong>
+        </div>
+      </div>
+      <div class="stat-card">
+        <div class="stat-icon green"><i class="pi pi-check-circle" /></div>
+        <div class="stat-body">
+          <span class="stat-label">تصاريح مؤكدة</span>
+          <strong class="stat-value">{{ stats.confirmed }}</strong>
+        </div>
+      </div>
+      <div class="stat-card">
+        <div class="stat-icon amber"><i class="pi pi-clock" /></div>
+        <div class="stat-body">
+          <span class="stat-label">قيد الانتظار</span>
+          <strong class="stat-value">{{ stats.pending }}</strong>
+        </div>
+      </div>
+      <div class="stat-card">
+        <div class="stat-icon blue"><i class="pi pi-moon" /></div>
+        <div class="stat-body">
+          <span class="stat-label">إجمالي الليالي</span>
+          <strong class="stat-value">{{ stats.nights }}</strong>
+        </div>
       </div>
     </div>
 
-    <!-- Tabs -->
-    <div class="order-tabs">
-      <button :class="['tab-btn', { active: activeTab === 'pending' }]" @click="activeTab = 'pending'">
-        قيد الانتظار <span class="tab-badge">{{ pendingCount }}</span>
-      </button>
-      <button :class="['tab-btn', { active: activeTab === 'temporary' }]" @click="activeTab = 'temporary'">
-        مؤقت <span class="tab-badge">{{ temporaryCount }}</span>
-      </button>
-      <button :class="['tab-btn', { active: activeTab === 'confirmed' }]" @click="activeTab = 'confirmed'">
-        مؤكد <span class="tab-badge">{{ confirmedCount }}</span>
-      </button>
-    </div>
+    <!-- Filter section -->
+    <section class="bf-section">
+      <div class="bf-section-head">
+        <h4 class="bf-section-title">
+          <i class="pi pi-filter" /> تصفية
+          <span v-if="hasActiveFilter" class="bf-counter">{{ activeFilterCount }} نشط</span>
+        </h4>
+        <button v-if="hasActiveFilter" class="clear-btn" @click="clearFilters">
+          <i class="pi pi-times" /> مسح
+        </button>
+      </div>
+      <div class="filter-grid">
+        <div class="filter-field">
+          <label>الشركة</label>
+          <AppDropdown
+            v-model="filters.company_id"
+            :options="companyOptions"
+            placeholder="كل الشركات"
+            empty-text="لا توجد شركات"
+            @change="reloadFiltered"
+          />
+        </div>
+        <div class="filter-field">
+          <label>المالك</label>
+          <AppDropdown
+            v-model="filters.owner_id"
+            :options="ownerOptions"
+            placeholder="كل الملاك"
+            empty-text="لا يوجد ملاك"
+            @change="reloadFiltered"
+          />
+        </div>
+        <div class="filter-field">
+          <label>المجموعة</label>
+          <AppDropdown
+            v-model="filters.group_id"
+            :options="groupOptions"
+            placeholder="كل المجموعات"
+            empty-text="لا توجد مجموعات"
+            @change="reloadFiltered"
+          />
+        </div>
+        <div class="filter-field filter-field-range">
+          <label>الفترة</label>
+          <DateRangePicker
+            v-model:from="filters.check_in"
+            v-model:to="filters.check_out"
+            @change="reloadFiltered"
+          />
+        </div>
+      </div>
+    </section>
 
-    <!-- Table -->
-    <div class="table-card">
-      <div v-if="orders.length === 0" class="empty-state">
-        <div class="empty-icon"><i class="pi pi-inbox" /></div>
-        <h3>لا توجد طلبات</h3>
-        <p>لا توجد طلبات حجز حالياً</p>
+    <!-- List section -->
+    <section class="bf-section">
+      <div class="bf-section-head">
+        <h4 class="bf-section-title">
+          <i class="pi pi-clipboard" /> النتائج
+          <span class="bf-counter">{{ filteredRows.length }}</span>
+        </h4>
       </div>
 
-      <table v-else class="data-table">
-        <thead>
-          <tr>
-            <th>رقم الطلب</th>
-            <th>الشاليه</th>
-            <th>المدة</th>
-            <th>القيمة الإيجارية</th>
-            <th>الحالة</th>
-            <th>الوقت المنقضي</th>
-            <th>الإجراء</th>
-          </tr>
-        </thead>
-        <tbody>
-          <tr v-for="order in orders" :key="order.id" class="table-row">
-            <td><span class="order-id">#{{ order.id.slice(-6).toUpperCase() }}</span></td>
-            <td>
-              <div class="chalet-cell">
-                <span class="ch-name">{{ order.chaletName }}</span>
-                <span class="ch-num">{{ order.chaletNumber }}</span>
-              </div>
-            </td>
-            <td>{{ order.nights }} ليلة</td>
-            <td class="cell-val">{{ fmtNum(order.total) }} <small>ج.م</small></td>
-            <td>
-              <span :class="['status-badge', order.status.toLowerCase()]">{{ statusLabel(order.status) }}</span>
-            </td>
-            <td>
-              <OrderTimer :created-at="order.createdAt" />
-            </td>
-            <td>
-              <RouterLink v-if="order.status !== 'CONFIRMED'" :to="`/admin/orders/${order.id}`" class="start-btn">
-                <i class="pi pi-play" /> {{ order.status === 'PENDING' ? 'ابدأ' : 'متابعة' }}
-              </RouterLink>
-              <RouterLink v-else :to="`/admin/orders/${order.id}`" class="view-btn">
-                <i class="pi pi-eye" /> عرض
-              </RouterLink>
-            </td>
-          </tr>
-        </tbody>
-      </table>
-    </div>
+      <div v-if="loading" class="loading-inline">
+        <i class="pi pi-spin pi-spinner" /> جاري التحميل...
+      </div>
+
+      <div v-else-if="!filteredRows.length" class="empty-state">
+        <div class="empty-icon"><i class="pi pi-search" /></div>
+        <h3>لا توجد نتائج</h3>
+        <p v-if="hasActiveFilter">جرّب تعديل عوامل التصفية</p>
+        <p v-else>لا توجد حجوزات حالياً</p>
+        <RouterLink to="/admin/village-bookings/new" class="btn-confirm">
+          <i class="pi pi-plus" /> إنشاء حجز جديد
+        </RouterLink>
+      </div>
+
+      <div v-else class="row-list">
+        <button
+          v-for="row in filteredRows"
+          :key="row.id"
+          type="button"
+          class="row-card"
+          @click="openBooking(row.id)"
+        >
+          <div class="row-leading">
+            <div class="row-avatar"><i class="pi pi-home" /></div>
+            <div class="row-id">
+              <span class="row-code">{{ row.booking_code }}</span>
+              <span class="row-chalet">
+                {{ row.chalet_name }}
+                <small v-if="row.chalet_code" class="row-chalet-code">· {{ row.chalet_code }}</small>
+              </span>
+            </div>
+          </div>
+
+          <div class="row-meta">
+            <span class="row-chip dates">
+              <i class="pi pi-calendar" />
+              {{ toDisplayDate(row.check_in) }}
+              <i class="pi pi-arrow-left tiny" />
+              {{ toDisplayDate(row.check_out) }}
+            </span>
+            <span class="row-chip nights">
+              <i class="pi pi-moon" /> {{ row.nights }} {{ row.nights === 1 ? 'ليلة' : 'ليالٍ' }}
+            </span>
+            <span :class="['row-chip', 'permit', row.permit_exists ? 'ok' : 'pending']">
+              <i :class="row.permit_exists ? 'pi pi-shield' : 'pi pi-clock'" />
+              {{ row.permit_exists ? 'تصريح مؤكد' : 'تصريح قيد الانتظار' }}
+            </span>
+          </div>
+
+          <i class="pi pi-chevron-left row-chev" />
+        </button>
+      </div>
+    </section>
   </div>
 </template>
 
 <script setup>
-import { ref, computed } from 'vue'
-import { useOrdersStore } from '@/stores/orders'
-import OrderTimer from '@/components/admin/cs/OrderTimer.vue'
+import { ref, reactive, computed, onMounted } from 'vue'
+import { useRouter } from 'vue-router'
+import { useCsBookingsStore } from '@/stores/csBookings'
+import { useToastStore } from '@/stores/toast'
+import { toDisplayDate } from '@/utils/date'
+import AppDropdown from '@/components/ui/AppDropdown.vue'
+import DateRangePicker from '@/components/ui/DateRangePicker.vue'
 
-const ordersStore = useOrdersStore()
+const router = useRouter()
+const csBookings = useCsBookingsStore()
+const toast = useToastStore()
 
-const activeTab = ref('pending')
-
-const allOrders = computed(() => ordersStore.queue)
-const pendingCount = computed(() => allOrders.value.filter((o) => o.status === 'PENDING' || o.status === 'PROCESSING').length)
-const temporaryCount = computed(() => allOrders.value.filter((o) => o.status === 'TEMPORARY').length)
-const confirmedCount = computed(() => allOrders.value.filter((o) => o.status === 'CONFIRMED').length)
-
-const orders = computed(() => {
-  if (activeTab.value === 'pending') return allOrders.value.filter((o) => o.status === 'PENDING' || o.status === 'PROCESSING')
-  if (activeTab.value === 'temporary') return allOrders.value.filter((o) => o.status === 'TEMPORARY')
-  if (activeTab.value === 'confirmed') return allOrders.value.filter((o) => o.status === 'CONFIRMED')
-  return allOrders.value
+const loading = ref(true)
+const filteredRows = ref([])
+const filters = reactive({
+  company_id: '',
+  owner_id: '',
+  group_id: '',
+  check_in: '',
+  check_out: '',
 })
 
-function statusLabel(s) {
-  return { PENDING: 'في الانتظار', PROCESSING: 'قيد المعالجة', TEMPORARY: 'حجز مؤقت', CONFIRMED: 'مؤكد' }[s] || s
+const hasActiveFilter = computed(() => Object.values(filters).some((v) => v))
+const activeFilterCount = computed(() => Object.values(filters).filter((v) => !!v).length)
+
+const stats = computed(() => {
+  const rows = filteredRows.value
+  return {
+    total: rows.length,
+    confirmed: rows.filter((r) => r.permit_exists).length,
+    pending: rows.filter((r) => !r.permit_exists).length,
+    nights: rows.reduce((s, r) => s + Number(r.nights || 0), 0),
+  }
+})
+
+const companies = ref([])
+const owners = ref([])
+const groups = ref([])
+
+const companyOptions = computed(() => [
+  { value: '', label: 'كل الشركات' },
+  ...companies.value.map((c) => ({ value: c.id, label: c.name })),
+])
+const ownerOptions = computed(() => [
+  { value: '', label: 'كل الملاك' },
+  ...owners.value.map((o) => ({ value: o.id, label: o.name })),
+])
+const groupOptions = computed(() => [
+  { value: '', label: 'كل المجموعات' },
+  ...groups.value.map((g) => ({ value: g.id, label: g.name })),
+])
+
+async function loadLookups() {
+  const [c, o, g] = await Promise.all([
+    csBookings.listCompanies(),
+    csBookings.listOwners(),
+    csBookings.listGroups(),
+  ])
+  if (c.ok) companies.value = c.data
+  if (o.ok) owners.value = o.data
+  if (g.ok) groups.value = g.data
 }
 
-function fmtNum(n) { return Number(n || 0).toLocaleString('ar-EG') }
+async function reloadFiltered() {
+  loading.value = true
+  const r = await csBookings.listBookingsSlim(filters)
+  loading.value = false
+  if (r.ok) filteredRows.value = r.data
+  else toast.error(r.error)
+}
+
+function clearFilters() {
+  filters.company_id = ''
+  filters.owner_id = ''
+  filters.group_id = ''
+  filters.check_in = ''
+  filters.check_out = ''
+  reloadFiltered()
+}
+
+function openBooking(id) {
+  router.push({ name: 'admin-village-booking-details', params: { id } })
+}
+
+onMounted(async () => {
+  await Promise.all([loadLookups(), reloadFiltered()])
+})
 </script>
 
 <style scoped>
-.page-header { display: flex; align-items: flex-start; justify-content: space-between; margin-bottom: 20px; }
-.page-title { font-size: 22px; font-weight: 800; color: #0f172a; margin: 0 0 4px; }
+.orders-page { display: flex; flex-direction: column; gap: 16px; }
+
+/* ── Page header ── */
+.page-header { display: flex; align-items: center; gap: 14px; margin-bottom: 4px; }
+.page-icon {
+  width: 52px; height: 52px;
+  border-radius: 14px;
+  background: linear-gradient(135deg, rgba(249, 115, 22, 0.12), rgba(251, 191, 36, 0.12));
+  color: #ea580c;
+  display: inline-flex; align-items: center; justify-content: center;
+  flex-shrink: 0;
+}
+.page-icon i { font-size: 22px; }
+.page-header-text { display: flex; flex-direction: column; gap: 4px; min-width: 0; flex: 1; }
+.page-title { font-size: 22px; font-weight: 800; color: #0f172a; margin: 0; line-height: 1.2; }
 .page-desc { font-size: 13.5px; color: #94a3b8; margin: 0; }
+.page-header-action { flex-shrink: 0; }
+.btn-confirm {
+  display: inline-flex; align-items: center; gap: 8px;
+  padding: 10px 22px;
+  border-radius: 10px;
+  background: linear-gradient(135deg, #f97316, #ea580c);
+  border: 1px solid #ea580c;
+  color: #fff;
+  font-family: inherit;
+  font-size: 13.5px;
+  font-weight: 700;
+  cursor: pointer;
+  text-decoration: none;
+  box-shadow: 0 2px 10px rgba(249, 115, 22, 0.35);
+  transition: all 0.15s;
+}
+.btn-confirm:hover { transform: translateY(-1px); box-shadow: 0 6px 18px rgba(249, 115, 22, 0.45); }
 
-.queue-stats { display: flex; gap: 8px; }
-.qs { display: flex; align-items: center; gap: 6px; padding: 7px 14px; border-radius: 10px; font-size: 12.5px; font-weight: 600; }
-.qs.pending { background: rgba(234, 179, 8, 0.08); color: #eab308; }
-.qs.processing { background: rgba(14, 165, 233, 0.08); color: #0ea5e9; }
-.qs.confirmed { background: rgba(16, 185, 129, 0.08); color: #10b981; }
-.qs i { font-size: 13px; }
+/* ── Stats row ── */
+.stats-row {
+  display: grid;
+  grid-template-columns: repeat(4, 1fr);
+  gap: 12px;
+}
+.stat-card {
+  display: flex;
+  align-items: center;
+  gap: 14px;
+  padding: 14px 16px;
+  background: #fff;
+  border: 1px solid #f1f5f9;
+  border-radius: 14px;
+  box-shadow: 0 1px 3px rgba(15, 23, 42, 0.04);
+  transition: border-color 0.15s, box-shadow 0.15s;
+}
+.stat-card:hover { border-color: #e2e8f0; box-shadow: 0 2px 6px rgba(15, 23, 42, 0.06); }
+.stat-icon {
+  width: 44px; height: 44px;
+  border-radius: 12px;
+  display: inline-flex; align-items: center; justify-content: center;
+  flex-shrink: 0;
+}
+.stat-icon i { font-size: 17px; }
+.stat-icon.orange { background: linear-gradient(135deg, rgba(249, 115, 22, 0.14), rgba(251, 191, 36, 0.14)); color: #ea580c; }
+.stat-icon.green { background: linear-gradient(135deg, rgba(16, 185, 129, 0.14), rgba(52, 211, 153, 0.14)); color: #059669; }
+.stat-icon.amber { background: linear-gradient(135deg, rgba(234, 179, 8, 0.14), rgba(251, 191, 36, 0.14)); color: #b45309; }
+.stat-icon.blue { background: linear-gradient(135deg, rgba(14, 165, 233, 0.14), rgba(56, 189, 248, 0.14)); color: #0284c7; }
+.stat-body { display: flex; flex-direction: column; gap: 4px; min-width: 0; }
+.stat-label { font-size: 11.5px; color: #94a3b8; font-weight: 700; text-transform: uppercase; letter-spacing: 0.5px; }
+.stat-value { font-size: 20px; font-weight: 800; color: #0f172a; line-height: 1; }
 
-.order-tabs { display: flex; gap: 8px; margin-bottom: 16px; }
-.tab-btn { display: inline-flex; align-items: center; gap: 8px; padding: 9px 20px; border-radius: 10px; border: 1px solid #e2e8f0; background: #fff; color: #64748b; font-size: 13px; font-weight: 600; font-family: inherit; cursor: pointer; transition: all 0.15s; }
-.tab-btn:hover { border-color: #f97316; color: #f97316; }
-.tab-btn.active { background: linear-gradient(135deg, #f97316, #ea580c); color: #fff; border-color: transparent; }
-.tab-badge { display: inline-flex; align-items: center; justify-content: center; min-width: 22px; height: 22px; padding: 0 6px; border-radius: 6px; font-size: 11.5px; font-weight: 700; background: rgba(0, 0, 0, 0.08); }
-.tab-btn.active .tab-badge { background: rgba(255, 255, 255, 0.25); color: #fff; }
+/* ── Section card (matches BookingFormView convention) ── */
+.bf-section {
+  background: #fff;
+  border: 1px solid #f1f5f9;
+  border-radius: 14px;
+  padding: 18px 20px;
+  box-shadow: 0 2px 8px rgba(15, 23, 42, 0.04);
+}
+.bf-section-head {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  margin-bottom: 14px;
+  gap: 10px;
+}
+.bf-section-title {
+  display: inline-flex; align-items: center; gap: 8px;
+  font-size: 14px; font-weight: 800; color: #0f172a; margin: 0;
+}
+.bf-section-title i { color: #f97316; }
+.bf-counter {
+  margin-inline-start: 6px;
+  padding: 3px 10px;
+  border-radius: 999px;
+  background: #f1f5f9;
+  color: #475569;
+  font-size: 11px;
+  font-weight: 700;
+}
 
-.table-card { background: #fff; border: 1px solid #f1f5f9; border-radius: 14px; overflow: hidden; }
-.data-table { width: 100%; border-collapse: collapse; }
-.data-table th { padding: 14px 18px; text-align: right; font-size: 12px; font-weight: 600; color: #64748b; text-transform: uppercase; letter-spacing: 0.5px; background: #fafbfc; border-bottom: 1px solid #f1f5f9; }
-.data-table td { padding: 14px 18px; font-size: 13.5px; color: #475569; border-bottom: 1px solid #f8fafc; }
-.table-row { transition: background 0.15s; }
-.table-row:hover { background: #fafbfc; }
-.table-row:last-child td { border-bottom: none; }
+.clear-btn {
+  display: inline-flex; align-items: center; gap: 6px;
+  padding: 8px 14px;
+  border-radius: 9px;
+  background: #fff;
+  border: 1px solid #fecaca;
+  color: #ef4444;
+  font-size: 12.5px;
+  font-weight: 700;
+  cursor: pointer;
+  font-family: inherit;
+}
+.clear-btn:hover { background: #fef2f2; }
 
-.order-id { font-weight: 700; color: #1e293b; font-size: 13px; direction: ltr; display: inline-block; }
-.chalet-cell { display: flex; flex-direction: column; gap: 2px; }
-.ch-name { font-weight: 600; color: #1e293b; }
-.ch-num { font-size: 12px; color: #94a3b8; }
-.cell-val { font-weight: 600; }
-.cell-val small { font-size: 11px; color: #94a3b8; }
+/* ── Filter grid ── */
+.filter-grid {
+  display: grid;
+  grid-template-columns: 1fr 1fr 1fr 1.4fr;
+  gap: 12px;
+  align-items: end;
+}
+.filter-field { display: flex; flex-direction: column; gap: 6px; min-width: 0; }
+.filter-field label { font-size: 11.5px; font-weight: 700; color: #64748b; }
+.filter-field-range { min-width: 220px; }
 
-.status-badge { padding: 4px 12px; border-radius: 8px; font-size: 12px; font-weight: 600; }
-.status-badge.pending { background: rgba(234, 179, 8, 0.08); color: #eab308; }
-.status-badge.processing { background: rgba(14, 165, 233, 0.08); color: #0ea5e9; }
-.status-badge.temporary { background: rgba(249, 115, 22, 0.08); color: #f97316; }
-.status-badge.confirmed { background: rgba(16, 185, 129, 0.08); color: #10b981; }
+/* ── Row list (replaces table) ── */
+.row-list { display: flex; flex-direction: column; gap: 8px; }
+.row-card {
+  display: flex;
+  align-items: center;
+  gap: 14px;
+  padding: 14px 16px;
+  background: #fff;
+  border: 1px solid #f1f5f9;
+  border-radius: 12px;
+  cursor: pointer;
+  font-family: inherit;
+  text-align: right;
+  width: 100%;
+  transition: all 0.15s;
+}
+.row-card:hover {
+  border-color: #fed7aa;
+  box-shadow: 0 4px 14px rgba(249, 115, 22, 0.12);
+  transform: translateY(-1px);
+}
 
-.start-btn { display: inline-flex; align-items: center; gap: 6px; padding: 7px 16px; background: linear-gradient(135deg, #f97316, #ea580c); color: #fff; border-radius: 8px; font-size: 12.5px; font-weight: 600; text-decoration: none; transition: all 0.15s; }
-.start-btn:hover { transform: translateY(-1px); box-shadow: 0 3px 10px rgba(249, 115, 22, 0.25); }
-.start-btn i { font-size: 11px; }
+.row-leading { display: flex; align-items: center; gap: 12px; min-width: 0; flex-shrink: 0; }
+.row-avatar {
+  width: 40px; height: 40px;
+  border-radius: 11px;
+  background: linear-gradient(135deg, rgba(249, 115, 22, 0.10), rgba(251, 191, 36, 0.10));
+  color: #ea580c;
+  display: inline-flex; align-items: center; justify-content: center;
+  flex-shrink: 0;
+}
+.row-avatar i { font-size: 16px; }
+.row-id { display: flex; flex-direction: column; gap: 2px; min-width: 0; }
+.row-code { font-size: 14px; font-weight: 800; color: #0f172a; direction: ltr; }
+.row-chalet { font-size: 12.5px; color: #64748b; font-weight: 600; }
+.row-chalet-code { color: #94a3b8; direction: ltr; }
 
-.view-btn { display: inline-flex; align-items: center; gap: 6px; padding: 7px 16px; background: rgba(16, 185, 129, 0.08); color: #10b981; border-radius: 8px; font-size: 12.5px; font-weight: 600; text-decoration: none; transition: all 0.15s; }
-.view-btn:hover { background: rgba(16, 185, 129, 0.15); }
+.row-meta {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: 6px;
+  flex: 1;
+  justify-content: flex-end;
+}
 
-.empty-state { text-align: center; padding: 60px 20px; }
-.empty-icon { width: 64px; height: 64px; border-radius: 16px; background: rgba(148, 163, 184, 0.08); display: flex; align-items: center; justify-content: center; margin: 0 auto 16px; }
-.empty-icon i { font-size: 28px; color: #94a3b8; }
-.empty-state h3 { font-size: 16px; font-weight: 700; color: #1e293b; margin: 0 0 6px; }
-.empty-state p { font-size: 13.5px; color: #94a3b8; margin: 0; }
+.row-chip {
+  display: inline-flex;
+  align-items: center;
+  gap: 5px;
+  padding: 5px 11px;
+  border-radius: 999px;
+  font-size: 11.5px;
+  font-weight: 700;
+  white-space: nowrap;
+}
+.row-chip i { font-size: 10.5px; }
+.row-chip i.tiny { font-size: 9px; opacity: 0.6; }
 
-@media (max-width: 768px) {
-  .page-header { flex-direction: column; gap: 12px; }
-  .queue-stats { flex-wrap: wrap; }
-  .order-tabs { flex-wrap: wrap; }
-  .table-card { overflow-x: auto; }
-  .data-table { min-width: 650px; }
-  .data-table th, .data-table td { padding: 10px 12px; font-size: 12.5px; }
+.row-chip.dates {
+  background: #f8fafc;
+  border: 1px solid #f1f5f9;
+  color: #475569;
+}
+
+.row-chip.nights {
+  background: linear-gradient(135deg, #f97316, #ea580c);
+  color: #fff;
+  border: 1px solid #ea580c;
+  box-shadow: 0 2px 8px rgba(249, 115, 22, 0.25);
+}
+.row-chip.nights i { color: #fff; }
+
+.row-chip.permit.ok {
+  background: rgba(16, 185, 129, 0.12);
+  color: #047857;
+  border: 1px solid rgba(16, 185, 129, 0.22);
+}
+.row-chip.permit.pending {
+  background: rgba(234, 179, 8, 0.12);
+  color: #b45309;
+  border: 1px solid rgba(234, 179, 8, 0.22);
+}
+
+.row-chev { color: #cbd5e1; font-size: 14px; flex-shrink: 0; transition: transform 0.15s; }
+.row-card:hover .row-chev { color: #f97316; transform: translateX(-3px); }
+
+/* ── States ── */
+.loading-inline {
+  padding: 40px 20px;
+  text-align: center;
+  color: #64748b;
+  font-size: 13.5px;
+}
+.loading-inline i { font-size: 16px; margin-left: 8px; color: #f97316; }
+
+.empty-state {
+  padding: 50px 20px;
+  text-align: center;
+  color: #64748b;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 8px;
+}
+.empty-icon {
+  width: 60px; height: 60px;
+  border-radius: 16px;
+  background: #f1f5f9;
+  color: #cbd5e1;
+  display: inline-flex; align-items: center; justify-content: center;
+  margin-bottom: 6px;
+}
+.empty-icon i { font-size: 24px; }
+.empty-state h3 { font-size: 16px; font-weight: 800; color: #475569; margin: 0; }
+.empty-state p { font-size: 13px; margin: 0; }
+.empty-state .btn-confirm { margin-top: 8px; }
+
+@media (max-width: 900px) {
+  .stats-row { grid-template-columns: 1fr 1fr; }
+  .filter-grid { grid-template-columns: 1fr 1fr; }
+  .row-card { flex-wrap: wrap; }
+  .row-meta { justify-content: flex-start; }
+}
+
+@media (max-width: 540px) {
+  .stats-row { grid-template-columns: 1fr 1fr; }
+  .row-meta .row-chip { font-size: 11px; }
 }
 </style>

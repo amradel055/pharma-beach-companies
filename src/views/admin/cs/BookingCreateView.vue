@@ -1,7 +1,14 @@
 <template>
   <div class="booking-page">
+    <nav class="page-crumbs" aria-label="مسار التنقل">
+      <RouterLink to="/admin/village-bookings" class="crumb">الحجوزات</RouterLink>
+      <i class="pi pi-angle-left crumb-sep" />
+      <span class="crumb crumb-current" aria-current="page">حجز جديد</span>
+    </nav>
+
     <div class="page-header">
-      <div>
+      <div class="page-icon"><i class="pi pi-calendar-plus" /></div>
+      <div class="page-header-text">
         <h1 class="page-title">حجز جديد</h1>
         <p class="page-desc">اختر الشاليه ثم نطاق التاريخ على التقويم لبدء حجز قرية</p>
       </div>
@@ -497,7 +504,7 @@ function continueBooking() {
   const info = selectionInfo.value
   if (!info) return
   router.push({
-    name: 'admin-order-create-form',
+    name: 'admin-village-booking-form',
     query: {
       chalet_id: info.chaletId,
       check_in: toApiDate(info.startDate),
@@ -523,9 +530,29 @@ onMounted(async () => {
 </script>
 
 <style scoped>
-.booking-page { display: flex; flex-direction: column; }
-.page-header { margin-bottom: 20px; }
-.page-title { font-size: 22px; font-weight: 800; color: #0f172a; margin: 0 0 4px; }
+.booking-page { display: flex; flex-direction: column; gap: 16px; }
+
+/* Breadcrumb */
+.page-crumbs { display: flex; align-items: center; gap: 8px; margin-bottom: 0; font-size: 13px; font-weight: 600; }
+.crumb { color: #94a3b8; text-decoration: none; transition: color 0.15s; }
+.crumb:hover { color: #f97316; }
+.crumb-current { color: #0f172a; font-weight: 700; cursor: default; }
+.crumb-current:hover { color: #0f172a; }
+.crumb-sep { font-size: 12px; color: #cbd5e1; }
+
+/* Page header (icon + title + desc) */
+.page-header { display: flex; align-items: center; gap: 14px; margin-bottom: 4px; }
+.page-icon {
+  width: 52px; height: 52px;
+  border-radius: 14px;
+  background: linear-gradient(135deg, rgba(249, 115, 22, 0.12), rgba(251, 191, 36, 0.12));
+  color: #ea580c;
+  display: inline-flex; align-items: center; justify-content: center;
+  flex-shrink: 0;
+}
+.page-icon i { font-size: 22px; }
+.page-header-text { display: flex; flex-direction: column; gap: 4px; min-width: 0; flex: 1; }
+.page-title { font-size: 22px; font-weight: 800; color: #0f172a; margin: 0; line-height: 1.2; }
 .page-desc { font-size: 13.5px; color: #94a3b8; margin: 0; }
 
 /* Calendar card (Gantt) — visual identical to OwnerDashboardView */

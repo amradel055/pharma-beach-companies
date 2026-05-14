@@ -20,6 +20,16 @@ export function toDisplayDate(value) {
   return `${day}/${m}/${y}`
 }
 
+// DD/MM/YYYY HH:MM — for timestamps like booking.created_at / payment.paid_at.
+export function toDisplayDateTime(value) {
+  if (!value) return '—'
+  const d = value instanceof Date ? value : new Date(value)
+  if (Number.isNaN(d.getTime())) return '—'
+  const hh = String(d.getHours()).padStart(2, '0')
+  const mm = String(d.getMinutes()).padStart(2, '0')
+  return `${toDisplayDate(d)} ${hh}:${mm}`
+}
+
 // First and last calendar day of `month` (0-indexed) in `year`, as YYYY-MM-DD.
 // Used for the chalet-bookings fan-out fetch when navigating months.
 export function monthRange(year, month) {

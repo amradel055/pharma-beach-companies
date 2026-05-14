@@ -127,8 +127,7 @@ const allSections = [
     label: 'العمليات',
     permission: 'manage_orders',
     items: [
-      { label: 'الطلبات', to: '/admin/orders', icon: 'pi pi-clipboard' },
-      { label: 'حجز جديد', to: '/admin/orders/new', icon: 'pi pi-plus-circle' },
+      { label: 'الحجوزات', to: '/admin/village-bookings', icon: 'pi pi-clipboard' },
       { label: 'التصاريح', to: '/admin/permits', icon: 'pi pi-id-card' },
     ],
   },

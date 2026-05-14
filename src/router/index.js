@@ -11,8 +11,8 @@ const ROLE_HOME = {
   [ROLES.ADMIN_COMPANY]: 'admin-owner',
   [ROLES.ADMIN_VILLAGE]: 'admin-village',
   [ROLES.CUSTOMER_SERVICE_COMPANY]: 'admin-users',
-  [ROLES.HEAD_CUSTOMER_SERVICE_VILLAGE]: 'admin-orders',
-  [ROLES.CUSTOMER_SERVICE_VILLAGE]: 'admin-orders',
+  [ROLES.HEAD_CUSTOMER_SERVICE_VILLAGE]: 'admin-village-bookings',
+  [ROLES.CUSTOMER_SERVICE_VILLAGE]: 'admin-village-bookings',
   [ROLES.BROKER_COMPANY]: 'admin-broker',
   [ROLES.BROKER_VILLAGE]: 'admin-broker',
   [ROLES.FINANCIAL_MEMBER]: 'admin-village',
@@ -152,19 +152,19 @@ const routes = [
 
       // CS operations
       {
-        path: 'orders',
-        name: 'admin-orders',
+        path: 'village-bookings',
+        name: 'admin-village-bookings',
         component: () => import('@/views/admin/cs/OrdersQueueView.vue'),
         meta: {
-          title: 'الطلبات',
+          title: 'الحجوزات',
           roles: [ROLES.SUPER_ADMIN, ROLES.ADMIN_COMPANY, ROLES.ADMIN_VILLAGE, ROLES.HEAD_CUSTOMER_SERVICE_VILLAGE, ROLES.CUSTOMER_SERVICE_VILLAGE, ROLES.CUSTOMER_SERVICE_COMPANY],
         },
       },
       // New booking — calendar step (pick chalet + date range)
       // Placed BEFORE :id so /new doesn't match the param route.
       {
-        path: 'orders/new',
-        name: 'admin-order-create',
+        path: 'village-bookings/new',
+        name: 'admin-village-booking-create',
         component: () => import('@/views/admin/cs/BookingCreateView.vue'),
         meta: {
           title: 'حجز جديد',
@@ -175,20 +175,42 @@ const routes = [
       // calendar's "متابعة الحجز" button with chalet_id, check_in, check_out
       // in the query string.
       {
-        path: 'orders/new/form',
-        name: 'admin-order-create-form',
+        path: 'village-bookings/new/form',
+        name: 'admin-village-booking-form',
         component: () => import('@/views/admin/cs/BookingFormView.vue'),
         meta: {
           title: 'إتمام الحجز',
           roles: [ROLES.SUPER_ADMIN, ROLES.ADMIN_COMPANY, ROLES.ADMIN_VILLAGE, ROLES.HEAD_CUSTOMER_SERVICE_VILLAGE, ROLES.CUSTOMER_SERVICE_VILLAGE, ROLES.CUSTOMER_SERVICE_COMPANY],
         },
       },
+      // Chalet detail (chalet info + its bookings, reachable from list)
       {
-        path: 'orders/:id',
-        name: 'admin-order-details',
+        path: 'village-bookings/chalet/:id',
+        name: 'admin-village-booking-chalet',
+        component: () => import('@/views/admin/cs/ChaletDetailView.vue'),
+        meta: {
+          title: 'تفاصيل الشاليه',
+          roles: [ROLES.SUPER_ADMIN, ROLES.ADMIN_COMPANY, ROLES.ADMIN_VILLAGE, ROLES.HEAD_CUSTOMER_SERVICE_VILLAGE, ROLES.CUSTOMER_SERVICE_VILLAGE, ROLES.CUSTOMER_SERVICE_COMPANY],
+        },
+      },
+      // Permit print view — strict role gate per spec (CS_VILLAGE,
+      // HEAD_CS_VILLAGE, FINANCIAL_MEMBER only). Placed BEFORE :id so the
+      // /permit suffix isn't swallowed by the param route.
+      {
+        path: 'village-bookings/:id/permit',
+        name: 'admin-village-booking-permit',
+        component: () => import('@/views/admin/cs/PermitView.vue'),
+        meta: {
+          title: 'تصريح الأمن',
+          roles: [ROLES.CUSTOMER_SERVICE_VILLAGE, ROLES.HEAD_CUSTOMER_SERVICE_VILLAGE, ROLES.FINANCIAL_MEMBER],
+        },
+      },
+      {
+        path: 'village-bookings/:id',
+        name: 'admin-village-booking-details',
         component: () => import('@/views/admin/cs/OrderDetailsView.vue'),
         meta: {
-          title: 'تفاصيل الطلب',
+          title: 'تفاصيل الحجز',
           roles: [ROLES.SUPER_ADMIN, ROLES.ADMIN_COMPANY, ROLES.ADMIN_VILLAGE, ROLES.HEAD_CUSTOMER_SERVICE_VILLAGE, ROLES.CUSTOMER_SERVICE_VILLAGE, ROLES.CUSTOMER_SERVICE_COMPANY],
         },
       },
