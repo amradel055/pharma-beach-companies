@@ -154,16 +154,18 @@ export const useAuthStore = defineStore('auth', () => {
   // Maps API uppercase role names ("ADMIN") to the lowercase slugs the frontend
   // uses ("site_admin"). Extend as new role names come back from the backend.
   const API_ROLE_TO_SLUG = {
-    ADMIN: 'site_admin',
-    SITE_ADMIN: 'site_admin',
-    SITE_CS: 'site_cs',
-    VILLAGE_ADMIN: 'village_admin',
-    VILLAGE_CS: 'village_cs',
-    OWNER: 'owner',
-    BROKER: 'broker',
-    AGENT: 'agent',
-    OPERATOR: 'operator',
+    SUPER_ADMIN: 'super_admin',
+    ADMIN_COMPANY: 'admin_company',
+    ADMIN_VILLAGE: 'admin_village',
+    CUSTOMER_SERVICE_COMPANY: 'customer_service_company',
+    HEAD_CUSTOMER_SERVICE_VILLAGE: 'head_customer_service_village',
+    CUSTOMER_SERVICE_VILLAGE: 'customer_service_village',
+    BROKER_COMPANY: 'broker_company',
+    BROKER_VILLAGE: 'broker_village',
+    FINANCIAL_MEMBER: 'financial_member',
+    OPERATION: 'operation',
     SECURITY: 'security',
+    CLIENT: 'client',
   }
 
   function _mapRole(apiRole) {

@@ -323,7 +323,9 @@ function statusLabel(s) {
 
 // Owner's chalets
 const ownerChalets = computed(() => {
-  if (hasRole(ROLES.SITE_ADMIN)) return chaletsStore.chalets
+  if (hasRole(ROLES.SUPER_ADMIN) || hasRole(ROLES.ADMIN_COMPANY) || hasRole(ROLES.ADMIN_VILLAGE)) {
+    return chaletsStore.chalets
+  }
   return chaletsStore.getByOwner(auth.user?.id)
 })
 

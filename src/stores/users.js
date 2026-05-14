@@ -51,12 +51,12 @@ export const useUsersStore = defineStore('users', () => {
     return users.value.filter((u) => u.role === role && u.active !== false)
   }
 
-  function getBrokers() {
-    return getByRole(ROLES.BROKER)
+  function isBrokerRole(role) {
+    return role === ROLES.BROKER_COMPANY || role === ROLES.BROKER_VILLAGE
   }
 
-  function getBrokerAgents(brokerId) {
-    return users.value.filter((u) => u.role === ROLES.AGENT && u.brokerId === brokerId)
+  function getBrokers() {
+    return users.value.filter((u) => isBrokerRole(u.role) && u.active !== false)
   }
 
   function create(data) {
@@ -64,8 +64,7 @@ export const useUsersStore = defineStore('users', () => {
     if (!data.phone?.trim()) return { ok: false, error: 'رقم التليفون مطلوب' }
     if (!data.password || data.password.length < 6) return { ok: false, error: 'كلمة المرور مطلوبة (6 أحرف على الأقل)' }
     if (!data.role) return { ok: false, error: 'الدور مطلوب' }
-    if (data.role === ROLES.BROKER && !data.commissionPercent) return { ok: false, error: 'نسبة البروكر مطلوبة' }
-    if (data.role === ROLES.AGENT && !data.brokerId) return { ok: false, error: 'يجب اختيار البروكر' }
+    if (isBrokerRole(data.role) && !data.commissionPercent) return { ok: false, error: 'نسبة البروكر مطلوبة' }
 
     const existing = users.value.find((u) => u.phone === data.phone.trim())
     if (existing) {
@@ -85,16 +84,10 @@ export const useUsersStore = defineStore('users', () => {
     }
 
     // Role-specific fields
-    if (data.role === ROLES.BROKER) {
+    if (isBrokerRole(data.role)) {
       newUser.commissionPercent = Number(data.commissionPercent) || 0
     }
-    if (data.role === ROLES.AGENT) {
-      newUser.brokerId = data.brokerId || null
-    }
-    if (data.role === ROLES.OWNER) {
-      newUser.chaletIds = data.chaletIds || []
-    }
-    if (data.role === ROLES.OPERATOR) {
+    if (data.role === ROLES.OPERATION) {
       newUser.commissionPercent = Number(data.commissionPercent) || 0
       newUser.assignedChaletIds = data.assignedChaletIds || []
       newUser.villageId = data.villageId || null
@@ -157,7 +150,7 @@ export const useUsersStore = defineStore('users', () => {
 
   function getOperators(villageId = null) {
     return users.value.filter((u) => {
-      if (u.role !== ROLES.OPERATOR) return false
+      if (u.role !== ROLES.OPERATION) return false
       if (villageId && u.villageId !== villageId) return false
       return true
     })
@@ -186,7 +179,6 @@ export const useUsersStore = defineStore('users', () => {
     getById,
     getByRole,
     getBrokers,
-    getBrokerAgents,
     getOperators,
     getSecurityMembers,
     create,

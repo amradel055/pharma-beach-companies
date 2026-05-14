@@ -250,7 +250,7 @@ const categoryOptions = [
 ]
 
 const ownerOptions = computed(() =>
-  usersStore.getByRole(ROLES.OWNER).map((o) => ({ value: o.id, label: `${o.name} (${o.phone})` }))
+  usersStore.getByRole(ROLES.ADMIN_COMPANY).map((o) => ({ value: o.id, label: `${o.name} (${o.phone})` }))
 )
 
 const filtered = computed(() => chaletsStore.getAll({ search: search.value, status: filterStatus.value }))
@@ -318,7 +318,7 @@ function resetForm() {
 function handleSubmit() {
   if (!isValid.value) return
   loading.value = true; errorMsg.value = ''
-  const isAdmin = hasRole(ROLES.SITE_ADMIN)
+  const isAdmin = hasRole(ROLES.SUPER_ADMIN) || hasRole(ROLES.ADMIN_COMPANY)
 
   setTimeout(() => {
     let result

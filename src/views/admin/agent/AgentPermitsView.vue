@@ -85,13 +85,20 @@ const auth = useAuthStore()
 const bookingsStore = useBookingsStore()
 const { hasRole } = usePermissions()
 
+const STAFF_ROLES = [
+  ROLES.SUPER_ADMIN,
+  ROLES.ADMIN_COMPANY,
+  ROLES.ADMIN_VILLAGE,
+  ROLES.HEAD_CUSTOMER_SERVICE_VILLAGE,
+  ROLES.CUSTOMER_SERVICE_VILLAGE,
+]
+
 const permits = computed(() => {
-  if (hasRole(ROLES.SITE_ADMIN) || hasRole(ROLES.VILLAGE_ADMIN) || hasRole(ROLES.VILLAGE_CS)) {
-    // Admin/CS see all confirmed bookings as permits
+  if (STAFF_ROLES.some((r) => hasRole(r))) {
     return bookingsStore.bookings.filter((b) => b.status === 'CONFIRMED' || b.status === 'TEMPORARY' || b.status === 'PENDING')
   }
-  // Agent sees only their bookings
-  return bookingsStore.bookings.filter((b) => b.agentId === auth.user?.id)
+  // Brokers see only their own bookings
+  return bookingsStore.bookings.filter((b) => b.agentId === auth.user?.id || b.brokerId === auth.user?.id)
 })
 
 const selectedPermit = ref(null)

@@ -1,0 +1,799 @@
+<template>
+  <div class="booking-page">
+    <div class="page-header">
+      <div>
+        <h1 class="page-title">حجز جديد</h1>
+        <p class="page-desc">اختر الشاليه ثم نطاق التاريخ على التقويم لبدء حجز قرية</p>
+      </div>
+    </div>
+
+    <!-- Calendar card -->
+    <div class="bk-card">
+      <div class="bk-card-header">
+        <div class="bk-filters">
+          <div class="bk-filter">
+            <label class="bk-filter-label">الشركة</label>
+            <AppDropdown
+              v-model="filters.company_id"
+              :options="companyOptions"
+              placeholder="كل الشركات"
+              empty-text="لا توجد شركات"
+              @change="reloadChalets"
+            />
+          </div>
+          <div class="bk-filter">
+            <label class="bk-filter-label">المالك</label>
+            <AppDropdown
+              v-model="filters.owner_id"
+              :options="ownerOptions"
+              placeholder="كل الملاك"
+              empty-text="لا يوجد ملاك"
+              @change="reloadChalets"
+            />
+          </div>
+          <div class="bk-filter">
+            <label class="bk-filter-label">المجموعة</label>
+            <AppDropdown
+              v-model="filters.group_id"
+              :options="groupOptions"
+              placeholder="كل المجموعات"
+              empty-text="لا توجد مجموعات"
+              @change="reloadChalets"
+            />
+          </div>
+        </div>
+      </div>
+
+      <div class="bk-card-body">
+        <div class="bk-nav">
+          <button class="bk-nav-btn" @click="calMonth--" aria-label="السابق"><i class="pi pi-angle-right" /></button>
+          <h3 class="bk-nav-title">{{ calMonthLabel }}</h3>
+          <button class="bk-nav-btn" @click="calMonth++" aria-label="التالي"><i class="pi pi-angle-left" /></button>
+        </div>
+
+        <div v-if="chaletsLoading" class="bk-loading"><i class="pi pi-spin pi-spinner" /> جاري تحميل الشاليهات...</div>
+        <div v-else-if="!calendarChalets.length" class="bk-empty">
+          <i class="pi pi-inbox" />
+          <span>لا توجد شاليهات متاحة بهذه المعايير</span>
+        </div>
+
+        <div v-else class="bk-scroll">
+          <div class="bk-grid" :style="{ '--days': monthDays.length }">
+            <!-- Header row -->
+            <div class="bk-cell bk-h bk-chalet-header">اسم وكود الشاليه</div>
+            <div
+              v-for="d in monthDays"
+              :key="`h-${d.num}`"
+              class="bk-cell bk-h bk-day-header"
+              :class="{ today: d.isToday }"
+            >
+              <span class="bk-weekday">{{ d.weekdayLabel }}</span>
+              <span class="bk-daynum">{{ d.num }}</span>
+            </div>
+
+            <!-- Chalet rows -->
+            <template v-for="(ch, ci) in calendarChalets" :key="ch.id">
+              <div class="bk-cell bk-chalet-name" :style="{ gridRow: ci + 2 }">
+                <strong>{{ ch.name }}</strong>
+                <span v-if="ch.chalet_code || ch.chalet_number" class="bk-chalet-code">
+                  {{ ch.chalet_code || ch.chalet_number }}
+                </span>
+              </div>
+              <div
+                v-for="d in monthDays"
+                :key="`c${ch.id}-${d.num}`"
+                class="bk-cell bk-day-cell"
+                :class="{
+                  today: d.isToday,
+                  'is-past': isPastDay(d.num),
+                  'is-selectable': isSelectable(ch.id, d.num),
+                  'is-selected': isInSelection(ch.id, d.num),
+                  'is-sel-start': isSelectionEdge(ch.id, d.num, 'start'),
+                  'is-sel-end': isSelectionEdge(ch.id, d.num, 'end'),
+                  'is-preview': isInPreview(ch.id, d.num),
+                  'is-error': isInError(ch.id, d.num),
+                }"
+                :style="{ gridRow: ci + 2, gridColumn: d.num + 1 }"
+                @click="clickDay(ch.id, d.num)"
+                @mouseenter="onHoverDay(ch.id, d.num)"
+                @mouseleave="onLeaveDay"
+              >
+                <span v-if="showDayNumber(ch.id, d.num)" class="bk-day-num-inline">{{ d.num }}</span>
+              </div>
+            </template>
+
+            <!-- Booking bars overlaid on the grid -->
+            <button
+              v-for="bar in bookingBars"
+              :key="bar.key"
+              :class="['bk-bar', bar.colorClass, bar.statusClass]"
+              :style="{ gridRow: bar.row, gridColumn: `${bar.startCol} / ${bar.endCol}` }"
+              :title="`${bar.guestName} — ${bar.code}`"
+            >
+              <span class="bk-bar-guest">{{ bar.guestName }}</span>
+              <span class="bk-bar-code">{{ bar.code }}</span>
+            </button>
+          </div>
+        </div>
+
+        <p v-if="calendarChalets.length && chaletTotal > calendarChalets.length" class="bk-truncate-note">
+          عرض أول {{ calendarChalets.length }} شاليه من {{ chaletTotal }} — استخدم عوامل التصفية لتضييق النتائج.
+        </p>
+      </div>
+
+    </div>
+
+    <!-- Floating selection bar — appears once a date range is picked.
+         "متابعة" navigates to the form page; the calendar stays interactive
+         so the user can re-pick a range before clicking continue. -->
+    <Teleport to="body">
+      <Transition name="sel-bar">
+        <div v-if="selectionInfo" class="sel-bar">
+          <div class="sel-info">
+            <div class="sel-icon"><i class="pi pi-calendar-plus" /></div>
+            <div class="sel-text">
+              <strong class="sel-chalet">{{ selectedChaletName || 'تم اختيار الشاليه' }}</strong>
+              <span class="sel-meta">
+                {{ toDisplayDate(selectionInfo.startDate) }}
+                <i class="pi pi-arrow-left" />
+                {{ toDisplayDate(selectionInfo.endDate) }}
+                <span class="sel-dot">·</span>
+                {{ selectionInfo.nights }} {{ selectionInfo.nights === 1 ? 'ليلة' : 'ليالٍ' }}
+              </span>
+            </div>
+          </div>
+          <div class="sel-actions">
+            <button class="sel-cancel" @click="clearSelection">إلغاء</button>
+            <button class="sel-continue" @click="continueBooking">
+              <i class="pi pi-arrow-left" /> متابعة الحجز
+            </button>
+          </div>
+        </div>
+      </Transition>
+    </Teleport>
+  </div>
+</template>
+
+<script setup>
+import { ref, reactive, computed, watch, onMounted } from 'vue'
+import { useRouter } from 'vue-router'
+import { useCsBookingsStore } from '@/stores/csBookings'
+import { useToastStore } from '@/stores/toast'
+import { toApiDate, toDisplayDate, monthRange } from '@/utils/date'
+import AppDropdown from '@/components/ui/AppDropdown.vue'
+
+const router = useRouter()
+const csBookings = useCsBookingsStore()
+const toast = useToastStore()
+
+// ──────────────────────────────────────────────────────────────────────────
+// Filters (Company / Owner / Group) — drive the chalet list
+// ──────────────────────────────────────────────────────────────────────────
+const companies = ref([])
+const owners = ref([])
+const groups = ref([])
+
+const filters = reactive({
+  company_id: '',
+  owner_id: '',
+  group_id: '',
+})
+
+const companyOptions = computed(() => [
+  { value: '', label: 'كل الشركات' },
+  ...companies.value.map((c) => ({ value: c.id, label: c.name })),
+])
+const ownerOptions = computed(() => [
+  { value: '', label: 'كل الملاك' },
+  ...owners.value.map((o) => ({ value: o.id, label: o.name })),
+])
+const groupOptions = computed(() => [
+  { value: '', label: 'كل المجموعات' },
+  ...groups.value.map((g) => ({ value: g.id, label: g.name })),
+])
+
+// ──────────────────────────────────────────────────────────────────────────
+// Calendar — month state
+// ──────────────────────────────────────────────────────────────────────────
+const SHORT_WEEKDAYS = ['الأحد', 'الإثنين', 'الثلاثاء', 'الأربعاء', 'الخميس', 'الجمعة', 'السبت']
+const BAR_COLORS = ['bar-c0', 'bar-c1', 'bar-c2', 'bar-c3', 'bar-c4']
+
+const calMonth = ref(new Date().getMonth())
+const calYear = ref(new Date().getFullYear())
+
+function _resolveMonthYear() {
+  const realMonth = ((calMonth.value % 12) + 12) % 12
+  const yearOffset = Math.floor(calMonth.value / 12)
+  return { month: realMonth, year: calYear.value + yearOffset }
+}
+
+const calMonthLabel = computed(() => {
+  const { month, year } = _resolveMonthYear()
+  return new Date(year, month, 1).toLocaleDateString('ar-EG', { month: 'long', year: 'numeric' })
+})
+
+const currentMonthApiRange = computed(() => {
+  const { month, year } = _resolveMonthYear()
+  return monthRange(year, month)
+})
+
+const monthDays = computed(() => {
+  const { month, year } = _resolveMonthYear()
+  const lastDate = new Date(year, month + 1, 0).getDate()
+  const today = new Date(); today.setHours(0, 0, 0, 0)
+
+  const days = []
+  for (let d = 1; d <= lastDate; d++) {
+    const date = new Date(year, month, d)
+    date.setHours(0, 0, 0, 0)
+    days.push({
+      num: d,
+      date,
+      weekdayLabel: SHORT_WEEKDAYS[date.getDay()],
+      isToday: date.getTime() === today.getTime(),
+    })
+  }
+  return days
+})
+
+// ──────────────────────────────────────────────────────────────────────────
+// Chalets (rows) + their bookings (bars) — both loaded from API
+// ──────────────────────────────────────────────────────────────────────────
+const chalets = ref([])
+const chaletTotal = ref(0)
+// Start in loading state so the spinner shows on first paint — otherwise the
+// empty-state message flashes for one frame before the mount fetch kicks in.
+const chaletsLoading = ref(true)
+// keyed by chalet.id → array of bookings from /v1/chalets/{id}/bookings
+const chaletBookings = ref({})
+
+const calendarChalets = computed(() => chalets.value)
+
+// Single API call that returns chalets + their bookings together. Replaces
+// the previous listAvailableChalets + per-chalet getChaletBookings fan-out.
+async function loadChalets() {
+  chaletsLoading.value = true
+  const r = await csBookings.listAvailableChaletsDetail({
+    page: 0,
+    limit: 50,
+    company_id: filters.company_id,
+    owner_id: filters.owner_id,
+    group_id: filters.group_id,
+  })
+  chaletsLoading.value = false
+  if (r.ok) {
+    const content = r.data?.content || []
+    chalets.value = content
+    chaletTotal.value = r.data?.total || content.length
+    // Pull each chalet's bookings out of the same response — keyed by id.
+    const next = {}
+    for (const c of content) next[c.id] = c.bookings || []
+    chaletBookings.value = next
+  } else {
+    toast.error(r.error)
+    chalets.value = []
+    chaletTotal.value = 0
+    chaletBookings.value = {}
+  }
+}
+
+async function reloadChalets() {
+  clearSelection()
+  await loadChalets()
+}
+
+// Refresh just one chalet — used after confirming a new booking.
+async function refreshChaletBookings(chaletId) {
+  const range = currentMonthApiRange.value
+  const r = await csBookings.getChaletBookings(chaletId, {
+    date_from: range.date_from,
+    date_to: range.date_to,
+  })
+  if (r.ok) {
+    chaletBookings.value = { ...chaletBookings.value, [chaletId]: r.data?.bookings || [] }
+  }
+}
+
+// Clear the in-progress selection when navigating months — day numbers
+// belong to a different month now. No refetch needed: the detail endpoint
+// returns every booking regardless of date, and the bar/booked-day computed
+// properties already clamp to the visible month.
+watch(() => `${calMonth.value}|${calYear.value}`, clearSelection)
+
+// ──────────────────────────────────────────────────────────────────────────
+// Booking bars + occupied-day map (mirrors OwnerDashboardView)
+// ──────────────────────────────────────────────────────────────────────────
+const OCCUPIED_STATUSES = new Set(['CONFIRMED', 'PENDING', 'PROCESSING', 'TEMPORARY'])
+
+const bookingBars = computed(() => {
+  const { month, year } = _resolveMonthYear()
+  const monthStart = new Date(year, month, 1); monthStart.setHours(0, 0, 0, 0)
+  const monthEnd = new Date(year, month + 1, 0); monthEnd.setHours(0, 0, 0, 0)
+
+  const bars = []
+  chalets.value.forEach((ch, ci) => {
+    const list = chaletBookings.value[ch.id] || []
+    for (const b of list) {
+      if (!OCCUPIED_STATUSES.has(b.status)) continue
+      const bStart = new Date(b.check_in); bStart.setHours(0, 0, 0, 0)
+      const bEnd = new Date(b.check_out); bEnd.setHours(0, 0, 0, 0)
+      const lastOccupied = new Date(bEnd); lastOccupied.setDate(lastOccupied.getDate() - 1)
+      if (lastOccupied < monthStart || bStart > monthEnd) continue
+
+      const clampStart = bStart < monthStart ? monthStart : bStart
+      const clampEnd = lastOccupied > monthEnd ? monthEnd : lastOccupied
+      const startDay = clampStart.getDate()
+      const endDay = clampEnd.getDate()
+
+      const fullyPaid = b.status === 'CONFIRMED'
+      const guest = b.guests?.[0]?.name || 'ضيف'
+
+      bars.push({
+        key: `${ch.id}-${b.id}`,
+        row: ci + 2,
+        startCol: startDay + 1,
+        endCol: endDay + 2,
+        guestName: guest,
+        code: b.booking_code || `#${b.code || ''}`,
+        colorClass: BAR_COLORS[_hashId(b.id) % BAR_COLORS.length],
+        statusClass: fullyPaid ? 'is-paid' : 'is-partial',
+      })
+    }
+  })
+  return bars
+})
+
+function _hashId(id) {
+  const s = String(id || '')
+  let h = 0
+  for (let i = 0; i < s.length; i++) h = (h * 31 + s.charCodeAt(i)) >>> 0
+  return h
+}
+
+const bookedDayMap = computed(() => {
+  const { month, year } = _resolveMonthYear()
+  const monthStart = new Date(year, month, 1); monthStart.setHours(0, 0, 0, 0)
+  const monthEnd = new Date(year, month + 1, 0); monthEnd.setHours(0, 0, 0, 0)
+
+  const map = {}
+  for (const ch of chalets.value) map[ch.id] = new Set()
+
+  for (const ch of chalets.value) {
+    const list = chaletBookings.value[ch.id] || []
+    for (const b of list) {
+      if (!OCCUPIED_STATUSES.has(b.status)) continue
+      const bStart = new Date(b.check_in); bStart.setHours(0, 0, 0, 0)
+      const bEnd = new Date(b.check_out); bEnd.setHours(0, 0, 0, 0)
+      const lastOccupied = new Date(bEnd); lastOccupied.setDate(lastOccupied.getDate() - 1)
+      let cur = new Date(Math.max(bStart, monthStart))
+      const stopAt = new Date(Math.min(lastOccupied, monthEnd))
+      while (cur <= stopAt) {
+        map[ch.id].add(cur.getDate())
+        cur = new Date(cur); cur.setDate(cur.getDate() + 1)
+      }
+    }
+  }
+  return map
+})
+
+function isFreeDay(chaletId, day) {
+  return !bookedDayMap.value[chaletId]?.has(day)
+}
+
+// True if the day in the visible month is strictly before today. Used to
+// block past-date selection (backend rejects check_in < today).
+function isPastDay(day) {
+  const { month, year } = _resolveMonthYear()
+  const cell = new Date(year, month, day); cell.setHours(0, 0, 0, 0)
+  const today = new Date(); today.setHours(0, 0, 0, 0)
+  return cell.getTime() < today.getTime()
+}
+
+// Combined predicate — a day is selectable iff it's not booked AND not past.
+function isSelectable(chaletId, day) {
+  return isFreeDay(chaletId, day) && !isPastDay(day)
+}
+
+// ──────────────────────────────────────────────────────────────────────────
+// Range selection — two-click range pick within the same chalet row
+// ──────────────────────────────────────────────────────────────────────────
+const selection = ref({ chaletId: null, startDay: null, endDay: null })
+const hoveredDay = ref({ chaletId: null, day: null })
+const errorRange = ref({ chaletId: null, startDay: null, endDay: null })
+
+function isInSelection(chaletId, day) {
+  const s = selection.value
+  if (s.chaletId !== chaletId || s.startDay === null) return false
+  const min = s.endDay !== null ? Math.min(s.startDay, s.endDay) : s.startDay
+  const max = s.endDay !== null ? Math.max(s.startDay, s.endDay) : s.startDay
+  return day >= min && day <= max
+}
+
+function isSelectionEdge(chaletId, day, edge) {
+  const s = selection.value
+  if (s.chaletId !== chaletId || s.startDay === null) return false
+  const min = s.endDay !== null ? Math.min(s.startDay, s.endDay) : s.startDay
+  const max = s.endDay !== null ? Math.max(s.startDay, s.endDay) : s.startDay
+  return edge === 'start' ? day === min : day === max
+}
+
+function onHoverDay(chaletId, day) { hoveredDay.value = { chaletId, day } }
+function onLeaveDay() { hoveredDay.value = { chaletId: null, day: null } }
+
+function isInPreview(chaletId, day) {
+  const s = selection.value
+  const h = hoveredDay.value
+  if (s.startDay === null || s.endDay !== null) return false
+  if (s.chaletId !== chaletId || h.chaletId !== chaletId || h.day === null) return false
+  const min = Math.min(s.startDay, h.day)
+  const max = Math.max(s.startDay, h.day)
+  for (let d = min; d <= max; d++) {
+    if (!isSelectable(chaletId, d)) return false
+  }
+  return day >= min && day <= max
+}
+
+function isInError(chaletId, day) {
+  const e = errorRange.value
+  if (e.chaletId !== chaletId || e.startDay === null || e.endDay === null) return false
+  return day >= e.startDay && day <= e.endDay
+}
+
+function showDayNumber(chaletId, day) {
+  return isInSelection(chaletId, day) || isInPreview(chaletId, day)
+}
+
+function clickDay(chaletId, day) {
+  if (!isSelectable(chaletId, day)) return
+  errorRange.value = { chaletId: null, startDay: null, endDay: null }
+
+  const s = selection.value
+  if (!s.chaletId || s.chaletId !== chaletId || s.endDay !== null) {
+    selection.value = { chaletId, startDay: day, endDay: null }
+    return
+  }
+  const min = Math.min(s.startDay, day)
+  const max = Math.max(s.startDay, day)
+  for (let d = min; d <= max; d++) {
+    if (!isSelectable(chaletId, d)) {
+      selection.value = { chaletId, startDay: day, endDay: null }
+      return
+    }
+  }
+  selection.value = { chaletId, startDay: min, endDay: max }
+}
+
+function clearSelection() {
+  selection.value = { chaletId: null, startDay: null, endDay: null }
+  errorRange.value = { chaletId: null, startDay: null, endDay: null }
+}
+
+const selectionInfo = computed(() => {
+  const s = selection.value
+  if (!s.chaletId || s.startDay === null || s.endDay === null) return null
+  const { month, year } = _resolveMonthYear()
+  // check_in = first selected day; check_out = day AFTER the last selected day
+  // (backend convention: check-out morning = checkout-day, not occupied).
+  const startDate = new Date(year, month, s.startDay)
+  const endDate = new Date(year, month, s.endDay + 1)
+  return {
+    chaletId: s.chaletId,
+    startDate,
+    endDate,
+    nights: s.endDay - s.startDay + 1,
+  }
+})
+
+// Label shown on the floating selection bar.
+const selectedChaletName = computed(() => {
+  const id = selection.value.chaletId
+  if (!id) return ''
+  const ch = chalets.value.find((c) => c.id === id)
+  return ch?.name || ''
+})
+
+// Continue → navigate to the form page with the selection in the query string.
+function continueBooking() {
+  const info = selectionInfo.value
+  if (!info) return
+  router.push({
+    name: 'admin-order-create-form',
+    query: {
+      chalet_id: info.chaletId,
+      check_in: toApiDate(info.startDate),
+      check_out: toApiDate(info.endDate),
+    },
+  })
+}
+
+// ──────────────────────────────────────────────────────────────────────────
+// Mount
+// ──────────────────────────────────────────────────────────────────────────
+onMounted(async () => {
+  const [c, o, g] = await Promise.all([
+    csBookings.listCompanies(),
+    csBookings.listOwners(),
+    csBookings.listGroups(),
+  ])
+  if (c.ok) companies.value = c.data
+  if (o.ok) owners.value = o.data
+  if (g.ok) groups.value = g.data
+  await loadChalets()
+})
+</script>
+
+<style scoped>
+.booking-page { display: flex; flex-direction: column; }
+.page-header { margin-bottom: 20px; }
+.page-title { font-size: 22px; font-weight: 800; color: #0f172a; margin: 0 0 4px; }
+.page-desc { font-size: 13.5px; color: #94a3b8; margin: 0; }
+
+/* Calendar card (Gantt) — visual identical to OwnerDashboardView */
+.bk-card {
+  background: #fff;
+  border: 1px solid #f1f5f9;
+  border-radius: 14px;
+  margin-bottom: 16px;
+  overflow: hidden;
+}
+
+.bk-card-header {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 16px;
+  padding: 14px 18px;
+  border-bottom: 1px solid #f1f5f9;
+  background: #fafbfc;
+  flex-wrap: wrap;
+}
+
+.bk-filters { display: flex; gap: 14px; flex-wrap: wrap; }
+.bk-filter { display: flex; flex-direction: column; gap: 6px; min-width: 180px; }
+.bk-filter-label { font-size: 11.5px; font-weight: 700; color: #64748b; }
+
+.bk-card-body { padding: 16px; }
+
+.bk-nav {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: 16px;
+  margin-bottom: 14px;
+}
+.bk-nav-title { font-size: 15px; font-weight: 700; color: #0f172a; margin: 0; min-width: 140px; text-align: center; }
+.bk-nav-btn {
+  width: 28px; height: 28px; border-radius: 6px;
+  border: 1px solid #e2e8f0; background: #fff; color: #0284c7;
+  cursor: pointer; display: flex; align-items: center; justify-content: center;
+  transition: all 0.15s;
+}
+.bk-nav-btn:hover { background: #f0f9ff; border-color: #bae6fd; }
+.bk-nav-btn i { font-size: 12px; }
+
+.bk-loading, .bk-empty {
+  display: flex; align-items: center; justify-content: center; gap: 10px;
+  padding: 40px 20px; color: #64748b; font-size: 13.5px;
+}
+.bk-empty i { font-size: 22px; color: #cbd5e1; }
+.bk-loading i { color: #f97316; font-size: 16px; }
+
+.bk-scroll { overflow-x: auto; padding-bottom: 6px; }
+.bk-scroll::-webkit-scrollbar { height: 8px; }
+.bk-scroll::-webkit-scrollbar-track { background: #f8fafc; border-radius: 4px; }
+.bk-scroll::-webkit-scrollbar-thumb { background: #cbd5e1; border-radius: 4px; }
+
+.bk-truncate-note { margin: 10px 0 0; font-size: 12px; color: #94a3b8; text-align: center; }
+
+.bk-grid {
+  display: grid;
+  grid-template-columns: 140px repeat(var(--days, 31), minmax(28px, 1fr));
+  border: 1px solid #e2e8f0;
+  background: #fff;
+  min-width: max-content;
+  font-size: 11px;
+  position: relative;
+}
+
+.bk-cell {
+  border-inline-end: 1px solid #f1f5f9;
+  border-bottom: 1px solid #f1f5f9;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  min-height: 34px;
+  background: #fff;
+}
+
+.bk-h {
+  background: #f8fafc;
+  font-weight: 700;
+  color: #475569;
+  position: sticky;
+  top: 0;
+  z-index: 3;
+}
+.bk-chalet-header {
+  font-size: 11.5px;
+  background: #f1f5f9;
+  color: #334155;
+  padding: 6px;
+  text-align: center;
+  line-height: 1.3;
+  position: sticky;
+  inset-inline-start: 0;
+  z-index: 5;
+  grid-row: 1;
+  grid-column: 1;
+}
+.bk-day-header { flex-direction: column; gap: 1px; padding: 4px 2px; }
+.bk-day-header.today { background: #fff7ed; color: #ea580c; box-shadow: inset 0 -2px 0 #f97316; }
+.bk-weekday { font-size: 9px; color: #94a3b8; font-weight: 500; }
+.bk-day-header.today .bk-weekday { color: #ea580c; }
+.bk-daynum { font-size: 11.5px; font-weight: 700; }
+
+.bk-chalet-name {
+  font-size: 11.5px;
+  color: #0f172a;
+  background: #fafbfc;
+  flex-direction: column;
+  gap: 2px;
+  padding: 4px 8px;
+  text-align: center;
+  position: sticky;
+  inset-inline-start: 0;
+  z-index: 4;
+  grid-column: 1;
+  border-inline-end: 2px solid #e2e8f0;
+  box-shadow: 2px 0 4px -2px rgba(15, 23, 42, 0.08);
+}
+.bk-chalet-name strong { font-size: 12px; font-weight: 700; color: #0f172a; line-height: 1.2; }
+.bk-chalet-code { font-size: 9.5px; color: #94a3b8; font-weight: 600; letter-spacing: 0.02em; direction: ltr; }
+
+.bk-day-cell { background: #fff; transition: background 0.15s, box-shadow 0.15s; }
+.bk-day-cell.today { background: rgba(249, 115, 22, 0.04); }
+.bk-day-cell.is-selectable { cursor: pointer; }
+.bk-day-cell.is-selectable:hover {
+  background: rgba(249, 115, 22, 0.08);
+  box-shadow: inset 0 0 0 1px rgba(249, 115, 22, 0.25);
+}
+/* Past day — visually muted, not clickable. */
+.bk-day-cell.is-past {
+  background: repeating-linear-gradient(45deg, #fafbfc, #fafbfc 4px, #f1f5f9 4px, #f1f5f9 8px);
+  cursor: not-allowed;
+  opacity: 0.55;
+}
+.bk-day-cell.is-selected {
+  background: rgba(249, 115, 22, 0.18) !important;
+  box-shadow: inset 0 0 0 1px rgba(249, 115, 22, 0.35);
+}
+.bk-day-cell.is-sel-start,
+.bk-day-cell.is-sel-end {
+  background: linear-gradient(135deg, #f97316, #ea580c) !important;
+  box-shadow: 0 1px 4px rgba(249, 115, 22, 0.35);
+}
+.bk-day-cell.is-preview {
+  background: rgba(249, 115, 22, 0.1) !important;
+  box-shadow: inset 0 0 0 1px rgba(249, 115, 22, 0.25);
+}
+.bk-day-cell.is-error {
+  background: rgba(239, 68, 68, 0.18) !important;
+  box-shadow: inset 0 0 0 1.5px #ef4444;
+}
+.bk-day-num-inline { font-size: 10.5px; font-weight: 700; color: #ea580c; line-height: 1; }
+.bk-day-cell.is-sel-start .bk-day-num-inline,
+.bk-day-cell.is-sel-end .bk-day-num-inline { color: #fff; text-shadow: 0 1px 2px rgba(0, 0, 0, 0.15); }
+
+.bk-bar {
+  position: relative;
+  z-index: 1;
+  margin: 3px 1px;
+  border: 1px solid;
+  border-radius: 5px;
+  padding: 2px 6px;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  gap: 0;
+  cursor: default;
+  font-family: inherit;
+  text-align: center;
+  line-height: 1.15;
+  overflow: hidden;
+  min-width: 0;
+}
+.bk-bar-guest { font-size: 10.5px; font-weight: 700; width: 100%; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+.bk-bar-code { font-size: 9px; font-weight: 500; opacity: 0.85; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; width: 100%; }
+.bk-bar.bar-c0 { background: #fce7f3; border-color: #f9a8d4; color: #9d174d; }
+.bk-bar.bar-c1 { background: #dbeafe; border-color: #93c5fd; color: #1e40af; }
+.bk-bar.bar-c2 { background: #dcfce7; border-color: #86efac; color: #166534; }
+.bk-bar.bar-c3 { background: #fef3c7; border-color: #fcd34d; color: #92400e; }
+.bk-bar.bar-c4 { background: #ede9fe; border-color: #c4b5fd; color: #5b21b6; }
+.bk-bar.is-partial { border-style: dashed; }
+
+/* Floating selection bar — appears at bottom-center once a range is picked */
+.sel-bar {
+  position: fixed;
+  bottom: 24px;
+  left: 50%;
+  transform: translateX(-50%);
+  display: flex;
+  align-items: center;
+  gap: 24px;
+  padding: 12px 18px;
+  background: #fff;
+  border: 1px solid #e2e8f0;
+  border-radius: 14px;
+  box-shadow: 0 12px 32px -8px rgba(15, 23, 42, 0.2), 0 4px 12px -4px rgba(15, 23, 42, 0.08);
+  z-index: 100;
+  max-width: calc(100vw - 32px);
+  font-family: inherit;
+}
+.sel-info { display: flex; align-items: center; gap: 12px; min-width: 0; }
+.sel-icon {
+  width: 38px; height: 38px;
+  border-radius: 10px;
+  background: linear-gradient(135deg, rgba(249, 115, 22, 0.12), rgba(251, 191, 36, 0.12));
+  color: #f97316;
+  display: flex; align-items: center; justify-content: center;
+  flex-shrink: 0;
+}
+.sel-icon i { font-size: 16px; }
+.sel-text { display: flex; flex-direction: column; gap: 2px; min-width: 0; }
+.sel-chalet { font-size: 14px; font-weight: 800; color: #0f172a; }
+.sel-meta { font-size: 12px; color: #64748b; font-weight: 500; display: flex; align-items: center; gap: 6px; }
+.sel-meta i { font-size: 10px; color: #94a3b8; }
+.sel-dot { color: #cbd5e1; }
+.sel-actions { display: flex; gap: 8px; align-items: center; flex-shrink: 0; }
+.sel-cancel {
+  padding: 9px 16px;
+  border-radius: 9px;
+  background: #fff;
+  border: 1px solid #e2e8f0;
+  color: #64748b;
+  font-family: inherit;
+  font-size: 13px;
+  font-weight: 700;
+  cursor: pointer;
+}
+.sel-cancel:hover { background: #f8fafc; border-color: #cbd5e1; }
+.sel-continue {
+  padding: 9px 18px;
+  border-radius: 9px;
+  background: linear-gradient(135deg, #f97316, #ea580c);
+  border: 1px solid #ea580c;
+  color: #fff;
+  font-family: inherit;
+  font-size: 13px;
+  font-weight: 700;
+  cursor: pointer;
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  box-shadow: 0 2px 10px rgba(249, 115, 22, 0.35);
+}
+.sel-continue:hover { transform: translateY(-1px); box-shadow: 0 6px 18px rgba(249, 115, 22, 0.45); }
+.sel-continue i { font-size: 11px; }
+
+.sel-bar-enter-active, .sel-bar-leave-active {
+  transition: transform 0.28s cubic-bezier(0.16, 1, 0.3, 1), opacity 0.28s;
+}
+.sel-bar-enter-from, .sel-bar-leave-to {
+  transform: translate(-50%, 30px);
+  opacity: 0;
+}
+
+/* Legend (header) */
+@media (max-width: 768px) {
+  .bk-card-header { flex-direction: column; align-items: stretch; gap: 12px; padding: 12px; }
+  .bk-filters { width: 100%; }
+  .bk-filter { min-width: 0; }
+  .bk-card-body { padding: 12px; }
+  .bk-grid { font-size: 10.5px; }
+  .bk-nav-title { font-size: 13.5px; }
+  .bk-bar-guest { font-size: 9.5px; }
+  .sel-bar { flex-direction: column; align-items: stretch; gap: 12px; }
+  .sel-actions { justify-content: space-between; }
+}
+</style>

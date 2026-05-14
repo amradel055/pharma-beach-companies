@@ -342,7 +342,7 @@ function handleSubmit() {
       if (!data.password) delete data.password
       result = usersStore.update(editingOp.value.id, data)
     } else {
-      result = usersStore.create({ ...form, role: ROLES.OPERATOR })
+      result = usersStore.create({ ...form, role: ROLES.OPERATION })
     }
     loading.value = false
     if (result.ok) {

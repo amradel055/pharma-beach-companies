@@ -47,21 +47,28 @@ const kpis = computed(() => {
   const all = allKpis.value
 
   // CS roles and SECURITY: no financial KPIs
-  if ([ROLES.SITE_CS, ROLES.VILLAGE_CS, ROLES.SECURITY].includes(role)) {
-    return []
-  }
+  const NON_FINANCIAL = [
+    ROLES.CUSTOMER_SERVICE_COMPANY,
+    ROLES.CUSTOMER_SERVICE_VILLAGE,
+    ROLES.HEAD_CUSTOMER_SERVICE_VILLAGE,
+    ROLES.SECURITY,
+  ]
+  if (NON_FINANCIAL.includes(role)) return []
 
-  // SITE_ADMIN, VILLAGE_ADMIN: show all
-  if ([ROLES.SITE_ADMIN, ROLES.VILLAGE_ADMIN].includes(role)) {
-    return all
-  }
+  // Full-access admin tier: show all
+  const FULL_ACCESS = [
+    ROLES.SUPER_ADMIN,
+    ROLES.ADMIN_COMPANY,
+    ROLES.ADMIN_VILLAGE,
+    ROLES.FINANCIAL_MEMBER,
+  ]
+  if (FULL_ACCESS.includes(role)) return all
 
   // Role-specific allowed labels
   const allowedMap = {
-    [ROLES.OPERATOR]: ['عدد الحجوزات', 'إجمالي الليالي'],
-    [ROLES.OWNER]: ['عدد الحجوزات', 'صافي المالك', 'إجمالي الليالي'],
-    [ROLES.BROKER]: ['عدد الحجوزات', 'نسبة البروكر', 'إجمالي الليالي'],
-    [ROLES.AGENT]: ['عدد الحجوزات', 'إجمالي الليالي'],
+    [ROLES.OPERATION]: ['عدد الحجوزات', 'إجمالي الليالي'],
+    [ROLES.BROKER_COMPANY]: ['عدد الحجوزات', 'نسبة البروكر', 'إجمالي الليالي'],
+    [ROLES.BROKER_VILLAGE]: ['عدد الحجوزات', 'نسبة البروكر', 'إجمالي الليالي'],
   }
 
   const allowed = allowedMap[role]

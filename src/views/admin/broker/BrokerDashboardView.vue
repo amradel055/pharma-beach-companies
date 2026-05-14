@@ -120,15 +120,15 @@ const tabs = [
 ]
 
 const brokerId = computed(() => {
-  if (hasRole(ROLES.SITE_ADMIN)) return 'seed_broker_001' // admin sees demo broker
+  if (hasRole(ROLES.SUPER_ADMIN) || hasRole(ROLES.ADMIN_COMPANY)) return 'seed_broker_001' // admin sees demo broker
   return auth.user?.id
 })
 
 const brokerUser = computed(() => usersStore.getById(brokerId.value))
 const brokerCommission = computed(() => brokerUser.value?.commissionPercent || 0)
 
-// Broker's agents
-const agents = computed(() => usersStore.getBrokerAgents(brokerId.value))
+// AGENT role removed — brokers no longer have downstream agents.
+const agents = computed(() => [])
 
 // All broker's bookings (via broker or agents)
 const brokerBookings = computed(() => {

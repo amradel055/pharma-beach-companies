@@ -93,11 +93,9 @@ const allSections = [
       { label: 'السجل', to: '/admin/bookings', icon: 'pi pi-list' },
     ],
   },
-  // ─── Hidden for now — flip `hidden: false` to bring back ─────────────────
   {
     label: 'إدارة المستخدمين',
     permission: 'manage_users',
-    hidden: true,
     items: [
       { label: 'المستخدمين', to: '/admin/users', icon: 'pi pi-users' },
     ],
@@ -105,7 +103,6 @@ const allSections = [
   {
     label: 'إدارة الشاليهات',
     permission: 'manage_chalets',
-    hidden: true,
     items: [
       { label: 'الشاليهات', to: '/admin/chalets', icon: 'pi pi-building' },
       { label: 'خيارات البحث', to: '/admin/settings/search-attributes', icon: 'pi pi-sliders-h' },
@@ -115,7 +112,6 @@ const allSections = [
   {
     label: 'الاعتمادات',
     permission: 'manage_approvals',
-    hidden: true,
     items: [
       { label: 'طلبات الاعتماد', to: '/admin/approvals', icon: 'pi pi-check-circle', badge: computed(() => approvalsStore.pendingCount || null) },
     ],
@@ -123,7 +119,6 @@ const allSections = [
   {
     label: 'إدارة القرية',
     permission: 'view_village_dashboard',
-    hidden: true,
     items: [
       { label: 'تقارير القرية', to: '/admin/village', icon: 'pi pi-chart-bar' },
     ],
@@ -131,16 +126,15 @@ const allSections = [
   {
     label: 'العمليات',
     permission: 'manage_orders',
-    hidden: true,
     items: [
       { label: 'الطلبات', to: '/admin/orders', icon: 'pi pi-clipboard' },
+      { label: 'حجز جديد', to: '/admin/orders/new', icon: 'pi pi-plus-circle' },
       { label: 'التصاريح', to: '/admin/permits', icon: 'pi pi-id-card' },
     ],
   },
   {
     label: 'المشغلين',
     permission: 'manage_operators',
-    hidden: true,
     items: [
       { label: 'إدارة المشغلين', to: '/admin/operators', icon: 'pi pi-cog' },
     ],
@@ -148,7 +142,6 @@ const allSections = [
   {
     label: 'لوحة المشغل',
     permission: 'view_operator_dashboard',
-    hidden: true,
     items: [
       { label: 'لوحة المشغل', to: '/admin/operator', icon: 'pi pi-objects-column' },
     ],
@@ -156,7 +149,6 @@ const allSections = [
   {
     label: 'إدارة الأمن',
     permission: 'manage_security',
-    hidden: true,
     items: [
       { label: 'أعضاء الأمن', to: '/admin/security', icon: 'pi pi-shield' },
     ],
@@ -164,7 +156,6 @@ const allSections = [
   {
     label: 'الأمن',
     permission: 'scan_qr',
-    hidden: true,
     items: [
       { label: 'ماسح QR', to: '/admin/security/scanner', icon: 'pi pi-qrcode' },
     ],
@@ -172,23 +163,13 @@ const allSections = [
   {
     label: 'البروكر',
     permission: 'view_broker_dashboard',
-    hidden: true,
     items: [
       { label: 'لوحة البروكر', to: '/admin/broker', icon: 'pi pi-briefcase' },
     ],
   },
   {
-    label: 'المندوب',
-    permission: 'view_agent_permits',
-    hidden: true,
-    items: [
-      { label: 'تصاريحي', to: '/admin/agent/permits', icon: 'pi pi-id-card' },
-    ],
-  },
-  {
     label: 'التسويق',
     permission: 'manage_coupons',
-    hidden: true,
     items: [
       { label: 'كوبونات الخصم', to: '/admin/coupons', icon: 'pi pi-tag' },
     ],

@@ -212,30 +212,12 @@
 
           <!-- Broker Commission -->
           <Transition name="slide">
-            <div v-if="form.role === ROLES.BROKER" class="fields-grid cond-fields">
+            <div v-if="isBrokerRole(form.role)" class="fields-grid cond-fields">
               <div class="field">
                 <label>نسبة البروكر (%) <span class="req">*</span></label>
                 <input v-model.number="form.commissionPercent" type="number" min="0" max="100" placeholder="مثال: 10"
                   :class="{ error: touched.commission && !isCommissionValid }" @blur="touched.commission = true" />
                 <span v-if="touched.commission && !isCommissionValid" class="field-error">نسبة البروكر مطلوبة (0-100)</span>
-              </div>
-            </div>
-          </Transition>
-
-          <!-- Agent's Broker -->
-          <Transition name="slide">
-            <div v-if="form.role === ROLES.AGENT" class="fields-grid cond-fields">
-              <div class="field">
-                <label>البروكر التابع له <span class="req">*</span></label>
-                <AppDropdown
-                  v-model="form.brokerId"
-                  :options="brokerOptions"
-                  placeholder="اختر البروكر"
-                  :error="touched.broker && !form.brokerId"
-                  empty-text="لا يوجد بروكر"
-                  @change="touched.broker = true"
-                />
-                <span v-if="touched.broker && !form.brokerId" class="field-error">يجب اختيار بروكر</span>
               </div>
             </div>
           </Transition>
@@ -305,15 +287,13 @@ const filterStatus = ref('')
 const currentPage = ref(1)
 const perPage = 8
 
-const filterableRoles = [
-  { value: ROLES.SITE_ADMIN, label: 'أدمن الموقع' },
-  { value: ROLES.SITE_CS, label: 'خدمة عملاء الأدمن' },
-  { value: ROLES.VILLAGE_ADMIN, label: 'أدمن القرية' },
-  { value: ROLES.VILLAGE_CS, label: 'خدمة عملاء القرية' },
-  { value: ROLES.OWNER, label: 'مالك' },
-  { value: ROLES.BROKER, label: 'بروكر' },
-  { value: ROLES.AGENT, label: 'مندوب' },
-]
+function isBrokerRole(role) {
+  return role === ROLES.BROKER_COMPANY || role === ROLES.BROKER_VILLAGE
+}
+
+const filterableRoles = Object.values(ROLES)
+  .filter((r) => r !== ROLES.CLIENT)
+  .map((r) => ({ value: r, label: ROLE_LABELS[r] || r }))
 
 const statusOptions = [
   { value: '', label: 'كل الحالات' },
@@ -347,14 +327,27 @@ const stats = computed(() => {
     { label: 'إجمالي المستخدمين', value: all.length, icon: 'pi pi-users', color: '#8b5cf6' },
     { label: 'نشط', value: all.filter((u) => u.active !== false).length, icon: 'pi pi-check-circle', color: '#10b981' },
     { label: 'معطل', value: all.filter((u) => u.active === false).length, icon: 'pi pi-ban', color: '#ef4444' },
-    { label: 'بروكر', value: all.filter((u) => u.role === ROLES.BROKER).length, icon: 'pi pi-briefcase', color: '#f97316' },
+    { label: 'بروكر', value: all.filter((u) => isBrokerRole(u.role)).length, icon: 'pi pi-briefcase', color: '#f97316' },
   ]
 })
 
 // ── Helpers ──
 function roleLabel(role) { return ROLE_LABELS[role] || role }
 function roleColorMap(role) {
-  return { [ROLES.SITE_ADMIN]: '#8b5cf6', [ROLES.SITE_CS]: '#0ea5e9', [ROLES.VILLAGE_ADMIN]: '#14b8a6', [ROLES.VILLAGE_CS]: '#06b6d4', [ROLES.OWNER]: '#f97316', [ROLES.BROKER]: '#eab308', [ROLES.AGENT]: '#64748b' }[role] || '#94a3b8'
+  return {
+    [ROLES.SUPER_ADMIN]: '#8b5cf6',
+    [ROLES.ADMIN_COMPANY]: '#7c3aed',
+    [ROLES.ADMIN_VILLAGE]: '#14b8a6',
+    [ROLES.CUSTOMER_SERVICE_COMPANY]: '#0ea5e9',
+    [ROLES.HEAD_CUSTOMER_SERVICE_VILLAGE]: '#0284c7',
+    [ROLES.CUSTOMER_SERVICE_VILLAGE]: '#06b6d4',
+    [ROLES.BROKER_COMPANY]: '#eab308',
+    [ROLES.BROKER_VILLAGE]: '#facc15',
+    [ROLES.FINANCIAL_MEMBER]: '#10b981',
+    [ROLES.OPERATION]: '#f97316',
+    [ROLES.SECURITY]: '#ef4444',
+    [ROLES.CLIENT]: '#64748b',
+  }[role] || '#94a3b8'
 }
 function avatarColor(role) { return `linear-gradient(135deg, ${roleColorMap(role)}, ${roleColorMap(role)}dd)` }
 function formatDate(iso) {
@@ -397,28 +390,19 @@ const touched = reactive({
 
 const creatableRoleOptions = computed(() => {
   const allowed = CREATABLE_ROLES[userRole.value] || []
-  const labels = {
-    [ROLES.SITE_CS]: 'خدمة عملاء الأدمن', [ROLES.VILLAGE_ADMIN]: 'أدمن القرية', [ROLES.VILLAGE_CS]: 'خدمة عملاء القرية',
-    [ROLES.OWNER]: 'مالك', [ROLES.BROKER]: 'بروكر', [ROLES.AGENT]: 'مندوب',
-  }
-  return allowed.map((r) => ({ value: r, label: labels[r] || r }))
+  return allowed.map((r) => ({ value: r, label: ROLE_LABELS[r] || r }))
 })
-
-const brokerOptions = computed(() =>
-  usersStore.getBrokers().map((b) => ({ value: b.id, label: `${b.name} (${b.phone})` }))
-)
 
 const isPhoneValid = computed(() => form.phone.trim().length >= 8)
 const isPasswordValid = computed(() => editingUser.value ? (!form.password || form.password.length >= 6) : form.password.length >= 6)
 const isCommissionValid = computed(() => {
-  if (form.role !== ROLES.BROKER) return true
+  if (!isBrokerRole(form.role)) return true
   const v = Number(form.commissionPercent)
   return v > 0 && v <= 100
 })
 const isFormValid = computed(() => {
   if (!form.name.trim() || !isPhoneValid.value || !isPasswordValid.value || !form.role) return false
-  if (form.role === ROLES.BROKER && !isCommissionValid.value) return false
-  if (form.role === ROLES.AGENT && !form.brokerId) return false
+  if (isBrokerRole(form.role) && !isCommissionValid.value) return false
   return true
 })
 

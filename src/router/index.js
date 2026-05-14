@@ -3,6 +3,28 @@ import { useAuthStore } from '@/stores/auth'
 import { ROLES, ADMIN_ROLES } from '@/constants/roles'
 import DashboardLayout from '@/layouts/DashboardLayout.vue'
 
+// Where each role lands after login / on "/" / on a denied admin route.
+// MUST point to a route the role is actually allowed to access, otherwise
+// the role-guard below will loop back here forever.
+const ROLE_HOME = {
+  [ROLES.SUPER_ADMIN]: 'admin-owner',
+  [ROLES.ADMIN_COMPANY]: 'admin-owner',
+  [ROLES.ADMIN_VILLAGE]: 'admin-village',
+  [ROLES.CUSTOMER_SERVICE_COMPANY]: 'admin-users',
+  [ROLES.HEAD_CUSTOMER_SERVICE_VILLAGE]: 'admin-orders',
+  [ROLES.CUSTOMER_SERVICE_VILLAGE]: 'admin-orders',
+  [ROLES.BROKER_COMPANY]: 'admin-broker',
+  [ROLES.BROKER_VILLAGE]: 'admin-broker',
+  [ROLES.FINANCIAL_MEMBER]: 'admin-village',
+  [ROLES.OPERATION]: 'admin-operator-dashboard',
+  [ROLES.SECURITY]: 'admin-qr-scanner',
+  // CLIENT has no admin home — falls through to login.
+}
+
+function homeRouteFor(role) {
+  return ROLE_HOME[role] || 'login'
+}
+
 const routes = [
   // Root — redirect based on auth state
   {
@@ -10,7 +32,8 @@ const routes = [
     name: 'root',
     redirect: () => {
       const auth = useAuthStore()
-      return auth.isAuthenticated ? { name: 'admin-owner' } : { name: 'login' }
+      if (!auth.isAuthenticated) return { name: 'login' }
+      return { name: homeRouteFor(auth.user?.role) }
     },
   },
 
@@ -46,10 +69,13 @@ const routes = [
     component: DashboardLayout,
     meta: { requiresAuth: true, roles: [...ADMIN_ROLES] },
     children: [
-      // Default landing for /admin — redirect to the owner dashboard.
+      // Default landing for /admin — pick a home that the current role can access.
       {
         path: '',
-        redirect: { name: 'admin-owner' },
+        redirect: () => {
+          const auth = useAuthStore()
+          return { name: homeRouteFor(auth.user?.role) }
+        },
       },
       {
         path: 'profile',
@@ -58,180 +84,216 @@ const routes = [
         meta: { title: 'الملف الشخصي', roles: [...ADMIN_ROLES] },
       },
 
-      // User management — Site Admin, Site CS, Village CS
+      // User management
       {
         path: 'users',
         name: 'admin-users',
         component: () => import('@/views/admin/users/UserListView.vue'),
-        meta: { title: 'المستخدمين', roles: [ROLES.SITE_ADMIN, ROLES.SITE_CS, ROLES.VILLAGE_ADMIN, ROLES.VILLAGE_CS] },
+        meta: {
+          title: 'المستخدمين',
+          roles: [ROLES.SUPER_ADMIN, ROLES.ADMIN_COMPANY, ROLES.ADMIN_VILLAGE, ROLES.CUSTOMER_SERVICE_COMPANY, ROLES.HEAD_CUSTOMER_SERVICE_VILLAGE],
+        },
       },
 
-      // Chalet management — Site Admin, Site CS
+      // Chalet management
       {
         path: 'chalets',
         name: 'admin-chalets',
         component: () => import('@/views/admin/chalets/ChaletListView.vue'),
-        meta: { title: 'الشاليهات', roles: [ROLES.SITE_ADMIN, ROLES.SITE_CS] },
+        meta: { title: 'الشاليهات', roles: [ROLES.SUPER_ADMIN, ROLES.ADMIN_COMPANY, ROLES.CUSTOMER_SERVICE_COMPANY] },
       },
       {
         path: 'settings/search-attributes',
         name: 'admin-search-attributes',
         component: () => import('@/views/admin/settings/SearchAttributesView.vue'),
-        meta: { title: 'خيارات البحث', roles: [ROLES.SITE_ADMIN, ROLES.SITE_CS] },
+        meta: { title: 'خيارات البحث', roles: [ROLES.SUPER_ADMIN, ROLES.ADMIN_COMPANY, ROLES.CUSTOMER_SERVICE_COMPANY] },
       },
       {
         path: 'settings/amenities',
         name: 'admin-amenities',
         component: () => import('@/views/admin/settings/AmenitiesView.vue'),
-        meta: { title: 'الكماليات', roles: [ROLES.SITE_ADMIN, ROLES.SITE_CS] },
+        meta: { title: 'الكماليات', roles: [ROLES.SUPER_ADMIN, ROLES.ADMIN_COMPANY, ROLES.CUSTOMER_SERVICE_COMPANY] },
       },
 
-      // Approvals — Site Admin only
+      // Approvals — Super Admin only
       {
         path: 'approvals',
         name: 'admin-approvals',
         component: () => import('@/views/admin/approvals/ApprovalQueueView.vue'),
-        meta: { title: 'طلبات الاعتماد', roles: [ROLES.SITE_ADMIN] },
+        meta: { title: 'طلبات الاعتماد', roles: [ROLES.SUPER_ADMIN] },
       },
 
-      // Bookings calendar — Site Admin, Owner — primary landing for /admin
+      // Bookings calendar — primary landing for the admin tier
       {
         path: 'owner',
         name: 'admin-owner',
         component: () => import('@/views/admin/owner/OwnerDashboardView.vue'),
-        meta: { title: 'تقويم الحجوزات', roles: [ROLES.SITE_ADMIN, ROLES.OWNER] },
+        meta: { title: 'تقويم الحجوزات', roles: [ROLES.SUPER_ADMIN, ROLES.ADMIN_COMPANY, ROLES.ADMIN_VILLAGE] },
       },
 
-      // Bookings register — Site Admin, Owner
+      // Bookings register
       {
         path: 'bookings',
         name: 'admin-bookings',
         component: () => import('@/views/admin/bookings/BookingsRegisterView.vue'),
-        meta: { title: 'سجل الحجوزات', roles: [ROLES.SITE_ADMIN, ROLES.OWNER] },
+        meta: { title: 'سجل الحجوزات', roles: [ROLES.SUPER_ADMIN, ROLES.ADMIN_COMPANY, ROLES.ADMIN_VILLAGE] },
       },
 
-      // Village dashboard — Site Admin, Village CS (reports only, not for CS operational)
+      // Village dashboard (financial reports)
       {
         path: 'village',
         name: 'admin-village',
         component: () => import('@/views/admin/village/VillageDashboardView.vue'),
-        meta: { title: 'تقارير القرية', roles: [ROLES.SITE_ADMIN, ROLES.VILLAGE_ADMIN] },
+        meta: {
+          title: 'تقارير القرية',
+          roles: [ROLES.SUPER_ADMIN, ROLES.ADMIN_COMPANY, ROLES.ADMIN_VILLAGE, ROLES.FINANCIAL_MEMBER],
+        },
       },
 
-      // CS operations — Site Admin, Village CS
+      // CS operations
       {
         path: 'orders',
         name: 'admin-orders',
         component: () => import('@/views/admin/cs/OrdersQueueView.vue'),
-        meta: { title: 'الطلبات', roles: [ROLES.SITE_ADMIN, ROLES.VILLAGE_ADMIN, ROLES.VILLAGE_CS] },
+        meta: {
+          title: 'الطلبات',
+          roles: [ROLES.SUPER_ADMIN, ROLES.ADMIN_COMPANY, ROLES.ADMIN_VILLAGE, ROLES.HEAD_CUSTOMER_SERVICE_VILLAGE, ROLES.CUSTOMER_SERVICE_VILLAGE, ROLES.CUSTOMER_SERVICE_COMPANY],
+        },
+      },
+      // New booking — calendar step (pick chalet + date range)
+      // Placed BEFORE :id so /new doesn't match the param route.
+      {
+        path: 'orders/new',
+        name: 'admin-order-create',
+        component: () => import('@/views/admin/cs/BookingCreateView.vue'),
+        meta: {
+          title: 'حجز جديد',
+          roles: [ROLES.SUPER_ADMIN, ROLES.ADMIN_COMPANY, ROLES.ADMIN_VILLAGE, ROLES.HEAD_CUSTOMER_SERVICE_VILLAGE, ROLES.CUSTOMER_SERVICE_VILLAGE, ROLES.CUSTOMER_SERVICE_COMPANY],
+        },
+      },
+      // New booking — form step (guests, cars, payment). Reached via the
+      // calendar's "متابعة الحجز" button with chalet_id, check_in, check_out
+      // in the query string.
+      {
+        path: 'orders/new/form',
+        name: 'admin-order-create-form',
+        component: () => import('@/views/admin/cs/BookingFormView.vue'),
+        meta: {
+          title: 'إتمام الحجز',
+          roles: [ROLES.SUPER_ADMIN, ROLES.ADMIN_COMPANY, ROLES.ADMIN_VILLAGE, ROLES.HEAD_CUSTOMER_SERVICE_VILLAGE, ROLES.CUSTOMER_SERVICE_VILLAGE, ROLES.CUSTOMER_SERVICE_COMPANY],
+        },
       },
       {
         path: 'orders/:id',
         name: 'admin-order-details',
         component: () => import('@/views/admin/cs/OrderDetailsView.vue'),
-        meta: { title: 'تفاصيل الطلب', roles: [ROLES.SITE_ADMIN, ROLES.VILLAGE_ADMIN, ROLES.VILLAGE_CS] },
+        meta: {
+          title: 'تفاصيل الطلب',
+          roles: [ROLES.SUPER_ADMIN, ROLES.ADMIN_COMPANY, ROLES.ADMIN_VILLAGE, ROLES.HEAD_CUSTOMER_SERVICE_VILLAGE, ROLES.CUSTOMER_SERVICE_VILLAGE, ROLES.CUSTOMER_SERVICE_COMPANY],
+        },
       },
 
-      // Permits — Site Admin, Village CS, Agent
+      // Permits
       {
         path: 'permits',
         name: 'admin-permits',
         component: () => import('@/views/admin/agent/AgentPermitsView.vue'),
-        meta: { title: 'التصاريح', roles: [ROLES.SITE_ADMIN, ROLES.VILLAGE_ADMIN, ROLES.VILLAGE_CS] },
+        meta: {
+          title: 'التصاريح',
+          roles: [ROLES.SUPER_ADMIN, ROLES.ADMIN_COMPANY, ROLES.ADMIN_VILLAGE, ROLES.HEAD_CUSTOMER_SERVICE_VILLAGE, ROLES.CUSTOMER_SERVICE_VILLAGE],
+        },
       },
 
-      // Broker dashboard — Site Admin, Broker
+      // Broker dashboard
       {
         path: 'broker',
         name: 'admin-broker',
         component: () => import('@/views/admin/broker/BrokerDashboardView.vue'),
-        meta: { title: 'لوحة البروكر', roles: [ROLES.SITE_ADMIN, ROLES.BROKER] },
+        meta: {
+          title: 'لوحة البروكر',
+          roles: [ROLES.SUPER_ADMIN, ROLES.ADMIN_COMPANY, ROLES.BROKER_COMPANY, ROLES.BROKER_VILLAGE],
+        },
       },
 
-      // Agent permits — Site Admin, Agent
-      {
-        path: 'agent/permits',
-        name: 'admin-agent-permits',
-        component: () => import('@/views/admin/agent/AgentPermitsView.vue'),
-        meta: { title: 'تصاريحي', roles: [ROLES.SITE_ADMIN, ROLES.AGENT] },
-      },
-
-      // Operators — Site Admin, Village Admin
+      // Operators
       {
         path: 'operators',
         name: 'admin-operators',
         component: () => import('@/views/admin/operator/OperatorListView.vue'),
-        meta: { title: 'المشغلين', roles: [ROLES.SITE_ADMIN, ROLES.VILLAGE_ADMIN] },
+        meta: { title: 'المشغلين', roles: [ROLES.SUPER_ADMIN, ROLES.ADMIN_COMPANY, ROLES.ADMIN_VILLAGE] },
       },
 
-      // Operator dashboard — Site Admin, Operator
+      // Operator dashboard
       {
         path: 'operator',
         name: 'admin-operator-dashboard',
         component: () => import('@/views/admin/operator/OperatorDashboardView.vue'),
-        meta: { title: 'لوحة المشغل', roles: [ROLES.SITE_ADMIN, ROLES.OPERATOR] },
+        meta: { title: 'لوحة المشغل', roles: [ROLES.SUPER_ADMIN, ROLES.OPERATION] },
       },
 
-      // Security management — Site Admin, Village Admin
+      // Security management
       {
         path: 'security',
         name: 'admin-security',
         component: () => import('@/views/admin/security/SecurityListView.vue'),
-        meta: { title: 'أعضاء الأمن', roles: [ROLES.SITE_ADMIN, ROLES.VILLAGE_ADMIN] },
+        meta: { title: 'أعضاء الأمن', roles: [ROLES.SUPER_ADMIN, ROLES.ADMIN_COMPANY, ROLES.ADMIN_VILLAGE] },
       },
 
-      // QR Scanner — Security, Site Admin, Village Admin
+      // QR Scanner
       {
         path: 'security/scanner',
         name: 'admin-qr-scanner',
         component: () => import('@/views/admin/security/QrScannerView.vue'),
-        meta: { title: 'ماسح QR', roles: [ROLES.SECURITY, ROLES.SITE_ADMIN, ROLES.VILLAGE_ADMIN] },
+        meta: {
+          title: 'ماسح QR',
+          roles: [ROLES.SUPER_ADMIN, ROLES.SECURITY, ROLES.ADMIN_COMPANY, ROLES.ADMIN_VILLAGE],
+        },
       },
 
-      // General Settings — Site Admin
+      // General Settings — Super Admin only
       {
         path: 'settings/general',
         name: 'admin-general-settings',
         component: () => import('@/views/admin/settings/GeneralSettingsView.vue'),
-        meta: { title: 'الإعدادات العامة', roles: [ROLES.SITE_ADMIN] },
+        meta: { title: 'الإعدادات العامة', roles: [ROLES.SUPER_ADMIN] },
       },
 
-      // Site Terms — Site Admin
+      // Site Terms — Super Admin only
       {
         path: 'settings/site-terms',
         name: 'admin-site-terms',
         component: () => import('@/views/admin/settings/SiteTermsView.vue'),
-        meta: { title: 'شروط الموقع', roles: [ROLES.SITE_ADMIN] },
+        meta: { title: 'شروط الموقع', roles: [ROLES.SUPER_ADMIN] },
       },
 
-      // Village Terms — Site Admin, Village Admin
+      // Village Terms
       {
         path: 'settings/village-terms',
         name: 'admin-village-terms',
         component: () => import('@/views/admin/settings/VillageTermsView.vue'),
-        meta: { title: 'شروط القرية', roles: [ROLES.SITE_ADMIN, ROLES.VILLAGE_ADMIN] },
+        meta: { title: 'شروط القرية', roles: [ROLES.SUPER_ADMIN, ROLES.ADMIN_COMPANY, ROLES.ADMIN_VILLAGE] },
       },
 
-      // Village Daily Report — Site Admin, Village Admin
+      // Village Daily Report
       {
         path: 'village/daily-report',
         name: 'admin-village-daily-report',
         component: () => import('@/views/admin/village/VillageDailyReportView.vue'),
-        meta: { title: 'التقرير اليومي', roles: [ROLES.SITE_ADMIN, ROLES.VILLAGE_ADMIN] },
+        meta: { title: 'التقرير اليومي', roles: [ROLES.SUPER_ADMIN, ROLES.ADMIN_COMPANY, ROLES.ADMIN_VILLAGE] },
       },
 
-      // Coupons — Site Admin, Site CS
+      // Coupons
       {
         path: 'coupons',
         name: 'admin-coupons',
         component: () => import('@/views/admin/coupons/CouponListView.vue'),
-        meta: { title: 'كوبونات الخصم', roles: [ROLES.SITE_ADMIN, ROLES.SITE_CS] },
+        meta: { title: 'كوبونات الخصم', roles: [ROLES.SUPER_ADMIN, ROLES.ADMIN_COMPANY, ROLES.CUSTOMER_SERVICE_COMPANY] },
       },
       {
         path: 'coupons/report',
         name: 'admin-coupons-report',
         component: () => import('@/views/admin/coupons/CouponReportView.vue'),
-        meta: { title: 'تقرير الكوبونات', roles: [ROLES.SITE_ADMIN, ROLES.SITE_CS] },
+        meta: { title: 'تقرير الكوبونات', roles: [ROLES.SUPER_ADMIN, ROLES.ADMIN_COMPANY, ROLES.CUSTOMER_SERVICE_COMPANY] },
       },
     ],
   },
@@ -266,15 +328,21 @@ router.beforeEach((to) => {
   // Without this check, a partially-broken session (authenticated but no
   // recognized role) would ping-pong between /login and /admin forever.
   if (to.meta.guest && auth.isAuthenticated && hasValidAdminRole) {
-    return { name: 'admin-owner' }
+    const home = homeRouteFor(userRole)
+    if (to.name === home) return
+    return { name: home }
   }
 
   // Role-based guard for admin routes
   if (to.meta.roles && auth.isAuthenticated) {
     if (!to.meta.roles.includes(userRole)) {
       if (hasValidAdminRole) {
-        // Has admin access but not for THIS specific route — bounce to dashboard home
-        return { name: 'admin-owner' }
+        // Has admin access but not for THIS specific route — bounce to the
+        // role's home. Guard against the home itself being unreachable
+        // (misconfigured ROLE_HOME) to avoid an infinite redirect loop.
+        const home = homeRouteFor(userRole)
+        if (to.name === home) return
+        return { name: home }
       }
       // No valid role at all — wipe the broken session so the next nav doesn't loop
       localStorage.removeItem('pb_user')
