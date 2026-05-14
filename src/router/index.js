@@ -160,6 +160,16 @@ const routes = [
           roles: [ROLES.SUPER_ADMIN, ROLES.ADMIN_COMPANY, ROLES.ADMIN_VILLAGE, ROLES.HEAD_CUSTOMER_SERVICE_VILLAGE, ROLES.CUSTOMER_SERVICE_VILLAGE, ROLES.CUSTOMER_SERVICE_COMPANY],
         },
       },
+      // Chalets browse page — same role set as the bookings list
+      {
+        path: 'village-chalets',
+        name: 'admin-village-chalets',
+        component: () => import('@/views/admin/cs/ChaletsListView.vue'),
+        meta: {
+          title: 'الشاليهات',
+          roles: [ROLES.SUPER_ADMIN, ROLES.ADMIN_COMPANY, ROLES.ADMIN_VILLAGE, ROLES.HEAD_CUSTOMER_SERVICE_VILLAGE, ROLES.CUSTOMER_SERVICE_VILLAGE, ROLES.CUSTOMER_SERVICE_COMPANY],
+        },
+      },
       // New booking — calendar step (pick chalet + date range)
       // Placed BEFORE :id so /new doesn't match the param route.
       {

@@ -1,11 +1,26 @@
 <template>
   <div class="permit-page">
-    <div class="actions-bar no-print">
-      <RouterLink :to="`/admin/village-bookings/${$route.params.id}`" class="back-link">
-        <i class="pi pi-arrow-right" /> العودة للحجز
+    <!-- Breadcrumb + action bar (hidden on print) -->
+    <nav class="page-crumbs no-print" aria-label="مسار التنقل">
+      <RouterLink to="/admin/village-bookings" class="crumb">الحجوزات</RouterLink>
+      <i class="pi pi-angle-left crumb-sep" />
+      <RouterLink :to="`/admin/village-bookings/${$route.params.id}`" class="crumb">
+        {{ permit?.booking_code || 'الحجز' }}
       </RouterLink>
-      <button v-if="permit" class="btn-primary" @click="handlePrint">
-        <i class="pi pi-print" /> طباعة
+      <i class="pi pi-angle-left crumb-sep" />
+      <span class="crumb crumb-current" aria-current="page">التصريح</span>
+    </nav>
+
+    <div v-if="!loading && permit" class="actions-bar no-print">
+      <div class="actions-bar-text">
+        <div class="page-icon"><i class="pi pi-id-card" /></div>
+        <div>
+          <h1 class="page-title">تصريح الأمن</h1>
+          <p class="page-desc">جاهز للطباعة · {{ permit.booking_code }}</p>
+        </div>
+      </div>
+      <button class="btn-print" @click="handlePrint">
+        <i class="pi pi-print" /> طباعة التصريح
       </button>
     </div>
 
@@ -18,101 +33,217 @@
       <p>التصريح غير متاح</p>
     </div>
 
-    <div v-else class="permit-card">
-      <header class="permit-header">
-        <h1>التصريح الأمني</h1>
-        <div class="header-meta">
-          <div><span class="label">رقم التصريح</span><span class="value ltr">{{ permit.permit_number }}</span></div>
-          <div><span class="label">رقم الطلب</span><span class="value ltr">{{ permit.request_number }}</span></div>
-          <div><span class="label">كود الحجز</span><span class="value ltr">{{ permit.booking_code }}</span></div>
+    <!-- The printable permit document -->
+    <article v-else class="permit-doc">
+      <!-- Top band: org/title on the right, permit-number stamp on the left -->
+      <header class="doc-header">
+        <div class="doc-title">
+          <div class="doc-emblem"><i class="pi pi-shield" /></div>
+          <div>
+            <h1 class="doc-name">التصريح الأمني</h1>
+            <p class="doc-sub">Security Permit · القرية</p>
+          </div>
         </div>
-        <div class="header-meta">
-          <div><span class="label">التاريخ</span><span class="value">{{ toDisplayDateTime(permit.created_at) }}</span></div>
-          <div><span class="label">المُؤكِّد</span><span class="value">{{ permit.confirmed_by || '—' }}</span></div>
+        <div class="doc-stamp">
+          <span class="stamp-label">رقم التصريح</span>
+          <span class="stamp-num ltr">#{{ permit.permit_number }}</span>
         </div>
       </header>
 
-      <section class="two-col">
-        <div class="info-block">
-          <h2>بيانات الشاليه</h2>
-          <table class="info-table">
-            <tbody>
-              <tr><td>الكود</td><td class="ltr">{{ permit.chalet?.chalet_code || '—' }}</td></tr>
-              <tr><td>الرقم</td><td class="ltr">{{ permit.chalet?.chalet_number || '—' }}</td></tr>
-              <tr><td>رقم الوحدة</td><td class="ltr">{{ permit.chalet?.unit_number || '—' }}</td></tr>
-              <tr><td>الطابق</td><td>{{ permit.chalet?.floor || '—' }}</td></tr>
-              <tr><td>المساحة</td><td>{{ permit.chalet?.area || '—' }}</td></tr>
-              <tr><td>المجموعة</td><td>{{ permit.chalet?.group_name || '—' }}</td></tr>
-              <tr><td>المالك</td><td>{{ permit.chalet?.owner_name || '—' }}</td></tr>
-              <tr><td>الشركة</td><td>{{ permit.chalet?.company_name || '—' }}</td></tr>
-              <tr><td>الوسيط</td><td>{{ permit.chalet?.delegator_name || '—' }}</td></tr>
-              <tr><td>الحد الأقصى للضيوف</td><td>{{ permit.chalet?.max_guests || '—' }}</td></tr>
-            </tbody>
-          </table>
+      <!-- Meta strip -->
+      <div class="doc-meta">
+        <div class="meta-cell">
+          <span class="meta-label"><i class="pi pi-hashtag" /> كود الحجز</span>
+          <span class="meta-value ltr">{{ permit.booking_code }}</span>
         </div>
-
-        <div class="info-block">
-          <h2>الملخص المالي</h2>
-          <table class="info-table">
-            <tbody>
-              <tr><td>الدخول</td><td>{{ toDisplayDate(permit.financial?.check_in) }}</td></tr>
-              <tr><td>الخروج</td><td>{{ toDisplayDate(permit.financial?.check_out) }}</td></tr>
-              <tr><td>الليالي</td><td>{{ permit.financial?.nights || 0 }}</td></tr>
-              <tr><td>إجمالي الليالي</td><td>{{ fmt(permit.financial?.nights_total) }} ج.م</td></tr>
-              <tr><td>تصريح أمني</td><td>{{ fmt(permit.financial?.security_permit_price) }} ج.م</td></tr>
-              <tr><td>تصريح إلكتروني</td><td>{{ fmt(permit.financial?.electronic_permit_price) }} ج.م</td></tr>
-              <tr><td>أفراد إضافيون</td><td>{{ permit.financial?.extra_guest_count || 0 }} = {{ fmt(permit.financial?.extra_guest_total) }} ج.م</td></tr>
-              <tr><td>السيارات</td><td>{{ permit.financial?.cars_count || 0 }} = {{ fmt(permit.financial?.car_price_total) }} ج.م</td></tr>
-              <tr><td>الخصم</td><td>{{ fmt(permit.financial?.discount_amount) }} ج.م</td></tr>
-              <tr class="total"><td>الإجمالي</td><td>{{ fmt(permit.financial?.total) }} ج.م</td></tr>
-              <tr><td>طريقة الدفع</td><td>{{ paymentLabel(permit.financial?.payment_type) }}</td></tr>
-            </tbody>
-          </table>
+        <div class="meta-cell">
+          <span class="meta-label"><i class="pi pi-file" /> رقم الطلب</span>
+          <span class="meta-value ltr">{{ permit.request_number }}</span>
         </div>
-      </section>
+        <div class="meta-cell">
+          <span class="meta-label"><i class="pi pi-calendar" /> تاريخ الإصدار</span>
+          <span class="meta-value">{{ toDisplayDateTime(permit.created_at) }}</span>
+        </div>
+        <div class="meta-cell">
+          <span class="meta-label"><i class="pi pi-user" /> المُؤكِّد</span>
+          <span class="meta-value ltr">{{ permit.confirmed_by || '—' }}</span>
+        </div>
+      </div>
 
-      <section class="block">
-        <h2>الضيوف ({{ permit.guests?.length || 0 }})</h2>
-        <div v-if="!permit.guests?.length" class="empty-mini">لا يوجد ضيوف</div>
-        <table v-else class="list-table">
+      <!-- Stay band: check-in → nights pill → check-out -->
+      <div class="stay-band">
+        <div class="stay-date">
+          <span class="stay-date-label"><i class="pi pi-sign-in" /> الدخول</span>
+          <strong class="stay-date-value">{{ toDisplayDate(permit.financial?.check_in) }}</strong>
+        </div>
+        <div class="stay-mid">
+          <span class="stay-nights">
+            <i class="pi pi-moon" />
+            {{ permit.financial?.nights || 0 }}
+            {{ (permit.financial?.nights || 0) === 1 ? 'ليلة' : 'ليالٍ' }}
+          </span>
+        </div>
+        <div class="stay-date">
+          <span class="stay-date-label"><i class="pi pi-sign-out" /> الخروج</span>
+          <strong class="stay-date-value">{{ toDisplayDate(permit.financial?.check_out) }}</strong>
+        </div>
+      </div>
+
+      <!-- Body: two columns -->
+      <div class="doc-grid">
+        <!-- Chalet info -->
+        <section class="doc-section">
+          <h2 class="doc-section-title"><i class="pi pi-home" /> بيانات الشاليه</h2>
+          <div class="kv-grid">
+            <div class="kv">
+              <span class="k">الكود</span>
+              <span class="v ltr">{{ permit.chalet?.chalet_code || '—' }}</span>
+            </div>
+            <div class="kv">
+              <span class="k">الرقم</span>
+              <span class="v ltr">{{ permit.chalet?.chalet_number || '—' }}</span>
+            </div>
+            <div class="kv">
+              <span class="k">الوحدة</span>
+              <span class="v ltr">{{ permit.chalet?.unit_number || '—' }}</span>
+            </div>
+            <div class="kv">
+              <span class="k">الطابق</span>
+              <span class="v">{{ permit.chalet?.floor || '—' }}</span>
+            </div>
+            <div class="kv">
+              <span class="k">المساحة</span>
+              <span class="v">{{ permit.chalet?.area || '—' }}</span>
+            </div>
+            <div class="kv">
+              <span class="k">الحد الأقصى للضيوف</span>
+              <span class="v">{{ permit.chalet?.max_guests ?? '—' }}</span>
+            </div>
+            <div class="kv">
+              <span class="k">المجموعة</span>
+              <span class="v">{{ permit.chalet?.group_name || '—' }}</span>
+            </div>
+            <div class="kv">
+              <span class="k">المالك</span>
+              <span class="v">{{ permit.chalet?.owner_name || '—' }}</span>
+            </div>
+            <div class="kv">
+              <span class="k">الشركة</span>
+              <span class="v">{{ permit.chalet?.company_name || '—' }}</span>
+            </div>
+            <div class="kv">
+              <span class="k">الوسيط</span>
+              <span class="v">{{ permit.chalet?.delegator_name || '—' }}</span>
+            </div>
+          </div>
+        </section>
+
+        <!-- Financial -->
+        <section class="doc-section">
+          <h2 class="doc-section-title"><i class="pi pi-calculator" /> الملخص المالي</h2>
+
+          <!-- Hero total -->
+          <div class="money-row">
+            <div class="money-card total">
+              <span class="money-label">الإجمالي</span>
+              <span class="money-value">{{ fmt(permit.financial?.total) }} <small>ج.م</small></span>
+            </div>
+            <div v-if="permit.financial?.payment_type" class="money-card pay">
+              <span class="money-label">طريقة الدفع</span>
+              <span :class="['chip', 'pay', permit.financial.payment_type.toLowerCase()]">
+                <i class="pi pi-credit-card" /> {{ paymentLabel(permit.financial.payment_type) }}
+              </span>
+            </div>
+          </div>
+
+          <!-- Cost breakdown lines -->
+          <div class="cost-lines">
+            <div class="cost-line">
+              <span class="cost-label">إجمالي الليالي</span>
+              <span class="cost-value">{{ fmt(permit.financial?.nights_total) }} ج.م</span>
+            </div>
+            <div class="cost-line">
+              <span class="cost-label">تصريح أمني</span>
+              <span class="cost-value">{{ fmt(permit.financial?.security_permit_price) }} ج.م</span>
+            </div>
+            <div class="cost-line">
+              <span class="cost-label">تصريح إلكتروني</span>
+              <span class="cost-value">{{ fmt(permit.financial?.electronic_permit_price) }} ج.م</span>
+            </div>
+            <div v-if="permit.financial?.extra_guest_count" class="cost-line">
+              <span class="cost-label">
+                أفراد إضافيون
+                <span class="cost-sub">{{ permit.financial.extra_guest_count }} ضيف</span>
+              </span>
+              <span class="cost-value">{{ fmt(permit.financial.extra_guest_total) }} ج.م</span>
+            </div>
+            <div v-if="permit.financial?.cars_count" class="cost-line">
+              <span class="cost-label">
+                السيارات
+                <span class="cost-sub">{{ permit.financial.cars_count }} سيارة</span>
+              </span>
+              <span class="cost-value">{{ fmt(permit.financial.car_price_total) }} ج.م</span>
+            </div>
+            <div v-if="permit.financial?.discount_amount" class="cost-line discount">
+              <span class="cost-label"><i class="pi pi-tag" /> الخصم</span>
+              <span class="cost-value">− {{ fmt(permit.financial.discount_amount) }} ج.م</span>
+            </div>
+          </div>
+        </section>
+      </div>
+
+      <!-- Guests -->
+      <section class="doc-section full">
+        <h2 class="doc-section-title">
+          <i class="pi pi-users" /> الضيوف
+          <span class="doc-counter">{{ permit.guests?.length || 0 }}</span>
+        </h2>
+        <div v-if="!permit.guests?.length" class="empty-mini">لا يوجد ضيوف مسجلين</div>
+        <table v-else class="data-table">
           <thead>
-            <tr><th>الاسم</th><th>الرقم القومي</th><th>الصفة</th><th>النوع</th></tr>
+            <tr>
+              <th class="num-col">#</th>
+              <th>الاسم</th>
+              <th>الرقم القومي</th>
+              <th>الصفة</th>
+              <th>النوع</th>
+            </tr>
           </thead>
           <tbody>
             <tr v-for="(g, i) in permit.guests" :key="i">
-              <td>{{ g.name }}</td>
+              <td class="num-col">{{ i + 1 }}</td>
+              <td><strong>{{ g.name }}</strong></td>
               <td class="ltr">{{ g.identity_number || '—' }}</td>
               <td>{{ g.role || '—' }}</td>
-              <td>{{ g.type === 'ADULT' ? 'بالغ' : g.type === 'CHILD' ? 'طفل' : g.type }}</td>
+              <td>
+                <span :class="['type-pill', g.type?.toLowerCase()]">
+                  {{ g.type === 'ADULT' ? 'بالغ' : g.type === 'CHILD' ? 'طفل' : g.type }}
+                </span>
+              </td>
             </tr>
           </tbody>
         </table>
       </section>
 
-      <section class="block">
-        <h2>السيارات ({{ permit.cars?.length || 0 }})</h2>
+      <!-- Cars -->
+      <section class="doc-section full">
+        <h2 class="doc-section-title">
+          <i class="pi pi-car" /> السيارات
+          <span class="doc-counter">{{ permit.cars?.length || 0 }}</span>
+        </h2>
         <div v-if="!permit.cars?.length" class="empty-mini">لا توجد سيارات</div>
-        <table v-else class="list-table">
-          <thead><tr><th>رقم اللوحة</th></tr></thead>
-          <tbody>
-            <tr v-for="(c, i) in permit.cars" :key="i">
-              <td class="ltr">{{ c.plate_number }}</td>
-            </tr>
-          </tbody>
-        </table>
+        <div v-else class="plate-grid">
+          <div v-for="(c, i) in permit.cars" :key="i" class="plate">
+            <span class="plate-idx">{{ i + 1 }}</span>
+            <span class="plate-num ltr">{{ c.plate_number }}</span>
+          </div>
+        </div>
       </section>
 
-      <footer class="permit-footer">
-        <div class="sig">
-          <div class="sig-line"></div>
-          <span>توقيع المسؤول</span>
-        </div>
-        <div class="sig">
-          <div class="sig-line"></div>
-          <span>توقيع الأمن</span>
-        </div>
-      </footer>
-    </div>
+      <div class="doc-watermark no-print" aria-hidden="true">
+        التصريح الأمني
+      </div>
+    </article>
   </div>
 </template>
 
@@ -156,68 +287,461 @@ onMounted(load)
 <style scoped>
 .permit-page { display: flex; flex-direction: column; gap: 16px; }
 
-.actions-bar { display: flex; justify-content: space-between; align-items: center; }
-.back-link { display: inline-flex; align-items: center; gap: 6px; color: #64748b; font-size: 13px; font-weight: 700; text-decoration: none; }
-.back-link:hover { color: #f97316; }
-.btn-primary {
+/* Breadcrumb */
+.page-crumbs { display: flex; align-items: center; gap: 8px; font-size: 13px; font-weight: 600; }
+.crumb { color: #94a3b8; text-decoration: none; transition: color 0.15s; }
+.crumb:hover { color: #f97316; }
+.crumb-current { color: #0f172a; font-weight: 700; cursor: default; }
+.crumb-sep { font-size: 12px; color: #cbd5e1; }
+
+/* Actions bar */
+.actions-bar {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  gap: 16px;
+  padding: 14px 18px;
+  background: #fff;
+  border: 1px solid #f1f5f9;
+  border-radius: 14px;
+  box-shadow: 0 2px 8px rgba(15, 23, 42, 0.04);
+}
+.actions-bar-text { display: flex; align-items: center; gap: 12px; }
+.page-icon {
+  width: 46px; height: 46px;
+  border-radius: 12px;
+  background: linear-gradient(135deg, rgba(249, 115, 22, 0.12), rgba(251, 191, 36, 0.12));
+  color: #ea580c;
+  display: inline-flex; align-items: center; justify-content: center;
+  flex-shrink: 0;
+}
+.page-icon i { font-size: 20px; }
+.page-title { font-size: 18px; font-weight: 800; color: #0f172a; margin: 0; line-height: 1.2; }
+.page-desc { font-size: 12.5px; color: #94a3b8; margin: 2px 0 0; }
+
+.btn-print {
   display: inline-flex; align-items: center; gap: 8px;
-  padding: 10px 22px; border-radius: 10px;
-  background: linear-gradient(135deg, #0ea5e9, #0284c7);
-  color: #fff; font-size: 13.5px; font-weight: 700;
-  border: none; cursor: pointer;
-  box-shadow: 0 2px 10px rgba(14, 165, 233, 0.35);
+  padding: 10px 22px;
+  border-radius: 10px;
+  background: linear-gradient(135deg, #f97316, #ea580c);
+  border: 1px solid #ea580c;
+  color: #fff;
+  font-family: inherit;
+  font-size: 13.5px;
+  font-weight: 800;
+  cursor: pointer;
+  box-shadow: 0 2px 10px rgba(249, 115, 22, 0.35);
+  transition: all 0.15s;
 }
-.btn-primary:hover { transform: translateY(-1px); }
+.btn-print:hover { transform: translateY(-1px); box-shadow: 0 6px 18px rgba(249, 115, 22, 0.45); }
 
-.permit-card {
-  background: #fff; border: 2px solid #0f172a; border-radius: 14px;
-  padding: 28px; max-width: 900px; margin: 0 auto; width: 100%;
+/* The document itself */
+.permit-doc {
+  background: #fff;
+  border: 1px solid #f1f5f9;
+  border-radius: 16px;
+  padding: 32px;
+  max-width: 980px;
+  width: 100%;
+  margin: 0 auto;
+  box-shadow: 0 4px 24px rgba(15, 23, 42, 0.06);
+  position: relative;
+  overflow: hidden;
+}
+.permit-doc::before {
+  content: '';
+  position: absolute;
+  inset: 0;
+  background:
+    radial-gradient(circle at top right, rgba(249, 115, 22, 0.05), transparent 45%),
+    radial-gradient(circle at bottom left, rgba(14, 165, 233, 0.04), transparent 45%);
+  pointer-events: none;
+}
+.permit-doc > * { position: relative; z-index: 1; }
+
+/* Doc header */
+.doc-header {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  gap: 20px;
+  padding-bottom: 20px;
+  border-bottom: 2px dashed #f1f5f9;
+  margin-bottom: 20px;
+  flex-wrap: wrap;
+}
+.doc-title { display: flex; align-items: center; gap: 14px; }
+.doc-emblem {
+  width: 56px; height: 56px;
+  border-radius: 14px;
+  background: linear-gradient(135deg, #f97316, #ea580c);
+  color: #fff;
+  display: inline-flex; align-items: center; justify-content: center;
+  box-shadow: 0 4px 16px rgba(249, 115, 22, 0.30);
+}
+.doc-emblem i { font-size: 24px; }
+.doc-name {
+  font-size: 24px;
+  font-weight: 900;
+  color: #0f172a;
+  margin: 0;
+  line-height: 1.1;
+  letter-spacing: -0.5px;
+}
+.doc-sub {
+  font-size: 12px;
+  color: #94a3b8;
+  font-weight: 700;
+  margin: 4px 0 0;
+  text-transform: uppercase;
+  letter-spacing: 0.6px;
 }
 
-.permit-header { text-align: center; padding-bottom: 18px; border-bottom: 2px solid #0f172a; margin-bottom: 20px; }
-.permit-header h1 { font-size: 24px; font-weight: 800; color: #0f172a; margin: 0 0 14px; }
-.header-meta { display: flex; justify-content: space-around; flex-wrap: wrap; gap: 14px; margin-top: 8px; }
-.header-meta > div { display: flex; flex-direction: column; gap: 2px; }
-.header-meta .label { font-size: 11px; color: #64748b; font-weight: 700; }
-.header-meta .value { font-size: 13.5px; color: #0f172a; font-weight: 800; }
-.ltr { direction: ltr; }
+.doc-stamp {
+  display: inline-flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 4px;
+  padding: 10px 22px;
+  border: 2px solid #ea580c;
+  border-radius: 14px;
+  background: linear-gradient(135deg, rgba(249, 115, 22, 0.06), rgba(251, 191, 36, 0.06));
+  transform: rotate(-3deg);
+  box-shadow: 0 4px 14px rgba(249, 115, 22, 0.18);
+}
+.stamp-label {
+  font-size: 10px;
+  font-weight: 800;
+  color: #c2410c;
+  text-transform: uppercase;
+  letter-spacing: 1px;
+}
+.stamp-num {
+  font-size: 26px;
+  font-weight: 900;
+  color: #ea580c;
+  line-height: 1;
+}
+.ltr { direction: ltr; text-align: right; }
 
-.two-col { display: grid; grid-template-columns: 1fr 1fr; gap: 18px; margin-bottom: 18px; }
-.info-block, .block { padding: 14px; border: 1px solid #e2e8f0; border-radius: 10px; }
-.info-block h2, .block h2 { font-size: 14px; font-weight: 800; color: #0f172a; margin: 0 0 10px; padding-bottom: 8px; border-bottom: 1px solid #e2e8f0; }
+/* Meta strip */
+.doc-meta {
+  display: grid;
+  grid-template-columns: repeat(4, 1fr);
+  gap: 10px;
+  margin-bottom: 18px;
+}
+.meta-cell {
+  display: flex;
+  flex-direction: column;
+  gap: 4px;
+  padding: 10px 12px;
+  background: #fafbfc;
+  border: 1px solid #f1f5f9;
+  border-radius: 10px;
+}
+.meta-label {
+  display: inline-flex; align-items: center; gap: 5px;
+  font-size: 10.5px;
+  color: #94a3b8;
+  font-weight: 800;
+  text-transform: uppercase;
+  letter-spacing: 0.5px;
+}
+.meta-label i { font-size: 10px; color: #cbd5e1; }
+.meta-value { font-size: 13px; color: #0f172a; font-weight: 800; }
 
-.info-table { width: 100%; border-collapse: collapse; }
-.info-table td { padding: 7px 0; font-size: 12.5px; }
-.info-table td:first-child { color: #64748b; font-weight: 500; width: 50%; }
-.info-table td:last-child { color: #0f172a; font-weight: 700; text-align: left; }
-.info-table tr.total td { font-size: 14px; padding-top: 10px; border-top: 1px solid #e2e8f0; }
-.info-table tr.total td:last-child { color: #ea580c; }
+/* Stay band */
+.stay-band {
+  display: grid;
+  grid-template-columns: 1fr auto 1fr;
+  align-items: center;
+  gap: 14px;
+  padding: 14px 18px;
+  background: linear-gradient(135deg, rgba(249, 115, 22, 0.05), rgba(251, 191, 36, 0.05));
+  border: 1px dashed rgba(249, 115, 22, 0.30);
+  border-radius: 14px;
+  margin-bottom: 18px;
+}
+.stay-date { display: flex; flex-direction: column; gap: 4px; }
+.stay-date-label {
+  display: inline-flex; align-items: center; gap: 5px;
+  font-size: 11px;
+  color: #94a3b8;
+  font-weight: 800;
+  text-transform: uppercase;
+  letter-spacing: 0.5px;
+}
+.stay-date-label i { font-size: 11px; }
+.stay-date-value { font-size: 15px; font-weight: 800; color: #0f172a; }
+.stay-mid { display: flex; justify-content: center; }
+.stay-nights {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  padding: 6px 14px;
+  border-radius: 999px;
+  background: linear-gradient(135deg, #f97316, #ea580c);
+  color: #fff;
+  font-size: 12px;
+  font-weight: 800;
+  box-shadow: 0 3px 10px rgba(249, 115, 22, 0.35);
+  white-space: nowrap;
+  border: 1px solid #ea580c;
+}
+.stay-nights i { font-size: 11px; }
 
-.block { margin-bottom: 14px; }
-.list-table { width: 100%; border-collapse: collapse; }
-.list-table th { padding: 8px 10px; text-align: right; font-size: 11.5px; font-weight: 700; color: #64748b; background: #fafbfc; border: 1px solid #e2e8f0; }
-.list-table td { padding: 8px 10px; font-size: 12.5px; color: #0f172a; border: 1px solid #e2e8f0; }
+/* Doc grid (two cols) */
+.doc-grid {
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  gap: 14px;
+  margin-bottom: 14px;
+}
+.doc-section {
+  padding: 16px 18px;
+  border: 1px solid #f1f5f9;
+  border-radius: 14px;
+  background: #fff;
+}
+.doc-section.full { grid-column: 1 / -1; margin-bottom: 14px; }
+.doc-section-title {
+  display: inline-flex;
+  align-items: center;
+  gap: 8px;
+  font-size: 14px;
+  font-weight: 800;
+  color: #0f172a;
+  margin: 0 0 14px;
+  padding-bottom: 10px;
+  border-bottom: 1px solid #f1f5f9;
+}
+.doc-section-title i { color: #f97316; font-size: 14px; }
+.doc-counter {
+  margin-inline-start: 6px;
+  padding: 3px 10px;
+  border-radius: 999px;
+  background: #f1f5f9;
+  color: #475569;
+  font-size: 11px;
+  font-weight: 700;
+}
 
-.empty-mini { padding: 12px; text-align: center; color: #94a3b8; font-size: 13px; }
+/* KV grid for chalet info */
+.kv-grid {
+  display: grid;
+  grid-template-columns: repeat(2, 1fr);
+  gap: 8px;
+}
+.kv {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  gap: 10px;
+  padding: 8px 10px;
+  background: #fafbfc;
+  border-radius: 8px;
+  font-size: 12.5px;
+}
+.k { color: #64748b; font-weight: 600; }
+.v { color: #0f172a; font-weight: 800; text-align: left; }
+.v.ltr { direction: ltr; text-align: left; }
 
-.permit-footer { display: flex; justify-content: space-around; gap: 60px; margin-top: 40px; padding-top: 24px; }
-.sig { display: flex; flex-direction: column; align-items: center; gap: 6px; flex: 1; }
-.sig-line { width: 100%; max-width: 220px; height: 1px; background: #0f172a; margin-bottom: 4px; }
-.sig span { font-size: 12px; color: #475569; font-weight: 700; }
+/* Money / cost */
+.money-row { display: grid; grid-template-columns: 1.4fr 1fr; gap: 10px; margin-bottom: 14px; }
+.money-card {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  gap: 6px;
+  padding: 14px 12px;
+  border-radius: 12px;
+  border: 1px solid #f1f5f9;
+}
+.money-label {
+  font-size: 11px;
+  color: #94a3b8;
+  font-weight: 800;
+  text-transform: uppercase;
+  letter-spacing: 0.5px;
+}
+.money-value {
+  font-size: 24px;
+  font-weight: 900;
+  color: #0f172a;
+  line-height: 1;
+  display: inline-flex;
+  align-items: baseline;
+  gap: 4px;
+}
+.money-value small { font-size: 11px; font-weight: 700; color: #94a3b8; }
+.money-card.total {
+  background: linear-gradient(135deg, rgba(249, 115, 22, 0.10), rgba(251, 191, 36, 0.10));
+  border-color: rgba(249, 115, 22, 0.30);
+}
+.money-card.total .money-label { color: #c2410c; }
+.money-card.total .money-value { color: #ea580c; }
+.money-card.total .money-value small { color: #c2410c; }
+.money-card.pay { background: #fafbfc; }
 
+.chip {
+  display: inline-flex; align-items: center; gap: 5px;
+  padding: 5px 12px;
+  border-radius: 999px;
+  font-size: 12px;
+  font-weight: 800;
+  border: 1px solid transparent;
+}
+.chip i { font-size: 11px; }
+.chip.pay.cash { background: rgba(16, 185, 129, 0.12); color: #047857; border-color: rgba(16, 185, 129, 0.25); }
+.chip.pay.bank { background: rgba(14, 165, 233, 0.12); color: #0369a1; border-color: rgba(14, 165, 233, 0.25); }
+.chip.pay.withdraw_balance { background: rgba(139, 92, 246, 0.12); color: #6d28d9; border-color: rgba(139, 92, 246, 0.25); }
+
+.cost-lines { display: flex; flex-direction: column; }
+.cost-line {
+  display: flex; align-items: center; justify-content: space-between;
+  gap: 12px;
+  padding: 9px 4px;
+  border-bottom: 1px dashed #f1f5f9;
+  font-size: 13px;
+}
+.cost-line:last-child { border-bottom: none; }
+.cost-label {
+  display: inline-flex; align-items: center; gap: 8px;
+  color: #475569; font-weight: 600;
+}
+.cost-label i { font-size: 11px; color: #94a3b8; }
+.cost-sub { font-size: 11px; color: #94a3b8; font-weight: 500; }
+.cost-value { color: #0f172a; font-weight: 800; }
+.cost-line.discount .cost-label,
+.cost-line.discount .cost-value { color: #047857; }
+
+/* Data tables */
+.data-table { width: 100%; border-collapse: collapse; border-radius: 10px; overflow: hidden; }
+.data-table th {
+  padding: 10px 12px;
+  text-align: right;
+  font-size: 11px;
+  font-weight: 800;
+  color: #64748b;
+  background: #fafbfc;
+  border-bottom: 1px solid #f1f5f9;
+  text-transform: uppercase;
+  letter-spacing: 0.4px;
+}
+.data-table td {
+  padding: 10px 12px;
+  font-size: 13px;
+  color: #0f172a;
+  border-bottom: 1px solid #f8fafc;
+}
+.data-table tr:last-child td { border-bottom: none; }
+.data-table td strong { font-weight: 800; }
+.num-col { width: 40px; text-align: center !important; color: #94a3b8; font-weight: 700; }
+
+.type-pill {
+  display: inline-flex; align-items: center;
+  padding: 3px 10px;
+  border-radius: 999px;
+  font-size: 11px;
+  font-weight: 800;
+  border: 1px solid;
+}
+.type-pill.adult { background: rgba(14, 165, 233, 0.10); color: #0369a1; border-color: rgba(14, 165, 233, 0.25); }
+.type-pill.child { background: rgba(168, 85, 247, 0.10); color: #6d28d9; border-color: rgba(168, 85, 247, 0.25); }
+
+/* Plate grid (cars) */
+.plate-grid {
+  display: grid;
+  grid-template-columns: repeat(auto-fill, minmax(180px, 1fr));
+  gap: 10px;
+}
+.plate {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  padding: 12px 14px;
+  background: #fafbfc;
+  border: 1px solid #f1f5f9;
+  border-radius: 12px;
+}
+.plate-idx {
+  width: 26px; height: 26px;
+  border-radius: 8px;
+  background: linear-gradient(135deg, rgba(249, 115, 22, 0.14), rgba(251, 191, 36, 0.14));
+  color: #ea580c;
+  font-size: 12px;
+  font-weight: 800;
+  display: inline-flex; align-items: center; justify-content: center;
+  flex-shrink: 0;
+}
+.plate-num {
+  font-size: 14px;
+  font-weight: 800;
+  color: #0f172a;
+  letter-spacing: 0.5px;
+}
+
+.empty-mini {
+  padding: 18px;
+  text-align: center;
+  color: #94a3b8;
+  font-size: 13px;
+  background: #fafbfc;
+  border: 1px dashed #e2e8f0;
+  border-radius: 10px;
+}
+
+
+/* Watermark — visible on screen, hidden on print */
+.doc-watermark {
+  position: absolute;
+  top: 50%;
+  left: 50%;
+  transform: translate(-50%, -50%) rotate(-25deg);
+  font-size: 120px;
+  font-weight: 900;
+  color: rgba(15, 23, 42, 0.025);
+  letter-spacing: 4px;
+  white-space: nowrap;
+  pointer-events: none;
+  user-select: none;
+  z-index: 0;
+}
+
+/* States */
 .card { background: #fff; border: 1px solid #f1f5f9; border-radius: 14px; padding: 18px; }
 .error-card { display: flex; flex-direction: column; align-items: center; gap: 12px; padding: 40px 20px; text-align: center; color: #b91c1c; }
 .error-card i { font-size: 28px; }
 .error-card p { margin: 0; font-size: 14px; }
-
-.loading-state { padding: 60px 20px; text-align: center; color: #64748b; font-size: 14px; }
+.loading-state {
+  padding: 60px 20px;
+  text-align: center;
+  color: #64748b;
+  font-size: 14px;
+  background: #fff;
+  border: 1px solid #f1f5f9;
+  border-radius: 14px;
+}
 .loading-state i { font-size: 18px; margin-left: 8px; color: #f97316; }
 
-@media (max-width: 720px) {
-  .two-col { grid-template-columns: 1fr; }
+@media (max-width: 900px) {
+  .doc-grid { grid-template-columns: 1fr; }
+  .doc-meta { grid-template-columns: repeat(2, 1fr); }
+  .actions-bar { flex-direction: column; align-items: stretch; gap: 12px; }
+  .btn-print { justify-content: center; }
+}
+@media (max-width: 540px) {
+  .permit-doc { padding: 20px; }
+  .stay-band { grid-template-columns: 1fr; text-align: center; }
+  .money-row { grid-template-columns: 1fr; }
+  .kv-grid { grid-template-columns: 1fr; }
+  .doc-header { flex-direction: column; align-items: flex-start; }
+  .doc-stamp { transform: rotate(0); align-self: flex-end; }
 }
 
-/* Print styles — hide chrome, render only the permit card */
+/* Print styles — hide chrome, render only the permit doc */
 @media print {
   :global(.sidebar),
   :global(.topbar),
@@ -231,15 +755,18 @@ onMounted(load)
     margin: 0 !important;
   }
   .permit-page { gap: 0; padding: 0; }
-  .permit-card {
+  .permit-doc {
     border: 1px solid #0f172a;
     box-shadow: none;
     max-width: 100%;
-    padding: 16px;
+    padding: 20px;
+    border-radius: 0;
     print-color-adjust: exact;
     -webkit-print-color-adjust: exact;
   }
-  .permit-header { page-break-after: avoid; }
-  .block, .info-block { page-break-inside: avoid; }
+  .permit-doc::before { display: none; }
+  .doc-header { page-break-after: avoid; }
+  .doc-section, .stay-band { page-break-inside: avoid; }
+  .doc-stamp { transform: rotate(-3deg); }
 }
 </style>

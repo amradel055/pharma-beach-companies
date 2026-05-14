@@ -63,7 +63,7 @@
             :options="companyOptions"
             placeholder="كل الشركات"
             empty-text="لا توجد شركات"
-            @change="reloadFiltered"
+            @change="onFilterChange"
           />
         </div>
         <div class="filter-field">
@@ -73,7 +73,7 @@
             :options="ownerOptions"
             placeholder="كل الملاك"
             empty-text="لا يوجد ملاك"
-            @change="reloadFiltered"
+            @change="onFilterChange"
           />
         </div>
         <div class="filter-field">
@@ -83,7 +83,7 @@
             :options="groupOptions"
             placeholder="كل المجموعات"
             empty-text="لا توجد مجموعات"
-            @change="reloadFiltered"
+            @change="onFilterChange"
           />
         </div>
         <div class="filter-field filter-field-range">
@@ -91,7 +91,7 @@
           <DateRangePicker
             v-model:from="filters.check_in"
             v-model:to="filters.check_out"
-            @change="reloadFiltered"
+            @change="onFilterChange"
           />
         </div>
       </div>
@@ -158,6 +158,55 @@
           <i class="pi pi-chevron-left row-chev" />
         </button>
       </div>
+
+      <!-- Pagination — always shown when there are rows. Internal & display
+           values are both 1-based; the store applies the -1 offset to the wire
+           request since the API page param is 0-based. -->
+      <div v-if="!loading && filteredRows.length" class="pagination">
+        <div class="pagination-info">
+          عرض {{ rangeFrom }} – {{ rangeTo }} من {{ total }}
+        </div>
+        <div class="pagination-controls">
+          <button
+            class="page-btn nav"
+            :disabled="currentPage === 1"
+            @click="goToPage(currentPage - 1)"
+            aria-label="السابق"
+          >
+            <i class="pi pi-chevron-right" />
+          </button>
+
+          <button
+            v-if="pageWindow[0] > 1"
+            class="page-btn"
+            @click="goToPage(1)"
+          >1</button>
+          <span v-if="pageWindow[0] > 2" class="page-ellipsis">…</span>
+
+          <button
+            v-for="p in pageWindow"
+            :key="p"
+            :class="['page-btn', { active: p === currentPage }]"
+            @click="goToPage(p)"
+          >{{ p }}</button>
+
+          <span v-if="pageWindow[pageWindow.length - 1] < lastPage - 1" class="page-ellipsis">…</span>
+          <button
+            v-if="pageWindow[pageWindow.length - 1] < lastPage"
+            class="page-btn"
+            @click="goToPage(lastPage)"
+          >{{ lastPage }}</button>
+
+          <button
+            class="page-btn nav"
+            :disabled="currentPage === lastPage"
+            @click="goToPage(currentPage + 1)"
+            aria-label="التالي"
+          >
+            <i class="pi pi-chevron-left" />
+          </button>
+        </div>
+      </div>
     </section>
   </div>
 </template>
@@ -185,13 +234,40 @@ const filters = reactive({
   check_out: '',
 })
 
+// Pagination — 1-indexed end-to-end. The Laravel paginator returns
+// current_page/last_page as 1-based numbers and accepts `page` as 1-based,
+// so we just mirror those values. `lastPage` is the TOTAL number of pages
+// (e.g. 3 means pages 1, 2, 3; lastPage===1 means a single page → controls hidden).
+const currentPage = ref(1)
+const lastPage = ref(1)
+const total = ref(0)
+const perPage = ref(10)
+const rangeFrom = ref(0)
+const rangeTo = ref(0)
+
 const hasActiveFilter = computed(() => Object.values(filters).some((v) => v))
 const activeFilterCount = computed(() => Object.values(filters).filter((v) => !!v).length)
+
+// Sliding window of 1-based page numbers around the current page.
+const pageWindow = computed(() => {
+  const last = lastPage.value
+  const cur = currentPage.value
+  const span = 2
+  let start = Math.max(1, cur - span)
+  let end = Math.min(last, cur + span)
+  if (end - start < span * 2) {
+    if (start === 1) end = Math.min(last, start + span * 2)
+    else if (end === last) start = Math.max(1, end - span * 2)
+  }
+  const pages = []
+  for (let i = start; i <= end; i++) pages.push(i)
+  return pages
+})
 
 const stats = computed(() => {
   const rows = filteredRows.value
   return {
-    total: rows.length,
+    total: total.value, // server-provided across all pages
     confirmed: rows.filter((r) => r.permit_exists).length,
     pending: rows.filter((r) => !r.permit_exists).length,
     nights: rows.reduce((s, r) => s + Number(r.nights || 0), 0),
@@ -226,12 +302,38 @@ async function loadLookups() {
   if (g.ok) groups.value = g.data
 }
 
-async function reloadFiltered() {
+// Pull the current page from the API. `resetPage=true` is used by filter
+// handlers — any filter change should bring the user back to page 1 so they
+// don't end up on a non-existent page after the result set shrinks.
+async function reloadFiltered({ resetPage = false } = {}) {
+  if (resetPage) currentPage.value = 1
   loading.value = true
-  const r = await csBookings.listBookingsSlim(filters)
+  // The API uses 0-based `page` query params (page=0 is the first page) like its
+  // sibling list endpoints. But the response is a Laravel paginator whose
+  // current_page/last_page are 1-based by convention. So we keep the UI 1-based
+  // and subtract 1 only when sending.
+  const r = await csBookings.listBookingsSlim({ page: currentPage.value - 1, ...filters })
   loading.value = false
-  if (r.ok) filteredRows.value = r.data
-  else toast.error(r.error)
+  if (r.ok) {
+    filteredRows.value = r.data.rows
+    // Trust the response (1-based current_page / last_page).
+    currentPage.value = r.data.page || 1
+    lastPage.value = r.data.lastPage || 1
+    perPage.value = r.data.perPage
+    total.value = r.data.total
+    rangeFrom.value = r.data.from
+    rangeTo.value = r.data.to
+  } else {
+    toast.error(r.error)
+  }
+}
+
+function onFilterChange() { reloadFiltered({ resetPage: true }) }
+
+function goToPage(p) {
+  if (p < 1 || p > lastPage.value || p === currentPage.value) return
+  currentPage.value = p
+  reloadFiltered()
 }
 
 function clearFilters() {
@@ -240,7 +342,8 @@ function clearFilters() {
   filters.group_id = ''
   filters.check_in = ''
   filters.check_out = ''
-  reloadFiltered()
+  currentPage.value = 1
+  reloadFiltered({ resetPage: true })
 }
 
 function openBooking(id) {
@@ -492,6 +595,65 @@ onMounted(async () => {
 .empty-state h3 { font-size: 16px; font-weight: 800; color: #475569; margin: 0; }
 .empty-state p { font-size: 13px; margin: 0; }
 .empty-state .btn-confirm { margin-top: 8px; }
+
+/* ── Pagination ── */
+.pagination {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 12px;
+  margin-top: 14px;
+  padding-top: 14px;
+  border-top: 1px solid #f1f5f9;
+  flex-wrap: wrap;
+}
+.pagination-info {
+  font-size: 12.5px;
+  color: #64748b;
+  font-weight: 600;
+}
+.pagination-controls {
+  display: flex;
+  align-items: center;
+  gap: 4px;
+}
+.page-btn {
+  min-width: 34px;
+  height: 34px;
+  padding: 0 10px;
+  border-radius: 9px;
+  border: 1px solid #e2e8f0;
+  background: #fff;
+  color: #475569;
+  font-size: 13px;
+  font-weight: 700;
+  font-family: inherit;
+  cursor: pointer;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  transition: all 0.15s;
+}
+.page-btn:hover:not(:disabled):not(.active) {
+  border-color: #fed7aa;
+  color: #f97316;
+}
+.page-btn:disabled {
+  opacity: 0.4;
+  cursor: not-allowed;
+}
+.page-btn.active {
+  background: linear-gradient(135deg, #f97316, #ea580c);
+  border-color: transparent;
+  color: #fff;
+  box-shadow: 0 2px 8px rgba(249, 115, 22, 0.30);
+}
+.page-btn.nav i { font-size: 12px; }
+.page-ellipsis {
+  padding: 0 4px;
+  color: #cbd5e1;
+  font-weight: 700;
+}
 
 @media (max-width: 900px) {
   .stats-row { grid-template-columns: 1fr 1fr; }

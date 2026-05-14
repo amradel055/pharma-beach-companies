@@ -123,9 +123,54 @@
           </div>
         </div>
 
-        <p v-if="calendarChalets.length && chaletTotal > calendarChalets.length" class="bk-truncate-note">
-          عرض أول {{ calendarChalets.length }} شاليه من {{ chaletTotal }} — استخدم عوامل التصفية لتضييق النتائج.
-        </p>
+        <!-- Pagination — shown whenever any chalets are loaded. Internal &
+             display values are 1-based; the store applies the -1 offset on
+             the wire since the API page param is 0-based. -->
+        <div v-if="!chaletsLoading && calendarChalets.length" class="bk-pagination">
+          <div class="bk-pagination-info">
+            عرض {{ chaletRangeFrom }} – {{ chaletRangeTo }} من {{ chaletTotal }} شاليه
+          </div>
+          <div class="bk-pagination-controls">
+            <button
+              class="bk-page-btn nav"
+              :disabled="chaletPage === 1"
+              @click="goToChaletPage(chaletPage - 1)"
+              aria-label="السابق"
+            >
+              <i class="pi pi-chevron-right" />
+            </button>
+
+            <button
+              v-if="chaletPageWindow[0] > 1"
+              class="bk-page-btn"
+              @click="goToChaletPage(1)"
+            >1</button>
+            <span v-if="chaletPageWindow[0] > 2" class="bk-page-ellipsis">…</span>
+
+            <button
+              v-for="p in chaletPageWindow"
+              :key="p"
+              :class="['bk-page-btn', { active: p === chaletPage }]"
+              @click="goToChaletPage(p)"
+            >{{ p }}</button>
+
+            <span v-if="chaletPageWindow[chaletPageWindow.length - 1] < chaletLastPage - 1" class="bk-page-ellipsis">…</span>
+            <button
+              v-if="chaletPageWindow[chaletPageWindow.length - 1] < chaletLastPage"
+              class="bk-page-btn"
+              @click="goToChaletPage(chaletLastPage)"
+            >{{ chaletLastPage }}</button>
+
+            <button
+              class="bk-page-btn nav"
+              :disabled="chaletPage === chaletLastPage"
+              @click="goToChaletPage(chaletPage + 1)"
+              aria-label="التالي"
+            >
+              <i class="pi pi-chevron-left" />
+            </button>
+          </div>
+        </div>
       </div>
 
     </div>
@@ -248,6 +293,13 @@ const monthDays = computed(() => {
 // ──────────────────────────────────────────────────────────────────────────
 const chalets = ref([])
 const chaletTotal = ref(0)
+// Pagination — 1-indexed (UI-friendly); store handles the -1 conversion to the
+// API's 0-based page param. `lastPage` is the count of pages (1 = single page).
+const chaletPage = ref(1)
+const chaletLastPage = ref(1)
+const chaletRangeFrom = ref(0)
+const chaletRangeTo = ref(0)
+const CHALET_PAGE_SIZE = 10
 // Start in loading state so the spinner shows on first paint — otherwise the
 // empty-state message flashes for one frame before the mount fetch kicks in.
 const chaletsLoading = ref(true)
@@ -256,37 +308,67 @@ const chaletBookings = ref({})
 
 const calendarChalets = computed(() => chalets.value)
 
-// Single API call that returns chalets + their bookings together. Replaces
-// the previous listAvailableChalets + per-chalet getChaletBookings fan-out.
+// Sliding window of page numbers around the current page (1-indexed).
+const chaletPageWindow = computed(() => {
+  const last = chaletLastPage.value
+  const cur = chaletPage.value
+  const span = 2
+  let start = Math.max(1, cur - span)
+  let end = Math.min(last, cur + span)
+  if (end - start < span * 2) {
+    if (start === 1) end = Math.min(last, start + span * 2)
+    else if (end === last) start = Math.max(1, end - span * 2)
+  }
+  const pages = []
+  for (let i = start; i <= end; i++) pages.push(i)
+  return pages
+})
+
+// Single API call that returns chalets + their bookings together.
 async function loadChalets() {
   chaletsLoading.value = true
   const r = await csBookings.listAvailableChaletsDetail({
-    page: 0,
-    limit: 50,
+    page: chaletPage.value,
+    limit: CHALET_PAGE_SIZE,
     company_id: filters.company_id,
     owner_id: filters.owner_id,
     group_id: filters.group_id,
   })
   chaletsLoading.value = false
   if (r.ok) {
-    const content = r.data?.content || []
-    chalets.value = content
-    chaletTotal.value = r.data?.total || content.length
+    const rows = r.data?.rows || r.data?.content || []
+    chalets.value = rows
+    chaletTotal.value = r.data?.total ?? rows.length
+    chaletPage.value = r.data?.page ?? 1
+    chaletLastPage.value = r.data?.lastPage ?? 1
+    chaletRangeFrom.value = r.data?.from ?? 0
+    chaletRangeTo.value = r.data?.to ?? rows.length
     // Pull each chalet's bookings out of the same response — keyed by id.
     const next = {}
-    for (const c of content) next[c.id] = c.bookings || []
+    for (const c of rows) next[c.id] = c.bookings || []
     chaletBookings.value = next
   } else {
     toast.error(r.error)
     chalets.value = []
     chaletTotal.value = 0
+    chaletLastPage.value = 1
     chaletBookings.value = {}
   }
 }
 
+// Filter change → reset to page 1.
 async function reloadChalets() {
   clearSelection()
+  chaletPage.value = 1
   await loadChalets()
+}
+
+// Page change — used by pagination controls.
+function goToChaletPage(p) {
+  if (p < 1 || p > chaletLastPage.value || p === chaletPage.value) return
+  clearSelection()
+  chaletPage.value = p
+  loadChalets()
 }
 
 // Refresh just one chalet — used after confirming a new booking.
@@ -610,7 +692,46 @@ onMounted(async () => {
 .bk-scroll::-webkit-scrollbar-track { background: #f8fafc; border-radius: 4px; }
 .bk-scroll::-webkit-scrollbar-thumb { background: #cbd5e1; border-radius: 4px; }
 
-.bk-truncate-note { margin: 10px 0 0; font-size: 12px; color: #94a3b8; text-align: center; }
+/* Pagination — placed under the calendar grid */
+.bk-pagination {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 12px;
+  margin-top: 14px;
+  padding-top: 14px;
+  border-top: 1px solid #f1f5f9;
+  flex-wrap: wrap;
+}
+.bk-pagination-info { font-size: 12.5px; color: #64748b; font-weight: 600; }
+.bk-pagination-controls { display: flex; align-items: center; gap: 4px; }
+.bk-page-btn {
+  min-width: 34px;
+  height: 34px;
+  padding: 0 10px;
+  border-radius: 9px;
+  border: 1px solid #e2e8f0;
+  background: #fff;
+  color: #475569;
+  font-size: 13px;
+  font-weight: 700;
+  font-family: inherit;
+  cursor: pointer;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  transition: all 0.15s;
+}
+.bk-page-btn:hover:not(:disabled):not(.active) { border-color: #fed7aa; color: #f97316; }
+.bk-page-btn:disabled { opacity: 0.4; cursor: not-allowed; }
+.bk-page-btn.active {
+  background: linear-gradient(135deg, #f97316, #ea580c);
+  border-color: transparent;
+  color: #fff;
+  box-shadow: 0 2px 8px rgba(249, 115, 22, 0.30);
+}
+.bk-page-btn.nav i { font-size: 12px; }
+.bk-page-ellipsis { padding: 0 4px; color: #cbd5e1; font-weight: 700; }
 
 .bk-grid {
   display: grid;

@@ -4,12 +4,7 @@
     <!-- Logo Area -->
     <div class="sidebar-header">
       <RouterLink to="/admin" class="sidebar-logo">
-        <div class="logo-icon">
-          <img :src="logo" alt="PB" />
-        </div>
-        <Transition name="fade-text">
-          <span v-if="!collapsed" class="logo-text">Pharma Beach</span>
-        </Transition>
+        <img :src="logo" alt="Pharma Beach" class="logo-img" />
       </RouterLink>
     </div>
 
@@ -128,6 +123,7 @@ const allSections = [
     permission: 'manage_orders',
     items: [
       { label: 'الحجوزات', to: '/admin/village-bookings', icon: 'pi pi-clipboard' },
+      { label: 'الشاليهات', to: '/admin/village-chalets', icon: 'pi pi-home' },
       { label: 'التصاريح', to: '/admin/permits', icon: 'pi pi-id-card' },
     ],
   },
@@ -221,53 +217,37 @@ const visibleSections = computed(() => {
    HEADER / LOGO
    ═══════════════════════════════════ */
 .sidebar-header {
-  padding: 20px 16px;
+  padding: 16px;
   border-bottom: 1px solid rgba(148, 163, 184, 0.08);
   min-height: 72px;
   display: flex;
   align-items: center;
+  justify-content: center;
   overflow: hidden;
 }
 
 .sidebar-logo {
   display: flex;
   align-items: center;
-  gap: 12px;
+  justify-content: center;
   text-decoration: none;
-  color: #fff;
-  width: 100%;
-  overflow: hidden;
+  transition: opacity 0.15s ease;
+}
+.sidebar-logo:hover { opacity: 0.85; }
+
+.logo-img {
+  width: 120px;
+  height: auto;
+  object-fit: contain;
+  display: block;
+  /* Render the (dark) logo as white against the dark sidebar */
+  filter: brightness(0) invert(1);
+  transition: width 0.3s cubic-bezier(0.4, 0, 0.2, 1);
 }
 
-.logo-icon {
+/* Collapsed sidebar — shrink the logo so it still fits inside the rail */
+.sidebar.collapsed .logo-img {
   width: 40px;
-  height: 40px;
-  border-radius: 12px;
-  overflow: hidden;
-  flex-shrink: 0;
-  box-shadow: 0 4px 12px rgba(249, 115, 22, 0.25);
-  transition: transform 0.3s ease;
-}
-
-.sidebar-logo:hover .logo-icon {
-  transform: scale(1.05);
-}
-
-.logo-icon img {
-  width: 100%;
-  height: 100%;
-  object-fit: cover;
-}
-
-.logo-text {
-  font-size: 16px;
-  font-weight: 800;
-  letter-spacing: -0.3px;
-  background: linear-gradient(135deg, #f97316, #fb923c);
-  -webkit-background-clip: text;
-  -webkit-text-fill-color: transparent;
-  background-clip: text;
-  white-space: nowrap;
 }
 
 /* ═══════════════════════════════════
@@ -627,10 +607,6 @@ const visibleSections = computed(() => {
   }
 
   .nav-badge {
-    display: inline !important;
-  }
-
-  .logo-text {
     display: inline !important;
   }
 }

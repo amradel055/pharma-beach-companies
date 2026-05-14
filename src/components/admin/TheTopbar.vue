@@ -5,10 +5,6 @@
         <button class="mobile-menu-btn" @click="$emit('toggleMobile')">
           <i class="pi pi-bars" />
         </button>
-
-        <nav class="breadcrumb">
-          <span class="breadcrumb-current">{{ pageTitle }}</span>
-        </nav>
       </div>
 
       <!-- Left Side (RTL end) -->
@@ -54,7 +50,7 @@
 
 <script setup>
 import { ref, computed, onMounted, onUnmounted } from 'vue'
-import { useRoute, useRouter } from 'vue-router'
+import { useRouter } from 'vue-router'
 import { useAuthStore } from '@/stores/auth'
 import { ROLE_LABELS } from '@/constants/roles'
 
@@ -63,14 +59,12 @@ defineProps({
 })
 defineEmits(['toggleMobile'])
 
-const route = useRoute()
 const router = useRouter()
 const auth = useAuthStore()
 
 const menuOpen = ref(false)
 const userMenuRef = ref(null)
 
-const pageTitle = computed(() => route.meta?.title || 'لوحة التحكم')
 const userInitial = computed(() => auth.user?.name?.charAt(0) || '?')
 const roleLabel = computed(() => ROLE_LABELS[auth.user?.role] || 'مستخدم')
 
@@ -141,41 +135,6 @@ onUnmounted(() => {
 
 .mobile-menu-btn:hover {
   background: #e2e8f0;
-}
-
-.breadcrumb {
-  display: flex;
-  align-items: center;
-  gap: 6px;
-  font-size: 13.5px;
-}
-
-.breadcrumb-link {
-  display: flex;
-  align-items: center;
-  gap: 6px;
-  color: #94a3b8;
-  text-decoration: none;
-  font-weight: 500;
-  transition: color 0.15s;
-}
-
-.breadcrumb-link:hover {
-  color: #475569;
-}
-
-.breadcrumb-link i {
-  font-size: 14px;
-}
-
-.breadcrumb-sep {
-  font-size: 11px;
-  color: #cbd5e1;
-}
-
-.breadcrumb-current {
-  color: #1e293b;
-  font-weight: 600;
 }
 
 /* ═══════════════════════════════════
@@ -421,22 +380,6 @@ onUnmounted(() => {
     font-size: 16px;
   }
 
-  .breadcrumb {
-    font-size: 12.5px;
-  }
-
-  .breadcrumb-link span {
-    display: none;
-  }
-
-  .breadcrumb-sep {
-    display: none;
-  }
-
-  .breadcrumb-current {
-    font-size: 13px;
-  }
-
   .user-label {
     display: none;
   }
@@ -474,14 +417,6 @@ onUnmounted(() => {
   }
 }
 
-@media (max-width: 380px) {
-  .breadcrumb-current {
-    max-width: 100px;
-    overflow: hidden;
-    text-overflow: ellipsis;
-    white-space: nowrap;
-  }
-}
 
 /* ═══════════════════════════════════
    NOTIFICATIONS

@@ -68,15 +68,65 @@ export const useCsBookingsStore = defineStore('csBookings', () => {
     _lookupCache.groups = null
   }
 
-  // NEW: returns chalets + their booked dates in one call (replaces the
-  // listAvailableChalets + fan-out getChaletBookings combo once we know the
-  // shape). For now just exposes the raw response.
-  async function listAvailableChaletsDetail({ page = 0, limit = 10, company_id, owner_id, group_id, delegator_id } = {}) {
+  // Returns chalets + their bookings in one call.
+  //
+  // Mixed indexing on this endpoint (same pattern as /v1/bookings-list):
+  //   • REQUEST: `?page=` is 0-based.
+  //   • RESPONSE: Laravel paginator with 1-based current_page / last_page.
+  //
+  // Caller passes `page` as 1-based (UI-friendly); we subtract 1 on the wire.
+  // We also tolerate the legacy `{ content: [...], total }` shape so older
+  // callers don't break.
+  async function listAvailableChaletsDetail({ page = 1, limit = 10, company_id, owner_id, group_id, delegator_id } = {}) {
     try {
+      const apiPage = Math.max(0, Number(page) - 1)
       const res = await api.get('/v1/chalets/available-detail', {
-        params: cleanParams({ page, limit, company_id, owner_id, group_id, delegator_id }),
+        params: cleanParams({ page: apiPage, limit, company_id, owner_id, group_id, delegator_id }),
       })
-      return { ok: true, data: unwrap(res) }
+      const payload = unwrap(res)
+
+      // Laravel paginator: { current_page, data: [...rows], last_page, per_page, total, from, to }
+      if (payload && Array.isArray(payload.data)) {
+        return {
+          ok: true,
+          data: {
+            rows: payload.data,
+            // legacy alias so existing callers using `.content` keep working
+            content: payload.data,
+            page: payload.current_page ?? 1,
+            lastPage: payload.last_page ?? 1,
+            perPage: payload.per_page || (payload.data?.length ?? limit),
+            total: payload.total ?? payload.data.length,
+            from: payload.from || 0,
+            to: payload.to || payload.data.length,
+          },
+        }
+      }
+
+      // Legacy shape: { content: [...], total }
+      if (payload && Array.isArray(payload.content)) {
+        const rows = payload.content
+        return {
+          ok: true,
+          data: {
+            rows,
+            content: rows,
+            page: 1,
+            lastPage: 1,
+            perPage: rows.length,
+            total: payload.total ?? rows.length,
+            from: rows.length ? 1 : 0,
+            to: rows.length,
+          },
+        }
+      }
+
+      // Defensive fallback.
+      const rows = Array.isArray(payload) ? payload : []
+      return {
+        ok: true,
+        data: { rows, content: rows, page: 1, lastPage: 1, perPage: rows.length, total: rows.length, from: 1, to: rows.length },
+      }
     } catch (error) {
       return { ok: false, error: getErrorMessage(error, 'تعذر جلب تفاصيل الشاليهات') }
     }
@@ -146,13 +196,45 @@ export const useCsBookingsStore = defineStore('csBookings', () => {
     }
   }
 
-  // GET /v1/bookings-list — slim list with optional filters (Screen 2 tab 2).
-  async function listBookingsSlim({ company_id, owner_id, group_id, check_in, check_out } = {}) {
+  // GET /v1/bookings-list — slim list with optional filters + pagination.
+  //
+  // Mixed indexing on this endpoint:
+  //   • REQUEST: `?page=` is 0-based (page=0 → first page, page=1 → second).
+  //     Matches its sibling list endpoints.
+  //   • RESPONSE: Laravel paginator's current_page / last_page are 1-based
+  //     (last_page=1 means one page total).
+  //
+  // To keep callers sane, this method accepts `page` as **1-based** (UI-friendly)
+  // and converts to 0-based when sending. Returned `page`/`lastPage` stay 1-based
+  // since they mirror the response directly.
+  // Response: { current_page, data: [...rows], last_page, per_page, total, from, to, ... }
+  async function listBookingsSlim({ page = 1, per_page, company_id, owner_id, group_id, check_in, check_out } = {}) {
     try {
+      const apiPage = Math.max(0, Number(page) - 1)
       const res = await api.get('/v1/bookings-list', {
-        params: cleanParams({ company_id, owner_id, group_id, check_in, check_out }),
+        params: cleanParams({ page: apiPage, per_page, company_id, owner_id, group_id, check_in, check_out }),
       })
-      return { ok: true, data: unwrap(res) || [] }
+      const payload = unwrap(res)
+      if (payload && Array.isArray(payload.data)) {
+        return {
+          ok: true,
+          data: {
+            rows: payload.data,
+            page: payload.current_page ?? 1,
+            lastPage: payload.last_page ?? 1,
+            perPage: payload.per_page || (payload.data?.length ?? 10),
+            total: payload.total ?? payload.data.length,
+            from: payload.from || 0,
+            to: payload.to || payload.data.length,
+          },
+        }
+      }
+      // Fallback for older flat-array responses (single page).
+      const rows = Array.isArray(payload) ? payload : []
+      return {
+        ok: true,
+        data: { rows, page: 1, lastPage: 1, perPage: rows.length, total: rows.length, from: 1, to: rows.length },
+      }
     } catch (error) {
       return { ok: false, error: getErrorMessage(error, 'تعذر جلب قائمة الحجوزات') }
     }

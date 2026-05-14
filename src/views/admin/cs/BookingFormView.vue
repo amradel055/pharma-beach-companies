@@ -110,52 +110,6 @@
           </div>
         </section>
 
-        <!-- Cost breakdown -->
-        <section class="cost-card">
-          <div class="bf-section-head">
-            <h4 class="bf-section-title"><i class="pi pi-calculator" /> تفاصيل التكلفة</h4>
-          </div>
-          <div class="cost-lines">
-            <div class="cost-line">
-              <span class="cost-label">
-                سعر الليالى
-                <span class="cost-sub">{{ fmtNum(bookingInfo.price) }} × {{ bookingInfo.nights }}</span>
-              </span>
-              <span class="cost-value">{{ fmtNum(financial.nightlyTotal) }} ج.م</span>
-            </div>
-            <div class="cost-line">
-              <span class="cost-label">رسوم القرية</span>
-              <span class="cost-value">{{ fmtNum(bookingInfo.total_village_fee) }} ج.م</span>
-            </div>
-            <div class="cost-line">
-              <span class="cost-label">تصريح أمني</span>
-              <span class="cost-value">{{ fmtNum(bookingInfo.security_permit_price) }} ج.م</span>
-            </div>
-            <div class="cost-line">
-              <span class="cost-label">تصريح إلكتروني</span>
-              <span class="cost-value">{{ fmtNum(bookingInfo.electronic_permit_price) }} ج.م</span>
-            </div>
-            <div class="cost-line">
-              <span class="cost-label">
-                أفراد إضافيين
-                <span v-if="extraPeople" class="cost-sub">× {{ extraPeople }}</span>
-              </span>
-              <span class="cost-value">{{ fmtNum(financial.extraPersonTotal) }} ج.م</span>
-            </div>
-            <div class="cost-line">
-              <span class="cost-label">
-                رسوم سيارة
-                <span v-if="carCount" class="cost-sub">× {{ carCount }}</span>
-              </span>
-              <span class="cost-value">{{ fmtNum(financial.carTotal) }} ج.م</span>
-            </div>
-            <div class="cost-line cost-line-total">
-              <span class="cost-label">الإجمالي</span>
-              <span class="cost-value">{{ fmtNum(financial.total) }} ج.م</span>
-            </div>
-          </div>
-        </section>
-
         <!-- Guests card — always visible, add/delete from card header & rows -->
         <section class="bf-section">
           <div class="bf-section-head">
@@ -219,6 +173,102 @@
           </div>
         </section>
 
+        <!-- Summary row — cost breakdown + payment type side by side -->
+        <div class="bf-summary-row">
+          <!-- Cost breakdown -->
+          <section class="cost-card">
+            <div class="bf-section-head">
+              <h4 class="bf-section-title"><i class="pi pi-calculator" /> تفاصيل التكلفة</h4>
+            </div>
+            <div class="cost-lines">
+              <div class="cost-line">
+                <span class="cost-label">
+                  سعر الليالى
+                  <span class="cost-sub">{{ fmtNum(bookingInfo.price) }} × {{ bookingInfo.nights }}</span>
+                </span>
+                <span class="cost-value">{{ fmtNum(financial.nightlyTotal) }} ج.م</span>
+              </div>
+              <div class="cost-line">
+                <span class="cost-label">رسوم القرية</span>
+                <span class="cost-value">{{ fmtNum(bookingInfo.total_village_fee) }} ج.م</span>
+              </div>
+              <div class="cost-line">
+                <span class="cost-label">تصريح أمني</span>
+                <span class="cost-value">{{ fmtNum(bookingInfo.security_permit_price) }} ج.م</span>
+              </div>
+              <div class="cost-line">
+                <span class="cost-label">تصريح إلكتروني</span>
+                <span class="cost-value">{{ fmtNum(bookingInfo.electronic_permit_price) }} ج.م</span>
+              </div>
+              <div class="cost-line">
+                <span class="cost-label">
+                  أفراد إضافيين
+                  <span v-if="extraPeople" class="cost-sub">× {{ extraPeople }}</span>
+                </span>
+                <span class="cost-value">{{ fmtNum(financial.extraPersonTotal) }} ج.م</span>
+              </div>
+              <div class="cost-line">
+                <span class="cost-label">
+                  رسوم سيارة
+                  <span v-if="carCount" class="cost-sub">× {{ carCount }}</span>
+                </span>
+                <span class="cost-value">{{ fmtNum(financial.carTotal) }} ج.م</span>
+              </div>
+              <div class="cost-line cost-line-total">
+                <span class="cost-label">الإجمالي</span>
+                <span class="cost-value">{{ fmtNum(financial.total) }} ج.م</span>
+              </div>
+            </div>
+          </section>
+
+          <!-- Payment type — optional; omit to let backend auto-pick (WITHDRAW_BALANCE
+               if the company balance covers the total, otherwise 422 →
+               INSUFFICIENT_BALANCE_SELECT_CASH_OR_BANK → modal). -->
+          <section class="bf-section">
+            <div class="bf-section-head">
+              <h4 class="bf-section-title"><i class="pi pi-credit-card" /> طريقة الدفع</h4>
+              <button
+                v-if="selectedPaymentType"
+                type="button"
+                class="bf-add-btn"
+                @click="selectedPaymentType = ''"
+              >
+                <i class="pi pi-refresh" /> تلقائي
+              </button>
+            </div>
+            <p class="bf-payment-hint">
+              <i class="pi pi-info-circle" />
+              اتركها بدون اختيار للاختيار التلقائي حسب رصيد الشركة.
+            </p>
+            <div class="bf-pay-options">
+              <button
+                type="button"
+                :class="['bf-pay-option', { active: selectedPaymentType === 'WITHDRAW_BALANCE' }]"
+                @click="selectedPaymentType = 'WITHDRAW_BALANCE'"
+              >
+                <i class="pi pi-wallet" />
+                <span class="bf-pay-label">خصم من الرصيد</span>
+              </button>
+              <button
+                type="button"
+                :class="['bf-pay-option', { active: selectedPaymentType === 'CASH' }]"
+                @click="selectedPaymentType = 'CASH'"
+              >
+                <i class="pi pi-money-bill" />
+                <span class="bf-pay-label">نقدي</span>
+              </button>
+              <button
+                type="button"
+                :class="['bf-pay-option', { active: selectedPaymentType === 'BANK' }]"
+                @click="selectedPaymentType = 'BANK'"
+              >
+                <i class="pi pi-building" />
+                <span class="bf-pay-label">تحويل بنكي</span>
+              </button>
+            </div>
+          </section>
+        </div>
+
       </div>
     </template>
 
@@ -279,6 +329,10 @@ const submitting = ref(false)
 const submitError = ref('')
 const guestsError = ref('')
 const paymentModalOpen = ref(false)
+
+// Explicit payment type chosen by the user. Empty string = "auto" (don't send
+// payment_type; backend picks WITHDRAW_BALANCE if possible, else 422).
+const selectedPaymentType = ref('')
 
 const guestRows = ref([{ name: '', national_id: '', role: '', phone: '', type: 'ADULT' }])
 const carRows = ref([])
@@ -354,7 +408,10 @@ async function submitBooking(paymentType) {
       .filter((c) => c.plate_number?.trim())
       .map((c) => ({ plate_number: c.plate_number.trim() })),
   }
-  if (paymentType) payload.payment_type = paymentType
+  // Explicit arg (from the cash/bank modal) wins; otherwise fall back to
+  // the user's pre-selected payment type from the form. Empty = auto.
+  const finalPaymentType = paymentType || selectedPaymentType.value
+  if (finalPaymentType) payload.payment_type = finalPaymentType
 
   submitting.value = true
   const r = await csBookings.createVillageBooking(payload)
@@ -585,7 +642,7 @@ onMounted(async () => {
   min-width: 160px;
   padding: 16px 22px;
   background: linear-gradient(135deg, rgba(249, 115, 22, 0.10), rgba(251, 191, 36, 0.10));
-  border: 1px solid rgba(249, 115, 22, 0.22);
+  border: none;
   border-radius: 16px;
 }
 .trip-hero-total-label {
@@ -642,7 +699,7 @@ onMounted(async () => {
   margin-top: 6px;
   padding: 14px 16px;
   background: linear-gradient(135deg, rgba(249, 115, 22, 0.08), rgba(251, 191, 36, 0.08));
-  border: 1px solid rgba(249, 115, 22, 0.20);
+  border: none;
   border-radius: 12px;
 }
 .cost-line-total .cost-label { color: #0f172a; font-weight: 800; font-size: 14px; }
@@ -721,6 +778,86 @@ onMounted(async () => {
   background: #fafbfc;
   border: 1px dashed #e2e8f0;
   border-radius: 10px;
+}
+
+/* Summary row — cost breakdown + payment type side by side, equal height */
+.bf-summary-row {
+  display: grid;
+  grid-template-columns: 1.4fr 1fr;
+  gap: 14px;
+  align-items: stretch;
+}
+.bf-summary-row > section {
+  min-width: 0;
+  display: flex;
+  flex-direction: column;
+}
+/* Let the payment options fill remaining vertical space so the right card
+   visually matches the taller cost-breakdown card on its left. */
+.bf-summary-row .bf-pay-options { flex: 1; }
+.bf-summary-row .bf-pay-option { flex: 1; }
+/* Cost-card: keep the total pinned to the bottom by stretching the lines. */
+.bf-summary-row .cost-lines { flex: 1; }
+
+/* Payment type chooser */
+.bf-payment-hint {
+  display: flex;
+  align-items: flex-start;
+  gap: 8px;
+  margin: 0 0 12px;
+  padding: 10px 12px;
+  background: rgba(14, 165, 233, 0.06);
+  border: 1px solid rgba(14, 165, 233, 0.18);
+  border-radius: 10px;
+  color: #0369a1;
+  font-size: 12.5px;
+  font-weight: 600;
+  line-height: 1.55;
+}
+.bf-payment-hint i { font-size: 13px; flex-shrink: 0; margin-top: 1px; }
+
+.bf-pay-options {
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+}
+.bf-pay-option {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  padding: 12px 14px;
+  border-radius: 12px;
+  border: 2px solid #e2e8f0;
+  background: #fff;
+  color: #475569;
+  font-family: inherit;
+  cursor: pointer;
+  text-align: right;
+  transition: all 0.15s;
+}
+.bf-pay-option > i {
+  font-size: 18px;
+  color: #94a3b8;
+  width: 28px;
+  text-align: center;
+  flex-shrink: 0;
+  transition: color 0.15s;
+}
+.bf-pay-option:hover {
+  border-color: #fed7aa;
+  background: rgba(249, 115, 22, 0.04);
+}
+.bf-pay-option:hover > i { color: #f97316; }
+.bf-pay-option.active {
+  border-color: #f97316;
+  background: linear-gradient(135deg, rgba(249, 115, 22, 0.08), rgba(251, 191, 36, 0.08));
+  box-shadow: 0 4px 14px rgba(249, 115, 22, 0.18);
+}
+.bf-pay-option.active > i { color: #ea580c; }
+.bf-pay-label { font-size: 13.5px; font-weight: 800; color: #0f172a; }
+
+@media (max-width: 900px) {
+  .bf-summary-row { grid-template-columns: 1fr; }
 }
 
 .bf-row-error {
