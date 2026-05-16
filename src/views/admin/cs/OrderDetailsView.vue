@@ -19,14 +19,37 @@
     </div>
 
     <template v-else>
-      <!-- Page header with action -->
-      <div class="page-header">
-        <div class="page-icon"><i class="pi pi-file" /></div>
-        <div class="page-header-text">
-          <h1 class="page-title">{{ booking.booking_code }}</h1>
-          <p class="page-desc">
-            تم الإنشاء في {{ toDisplayDateTime(booking.created_at) }}
-          </p>
+      <!-- Sticky hero bar — compact, not a data card -->
+      <section class="sticky-hero">
+        <div class="hero-avatar"><i class="pi pi-home" /></div>
+        <div class="hero-id">
+          <div class="hero-title-row">
+            <h3 class="hero-name">{{ booking.chalet?.name || '—' }}</h3>
+            <span class="hero-created">· أُنشئ {{ toDisplayDateTime(booking.created_at) }}</span>
+          </div>
+          <div class="hero-tags">
+            <span class="booking-code">{{ booking.booking_code }}</span>
+            <span v-if="booking.chalet?.chalet_number" class="chip neutral">
+              <i class="pi pi-hashtag" /> رقم {{ booking.chalet.chalet_number }}
+            </span>
+            <span :class="['chip', 'status', booking.status?.toLowerCase()]">
+              <i class="pi pi-circle-fill tiny" />
+              {{ statusLabel(booking.status) }}
+            </span>
+            <span v-if="booking.payment_type" :class="['chip', 'pay', booking.payment_type?.toLowerCase()]">
+              <i class="pi pi-credit-card" /> {{ paymentLabel(booking.payment_type) }}
+            </span>
+            <span :class="['chip', 'permit', booking.permit_exists ? 'ok' : 'warn']">
+              <i :class="booking.permit_exists ? 'pi pi-shield' : 'pi pi-clock'" />
+              {{ booking.permit_exists ? 'التصريح مؤكد' : 'التصريح قيد الانتظار' }}
+            </span>
+            <span v-if="booking.check_in_confirmed" class="chip ok">
+              <i class="pi pi-sign-in" /> دخول مؤكد
+            </span>
+            <span v-if="booking.check_out_confirmed" class="chip ok">
+              <i class="pi pi-sign-out" /> خروج مؤكد
+            </span>
+          </div>
         </div>
         <div class="page-header-actions">
           <button
@@ -46,42 +69,6 @@
           >
             <i class="pi pi-print" /> عرض التصريح
           </RouterLink>
-        </div>
-      </div>
-
-      <!-- Chalet hero card — includes booking status chips -->
-      <section class="bf-section chalet-card">
-        <div class="bf-section-head">
-          <h4 class="bf-section-title"><i class="pi pi-home" /> الشاليه</h4>
-        </div>
-
-        <div class="chalet-hero">
-          <div class="chalet-avatar"><i class="pi pi-home" /></div>
-          <div class="chalet-id">
-            <h3 class="chalet-name">{{ booking.chalet?.name || '—' }}</h3>
-            <div class="chalet-tags">
-              <span v-if="booking.chalet?.chalet_number" class="chip neutral">
-                <i class="pi pi-hashtag" /> رقم {{ booking.chalet.chalet_number }}
-              </span>
-              <span :class="['chip', 'status', booking.status?.toLowerCase()]">
-                <i class="pi pi-circle-fill tiny" />
-                {{ statusLabel(booking.status) }}
-              </span>
-              <span v-if="booking.payment_type" :class="['chip', 'pay', booking.payment_type?.toLowerCase()]">
-                <i class="pi pi-credit-card" /> {{ paymentLabel(booking.payment_type) }}
-              </span>
-              <span :class="['chip', 'permit', booking.permit_exists ? 'ok' : 'warn']">
-                <i :class="booking.permit_exists ? 'pi pi-shield' : 'pi pi-clock'" />
-                {{ booking.permit_exists ? 'التصريح مؤكد' : 'التصريح قيد الانتظار' }}
-              </span>
-              <span v-if="booking.check_in_confirmed" class="chip ok">
-                <i class="pi pi-sign-in" /> دخول مؤكد
-              </span>
-              <span v-if="booking.check_out_confirmed" class="chip ok">
-                <i class="pi pi-sign-out" /> خروج مؤكد
-              </span>
-            </div>
-          </div>
         </div>
       </section>
 
@@ -356,20 +343,6 @@ onMounted(load)
 .crumb-current:hover { color: #0f172a; }
 .crumb-sep { font-size: 12px; color: #cbd5e1; }
 
-/* Page header */
-.page-header { display: flex; align-items: center; gap: 14px; margin-bottom: 4px; }
-.page-icon {
-  width: 52px; height: 52px;
-  border-radius: 14px;
-  background: linear-gradient(135deg, rgba(249, 115, 22, 0.12), rgba(251, 191, 36, 0.12));
-  color: #ea580c;
-  display: inline-flex; align-items: center; justify-content: center;
-  flex-shrink: 0;
-}
-.page-icon i { font-size: 22px; }
-.page-header-text { display: flex; flex-direction: column; gap: 4px; min-width: 0; flex: 1; }
-.page-title { font-size: 22px; font-weight: 800; color: #0f172a; margin: 0; line-height: 1.2; direction: ltr; text-align: right; }
-.page-desc { font-size: 13.5px; color: #94a3b8; margin: 0; }
 .page-header-actions { display: flex; gap: 10px; flex-shrink: 0; }
 
 .btn-confirm {
@@ -415,34 +388,53 @@ onMounted(load)
 }
 
 /* Chalet hero (inside chalet card) */
-.chalet-card { position: relative; overflow: hidden; }
-.chalet-card::before {
-  content: '';
-  position: absolute;
-  inset: 0;
-  background: radial-gradient(circle at top right, rgba(249, 115, 22, 0.06), transparent 55%);
-  pointer-events: none;
-}
-.chalet-hero {
-  position: relative;
+/* Sticky hero — a slim bar, deliberately styled unlike the data cards
+   (translucent, hairline border, no big shadow). Pins under the layout
+   topbar (52px topbar + 14px×2 wrapper padding ≈ 80px). */
+.sticky-hero {
+  position: sticky;
+  top: 80px;
+  z-index: 50;
   display: flex;
   align-items: center;
-  gap: 16px;
-  padding: 4px 0;
+  gap: 14px;
+  padding: 10px 16px;
+  border-radius: 12px;
+  background: rgba(248, 250, 252, 0.85);
+  backdrop-filter: blur(14px) saturate(180%);
+  -webkit-backdrop-filter: blur(14px) saturate(180%);
+  border: 1px solid #e9eef3;
 }
-.chalet-avatar {
-  width: 56px; height: 56px;
-  border-radius: 14px;
-  background: linear-gradient(135deg, rgba(249, 115, 22, 0.14), rgba(251, 191, 36, 0.14));
-  color: #ea580c;
+.hero-avatar {
+  width: 38px; height: 38px;
+  border-radius: 10px;
+  background: linear-gradient(135deg, #f97316, #ea580c);
+  color: #fff;
   display: inline-flex; align-items: center; justify-content: center;
   flex-shrink: 0;
-  border: 1px solid rgba(249, 115, 22, 0.18);
+  box-shadow: 0 4px 12px -4px rgba(249, 115, 22, 0.55);
 }
-.chalet-avatar i { font-size: 22px; }
-.chalet-id { display: flex; flex-direction: column; gap: 10px; min-width: 0; flex: 1; }
-.chalet-name { font-size: 20px; font-weight: 800; color: #0f172a; margin: 0; line-height: 1.2; }
-.chalet-tags { display: flex; flex-wrap: wrap; gap: 6px; }
+.hero-avatar i { font-size: 16px; }
+.hero-id { display: flex; flex-direction: column; gap: 6px; min-width: 0; flex: 1; }
+.hero-title-row {
+  display: flex;
+  align-items: center;
+  flex-wrap: wrap;
+  gap: 8px;
+}
+.hero-name { font-size: 15px; font-weight: 800; color: #0f172a; margin: 0; line-height: 1.2; }
+.booking-code {
+  display: inline-flex; align-items: center;
+  padding: 2px 9px;
+  border-radius: 999px;
+  background: rgba(249, 115, 22, 0.12);
+  color: #c2410c;
+  font-size: 11.5px; font-weight: 800;
+  direction: ltr;
+}
+.hero-created { font-size: 11px; color: #94a3b8; font-weight: 600; }
+.hero-tags { display: flex; flex-wrap: wrap; gap: 5px; }
+.hero-tags .chip { padding: 3px 9px; font-size: 10.5px; }
 
 /* Unified chip system inside the chalet card */
 .chip {

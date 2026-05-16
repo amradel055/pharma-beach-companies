@@ -117,6 +117,22 @@ export const PERMISSIONS = {
 
   // General settings — SUPER_ADMIN only
   manage_settings: [ROLES.SUPER_ADMIN],
+
+  // ── System Settings & Lookups (from frontend-tasks-system-settings-lookups.md) ──
+  manage_lookups: [ROLES.SUPER_ADMIN, ROLES.ADMIN_COMPANY],
+  manage_chalet_groups: [ROLES.SUPER_ADMIN, ROLES.ADMIN_COMPANY, ROLES.ADMIN_VILLAGE],
+  manage_villages: [ROLES.SUPER_ADMIN, ROLES.ADMIN_COMPANY, ROLES.ADMIN_VILLAGE],
+  manage_village_settings: [ROLES.SUPER_ADMIN, ROLES.ADMIN_COMPANY, ROLES.ADMIN_VILLAGE],
+  manage_system_settings: [ROLES.SUPER_ADMIN],
+
+  // ── Users Management (from frontend-tasks-users-management.md) ──
+  manage_owners: [ROLES.SUPER_ADMIN, ROLES.ADMIN_COMPANY, ROLES.ADMIN_VILLAGE],
+  manage_companies: [ROLES.SUPER_ADMIN, ROLES.ADMIN_COMPANY],
+  manage_roles: [ROLES.SUPER_ADMIN],
+
+  // Company payments (dotted keys per spec)
+  'company_payments.create': [ROLES.SUPER_ADMIN, ROLES.ADMIN_COMPANY, ROLES.FINANCIAL_MEMBER],
+  'company_payments.edit': [ROLES.SUPER_ADMIN, ROLES.ADMIN_COMPANY, ROLES.FINANCIAL_MEMBER],
 }
 
 // Which roles each role is allowed to create from the user-management UI.

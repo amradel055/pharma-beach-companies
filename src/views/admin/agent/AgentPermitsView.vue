@@ -9,34 +9,38 @@
       </div>
     </div>
 
-    <!-- Stats row -->
+    <!-- Stats row — from GET /v1/bookings/stats, filtered same as the table -->
     <div class="stats-row">
       <div class="stat-card">
         <div class="stat-icon orange"><i class="pi pi-bookmark" /></div>
         <div class="stat-body">
           <span class="stat-label">إجمالي الحجوزات</span>
-          <strong class="stat-value">{{ total }}</strong>
-        </div>
-      </div>
-      <div class="stat-card">
-        <div class="stat-icon green"><i class="pi pi-shield" /></div>
-        <div class="stat-body">
-          <span class="stat-label">تصاريح مؤكدة</span>
-          <strong class="stat-value">{{ stats.confirmed }}</strong>
+          <span v-if="statsLoading" class="stat-skeleton" />
+          <strong v-else class="stat-value">{{ stats.total_bookings }}</strong>
         </div>
       </div>
       <div class="stat-card">
         <div class="stat-icon amber"><i class="pi pi-clock" /></div>
         <div class="stat-body">
           <span class="stat-label">قيد الانتظار</span>
-          <strong class="stat-value">{{ stats.pending }}</strong>
+          <span v-if="statsLoading" class="stat-skeleton" />
+          <strong v-else class="stat-value">{{ stats.pending }}</strong>
+        </div>
+      </div>
+      <div class="stat-card">
+        <div class="stat-icon green"><i class="pi pi-check-circle" /></div>
+        <div class="stat-body">
+          <span class="stat-label">تصاريح مؤكدة</span>
+          <span v-if="statsLoading" class="stat-skeleton" />
+          <strong v-else class="stat-value">{{ stats.confirmed_permits }}</strong>
         </div>
       </div>
       <div class="stat-card">
         <div class="stat-icon blue"><i class="pi pi-moon" /></div>
         <div class="stat-body">
           <span class="stat-label">إجمالي الليالي</span>
-          <strong class="stat-value">{{ stats.nights }}</strong>
+          <span v-if="statsLoading" class="stat-skeleton" />
+          <strong v-else class="stat-value">{{ stats.total_nights }}</strong>
         </div>
       </div>
     </div>
@@ -83,6 +87,17 @@
             @change="onFilterChange"
           />
         </div>
+
+        <!-- Permit-status filter — sent to the API as ?status= -->
+        <div class="filter-field">
+          <label>حالة التصريح</label>
+          <AppDropdown
+            v-model="permitFilter"
+            :options="permitOptions"
+            @change="onFilterChange"
+          />
+        </div>
+
         <div class="filter-field filter-field-range">
           <label>الفترة</label>
           <DateRangePicker
@@ -91,19 +106,6 @@
             @change="onFilterChange"
           />
         </div>
-      </div>
-
-      <!-- Permit-status quick pills (client-side filter — no API param) -->
-      <div class="permit-pills">
-        <button
-          v-for="opt in permitOptions"
-          :key="opt.value"
-          type="button"
-          :class="['pill', { active: permitFilter === opt.value }]"
-          @click="permitFilter = opt.value"
-        >
-          <i :class="opt.icon" /> {{ opt.label }}
-        </button>
       </div>
     </section>
 
@@ -123,73 +125,85 @@
       <div v-else-if="!visibleRows.length" class="empty-state">
         <div class="empty-icon"><i class="pi pi-search" /></div>
         <h3>لا توجد تصاريح</h3>
-        <p v-if="hasActiveFilter || permitFilter !== 'all'">جرّب تعديل عوامل التصفية</p>
+        <p v-if="hasActiveFilter || permitFilter !== ''">جرّب تعديل عوامل التصفية</p>
         <p v-else>لا توجد حجوزات حالياً</p>
       </div>
 
-      <div v-else class="row-list">
-        <div
-          v-for="row in visibleRows"
-          :key="row.id"
-          class="row-card"
-        >
-          <button type="button" class="row-leading" @click="openBooking(row.id)">
-            <div class="row-avatar"><i class="pi pi-home" /></div>
-            <div class="row-id">
-              <span class="row-code">{{ row.booking_code }}</span>
-              <span class="row-chalet">
-                {{ row.chalet_name }}
-                <small v-if="row.chalet_code" class="row-chalet-code">· {{ row.chalet_code }}</small>
-              </span>
-            </div>
-          </button>
-
-          <div class="row-meta">
-            <span class="row-chip dates">
-              <i class="pi pi-calendar" />
-              {{ toDisplayDate(row.check_in) }}
-              <i class="pi pi-arrow-left tiny" />
-              {{ toDisplayDate(row.check_out) }}
-            </span>
-            <span class="row-chip nights">
-              <i class="pi pi-moon" /> {{ row.nights }} {{ row.nights === 1 ? 'ليلة' : 'ليالٍ' }}
-            </span>
-            <span :class="['row-chip', 'permit', row.permit_exists ? 'ok' : 'pending']">
-              <i :class="row.permit_exists ? 'pi pi-shield' : 'pi pi-clock'" />
-              {{ row.permit_exists ? 'تصريح مؤكد' : 'قيد الانتظار' }}
-            </span>
-          </div>
-
-          <div class="row-actions">
-            <RouterLink
-              v-if="row.permit_exists && canViewPermit"
-              :to="{ name: 'admin-village-booking-permit', params: { id: row.id } }"
-              class="btn-view"
-              @click.stop
+      <div v-else class="table-wrap">
+        <table class="p-table">
+          <thead>
+            <tr>
+              <th>كود الحجز</th>
+              <th>الشاليه</th>
+              <th>الإقامة</th>
+              <th>الحالة</th>
+              <th class="act-col"></th>
+            </tr>
+          </thead>
+          <tbody>
+            <tr
+              v-for="row in visibleRows"
+              :key="row.id"
+              class="p-row"
+              @click="openBooking(row.id)"
             >
-              <i class="pi pi-print" /> عرض التصريح
-            </RouterLink>
-            <button
-              v-else-if="!row.permit_exists && canConfirmPermit"
-              type="button"
-              class="btn-confirm-permit"
-              :disabled="confirmingId === row.id"
-              @click.stop="handleConfirmPermit(row)"
-            >
-              <i v-if="confirmingId === row.id" class="pi pi-spin pi-spinner" />
-              <i v-else class="pi pi-check" />
-              تأكيد التصريح
-            </button>
-            <RouterLink
-              v-else
-              :to="{ name: 'admin-village-booking-details', params: { id: row.id } }"
-              class="btn-view subtle"
-              @click.stop
-            >
-              فتح <i class="pi pi-chevron-left" />
-            </RouterLink>
-          </div>
-        </div>
+              <td>
+                <span class="t-code">{{ row.booking_code }}</span>
+              </td>
+              <td>
+                <div class="t-chalet">
+                  <span class="t-chalet-name">{{ row.chalet_name }}</span>
+                  <small v-if="row.chalet_code" class="t-chalet-code">{{ row.chalet_code }}</small>
+                </div>
+              </td>
+              <td>
+                <div class="t-stay">
+                  <span class="t-dates">
+                    {{ toDisplayDate(row.check_in) }}
+                    <i class="pi pi-arrow-left" />
+                    {{ toDisplayDate(row.check_out) }}
+                  </span>
+                  <span class="t-nights">
+                    <i class="pi pi-moon" /> {{ row.nights }} {{ row.nights === 1 ? 'ليلة' : 'ليالٍ' }}
+                  </span>
+                </div>
+              </td>
+              <td>
+                <span :class="['t-status', row.permit_exists ? 'ok' : 'pending']">
+                  <i :class="row.permit_exists ? 'pi pi-check-circle' : 'pi pi-clock'" />
+                  {{ row.permit_exists ? 'تصريح مؤكد' : 'قيد الانتظار' }}
+                </span>
+              </td>
+              <td class="act-col" @click.stop>
+                <RouterLink
+                  v-if="row.permit_exists && canViewPermit"
+                  :to="{ name: 'admin-village-booking-permit', params: { id: row.id } }"
+                  class="t-btn view"
+                >
+                  <i class="pi pi-print" /> عرض التصريح
+                </RouterLink>
+                <button
+                  v-else-if="!row.permit_exists && canConfirmPermit"
+                  type="button"
+                  class="t-btn confirm"
+                  :disabled="confirmingId === row.id"
+                  @click="handleConfirmPermit(row)"
+                >
+                  <i v-if="confirmingId === row.id" class="pi pi-spin pi-spinner" />
+                  <i v-else class="pi pi-check" />
+                  تأكيد التصريح
+                </button>
+                <RouterLink
+                  v-else
+                  :to="{ name: 'admin-village-booking-details', params: { id: row.id } }"
+                  class="t-btn ghost"
+                >
+                  فتح <i class="pi pi-chevron-left" />
+                </RouterLink>
+              </td>
+            </tr>
+          </tbody>
+        </table>
       </div>
 
       <!-- Pagination — same convention as bookings-list (1-based UI, 0-based wire) -->
@@ -266,12 +280,14 @@ const filters = reactive({
   check_out: '',
 })
 
-// Client-side quick filter on permit status (the API doesn't expose this).
-const permitFilter = ref('all')
+// Permit status filter — booking status codes: 0 انتظار / 1 مؤكد / 2 منهي / 3 ملغى
+const permitFilter = ref('')
 const permitOptions = [
-  { value: 'all', label: 'الكل', icon: 'pi pi-list' },
-  { value: 'confirmed', label: 'مؤكدة', icon: 'pi pi-shield' },
-  { value: 'pending', label: 'قيد الانتظار', icon: 'pi pi-clock' },
+  { value: '', label: 'الكل' },
+  { value: 0, label: 'انتظار' },
+  { value: 1, label: 'مؤكد' },
+  { value: 2, label: 'منهي' },
+  { value: 3, label: 'ملغى' },
 ]
 
 const currentPage = ref(1)
@@ -298,18 +314,27 @@ const pageWindow = computed(() => {
   return pages
 })
 
-// Apply the client-side permit filter on the page's rows.
-const visibleRows = computed(() => {
-  if (permitFilter.value === 'confirmed') return rows.value.filter((r) => r.permit_exists)
-  if (permitFilter.value === 'pending') return rows.value.filter((r) => !r.permit_exists)
-  return rows.value
-})
+// Status filtering is done server-side (sent as ?status=); the table just
+// renders whatever the API returns.
+const visibleRows = computed(() => rows.value)
 
-const stats = computed(() => ({
-  confirmed: rows.value.filter((r) => r.permit_exists).length,
-  pending: rows.value.filter((r) => !r.permit_exists).length,
-  nights: rows.value.reduce((s, r) => s + Number(r.nights || 0), 0),
-}))
+// Stats come from GET /v1/bookings/stats with the same filters as the table.
+const statsLoading = ref(false)
+const stats = ref({ total_bookings: 0, pending: 0, confirmed_permits: 0, total_nights: 0 })
+
+async function loadStats() {
+  statsLoading.value = true
+  const r = await csBookings.getBookingStats({
+    company_id: filters.company_id,
+    owner_id: filters.owner_id,
+    group_id: filters.group_id,
+    check_in: filters.check_in,
+    check_out: filters.check_out,
+    status: permitFilter.value,
+  })
+  statsLoading.value = false
+  if (r.ok) stats.value = r.data
+}
 
 const companies = ref([])
 const owners = ref([])
@@ -342,7 +367,7 @@ async function loadLookups() {
 async function reloadList({ resetPage = false } = {}) {
   if (resetPage) currentPage.value = 1
   loading.value = true
-  const r = await csBookings.listBookingsSlim({ page: currentPage.value, ...filters })
+  const r = await csBookings.listBookingsSlim({ page: currentPage.value, ...filters, status: permitFilter.value })
   loading.value = false
   if (r.ok) {
     rows.value = r.data.rows
@@ -356,7 +381,10 @@ async function reloadList({ resetPage = false } = {}) {
   }
 }
 
-function onFilterChange() { reloadList({ resetPage: true }) }
+function onFilterChange() {
+  reloadList({ resetPage: true })
+  loadStats()
+}
 
 function goToPage(p) {
   if (p < 1 || p > lastPage.value || p === currentPage.value) return
@@ -370,8 +398,9 @@ function clearFilters() {
   filters.group_id = ''
   filters.check_in = ''
   filters.check_out = ''
-  permitFilter.value = 'all'
+  permitFilter.value = ''
   reloadList({ resetPage: true })
+  loadStats()
 }
 
 function openBooking(id) {
@@ -395,7 +424,7 @@ async function handleConfirmPermit(row) {
 }
 
 onMounted(async () => {
-  await Promise.all([loadLookups(), reloadList()])
+  await Promise.all([loadLookups(), reloadList(), loadStats()])
 })
 </script>
 
@@ -422,6 +451,21 @@ onMounted(async () => {
   display: grid;
   grid-template-columns: repeat(4, 1fr);
   gap: 12px;
+}
+
+/* Skeleton shown in place of the value while stats refetch */
+.stat-skeleton {
+  display: block;
+  width: 52px;
+  height: 22px;
+  border-radius: 6px;
+  background: linear-gradient(90deg, #f1f5f9 25%, #e2e8f0 37%, #f1f5f9 63%);
+  background-size: 400% 100%;
+  animation: stat-shimmer 1.2s ease-in-out infinite;
+}
+@keyframes stat-shimmer {
+  0% { background-position: 100% 0; }
+  100% { background-position: 0 0; }
 }
 .stat-card {
   display: flex;
@@ -491,166 +535,151 @@ onMounted(async () => {
 /* Filter grid */
 .filter-grid {
   display: grid;
-  grid-template-columns: 1fr 1fr 1fr 1.4fr;
+  grid-template-columns: 1fr 1fr 1fr 1.4fr auto;
   gap: 12px;
   align-items: end;
 }
 .filter-field { display: flex; flex-direction: column; gap: 6px; min-width: 0; }
 .filter-field label { font-size: 11.5px; font-weight: 700; color: #64748b; }
 .filter-field-range { min-width: 220px; }
+.filter-field-pills { min-width: 0; }
 
-/* Permit pills */
-.permit-pills {
-  display: flex;
-  flex-wrap: wrap;
-  gap: 8px;
-  margin-top: 14px;
-  padding-top: 14px;
-  border-top: 1px dashed #f1f5f9;
+/* ── Card-style table (each row is its own card) ── */
+.table-wrap {
+  overflow-x: auto;
 }
-.pill {
-  display: inline-flex; align-items: center; gap: 6px;
-  padding: 7px 14px;
-  border-radius: 999px;
-  background: #fafbfc;
-  border: 1px solid #f1f5f9;
-  color: #64748b;
-  font-family: inherit;
-  font-size: 12.5px;
-  font-weight: 700;
-  cursor: pointer;
-  transition: all 0.15s;
+.p-table {
+  width: 100%;
+  border-collapse: separate;
+  border-spacing: 0 10px;
+  min-width: 720px;
 }
-.pill:hover:not(.active) { background: #f1f5f9; color: #475569; }
-.pill.active {
-  background: linear-gradient(135deg, rgba(249, 115, 22, 0.10), rgba(251, 191, 36, 0.10));
-  border-color: rgba(249, 115, 22, 0.30);
-  color: #c2410c;
-}
-.pill i { font-size: 11px; }
-
-/* Row list */
-.row-list { display: flex; flex-direction: column; gap: 8px; }
-.row-card {
-  display: flex;
-  align-items: center;
-  gap: 14px;
-  padding: 14px 16px;
-  background: #fff;
-  border: 1px solid #f1f5f9;
-  border-radius: 12px;
-  transition: all 0.15s;
-}
-.row-card:hover {
-  border-color: #fed7aa;
-  box-shadow: 0 4px 14px rgba(249, 115, 22, 0.10);
-}
-
-.row-leading {
-  display: flex;
-  align-items: center;
-  gap: 12px;
-  min-width: 0;
-  flex-shrink: 0;
-  background: none;
-  border: none;
-  font-family: inherit;
-  cursor: pointer;
+.p-table thead th {
+  padding: 4px 18px 8px;
   text-align: right;
-  padding: 0;
-}
-.row-avatar {
-  width: 40px; height: 40px;
-  border-radius: 11px;
-  background: linear-gradient(135deg, rgba(249, 115, 22, 0.10), rgba(251, 191, 36, 0.10));
-  color: #ea580c;
-  display: inline-flex; align-items: center; justify-content: center;
-  flex-shrink: 0;
-}
-.row-avatar i { font-size: 16px; }
-.row-id { display: flex; flex-direction: column; gap: 2px; min-width: 0; }
-.row-code { font-size: 14px; font-weight: 800; color: #0f172a; direction: ltr; }
-.row-chalet { font-size: 12.5px; color: #64748b; font-weight: 600; }
-.row-chalet-code { color: #94a3b8; direction: ltr; }
-.row-leading:hover .row-code { color: #ea580c; }
-
-.row-meta {
-  display: flex;
-  flex-wrap: wrap;
-  align-items: center;
-  gap: 6px;
-  flex: 1;
-  justify-content: flex-end;
-}
-.row-chip {
-  display: inline-flex; align-items: center; gap: 5px;
-  padding: 5px 11px;
-  border-radius: 999px;
   font-size: 11.5px;
-  font-weight: 700;
+  font-weight: 800;
+  color: #94a3b8;
+  text-transform: uppercase;
+  letter-spacing: 0.5px;
   white-space: nowrap;
 }
-.row-chip i { font-size: 10.5px; }
-.row-chip i.tiny { font-size: 9px; opacity: 0.6; }
-.row-chip.dates { background: #f8fafc; border: 1px solid #f1f5f9; color: #475569; }
-.row-chip.nights {
-  background: linear-gradient(135deg, #f97316, #ea580c);
-  color: #fff;
-  border: 1px solid #ea580c;
-  box-shadow: 0 2px 8px rgba(249, 115, 22, 0.25);
+.p-table thead th.act-col { width: 1%; }
+
+.p-row {
+  cursor: pointer;
+  transition: transform 0.15s, box-shadow 0.15s;
 }
-.row-chip.nights i { color: #fff; }
-.row-chip.permit.ok {
-  background: rgba(16, 185, 129, 0.12);
+.p-table tbody td {
+  padding: 16px 18px;
+  vertical-align: middle;
+  background: #fff;
+  border-top: 1px solid #eef2f6;
+  border-bottom: 1px solid #eef2f6;
+}
+/* Round the row ends so each <tr> reads as a single card */
+.p-table tbody td:first-child {
+  border-inline-start: 1px solid #eef2f6;
+  border-start-start-radius: 14px;
+  border-end-start-radius: 14px;
+}
+.p-table tbody td:last-child {
+  border-inline-end: 1px solid #eef2f6;
+  border-start-end-radius: 14px;
+  border-end-end-radius: 14px;
+}
+.p-row:hover {
+  transform: translateY(-2px);
+}
+.p-row:hover td {
+  background: #fffdfa;
+  border-color: #fed7aa;
+}
+
+.t-code {
+  font-size: 14.5px;
+  font-weight: 900;
+  color: #0f172a;
+  direction: ltr;
+  display: inline-block;
+}
+.p-row:hover .t-code { color: #ea580c; }
+
+.t-chalet { display: flex; flex-direction: column; gap: 3px; }
+.t-chalet-name { font-size: 13.5px; font-weight: 700; color: #334155; }
+.t-chalet-code { font-size: 11.5px; color: #94a3b8; direction: ltr; }
+
+.t-stay { display: flex; flex-direction: row; align-items: center; gap: 10px; }
+.t-dates {
+  display: inline-flex; align-items: center; gap: 7px;
+  font-size: 13px; font-weight: 700; color: #475569;
+  white-space: nowrap;
+}
+.t-dates i { font-size: 10px; color: #cbd5e1; }
+.t-nights {
+  display: inline-flex; align-items: center; gap: 5px;
+  padding: 4px 10px;
+  border-radius: 999px;
+  background: rgba(249, 115, 22, 0.10);
+  color: #c2410c;
+  font-size: 11px; font-weight: 800;
+  white-space: nowrap;
+}
+.t-nights i { font-size: 10px; }
+
+.t-status {
+  display: inline-flex; align-items: center; gap: 6px;
+  padding: 6px 13px;
+  border-radius: 999px;
+  font-size: 12px; font-weight: 800;
+  white-space: nowrap;
+}
+.t-status i { font-size: 12px; }
+.t-status.ok {
+  background: rgba(16, 185, 129, 0.10);
   color: #047857;
-  border: 1px solid rgba(16, 185, 129, 0.22);
 }
-.row-chip.permit.pending {
+.t-status.pending {
   background: rgba(234, 179, 8, 0.12);
   color: #b45309;
-  border: 1px solid rgba(234, 179, 8, 0.22);
 }
 
-.row-actions { display: flex; gap: 8px; flex-shrink: 0; }
-.btn-view {
+.act-col { white-space: nowrap; text-align: end; }
+.t-btn {
   display: inline-flex; align-items: center; gap: 6px;
-  padding: 8px 14px;
-  border-radius: 9px;
-  background: rgba(16, 185, 129, 0.08);
-  border: 1px solid rgba(16, 185, 129, 0.25);
-  color: #047857;
+  padding: 9px 16px;
+  border-radius: 10px;
   font-family: inherit;
   font-size: 12.5px;
-  font-weight: 700;
-  text-decoration: none;
+  font-weight: 800;
   cursor: pointer;
+  text-decoration: none;
+  border: 1px solid;
+  white-space: nowrap;
   transition: all 0.15s;
 }
-.btn-view:hover { background: rgba(16, 185, 129, 0.15); border-color: rgba(16, 185, 129, 0.40); }
-.btn-view.subtle {
+.t-btn i { font-size: 12px; }
+.t-btn.view {
+  background: linear-gradient(135deg, #10b981, #047857);
+  border-color: #047857;
+  color: #fff;
+  box-shadow: 0 2px 8px rgba(16, 185, 129, 0.28);
+}
+.t-btn.view:hover { transform: translateY(-1px); box-shadow: 0 5px 14px rgba(16, 185, 129, 0.38); }
+.t-btn.confirm {
+  background: linear-gradient(135deg, #f97316, #ea580c);
+  border-color: #ea580c;
+  color: #fff;
+  box-shadow: 0 2px 8px rgba(249, 115, 22, 0.28);
+}
+.t-btn.confirm:hover:not(:disabled) { transform: translateY(-1px); box-shadow: 0 5px 14px rgba(249, 115, 22, 0.40); }
+.t-btn.confirm:disabled { opacity: 0.6; cursor: not-allowed; }
+.t-btn.ghost {
   background: #fff;
   border-color: #e2e8f0;
-  color: #64748b;
+  color: #475569;
 }
-.btn-view.subtle:hover { border-color: #cbd5e1; color: #475569; background: #fafbfc; }
-.btn-view.subtle i { font-size: 11px; }
-
-.btn-confirm-permit {
-  display: inline-flex; align-items: center; gap: 6px;
-  padding: 8px 14px;
-  border-radius: 9px;
-  background: linear-gradient(135deg, #f97316, #ea580c);
-  border: 1px solid #ea580c;
-  color: #fff;
-  font-family: inherit;
-  font-size: 12.5px;
-  font-weight: 700;
-  cursor: pointer;
-  box-shadow: 0 2px 8px rgba(249, 115, 22, 0.30);
-  transition: all 0.15s;
-}
-.btn-confirm-permit:hover:not(:disabled) { transform: translateY(-1px); box-shadow: 0 4px 14px rgba(249, 115, 22, 0.40); }
-.btn-confirm-permit:disabled { opacity: 0.6; cursor: not-allowed; }
+.t-btn.ghost:hover { border-color: #f97316; color: #ea580c; background: #fff7ed; }
 
 /* States */
 .loading-inline {
@@ -726,8 +755,5 @@ onMounted(async () => {
 @media (max-width: 900px) {
   .stats-row { grid-template-columns: 1fr 1fr; }
   .filter-grid { grid-template-columns: 1fr 1fr; }
-  .row-card { flex-wrap: wrap; }
-  .row-meta { justify-content: flex-start; }
-  .row-actions { width: 100%; justify-content: flex-end; }
 }
 </style>

@@ -6,22 +6,24 @@
       <span class="crumb crumb-current" aria-current="page">إتمام الحجز</span>
     </nav>
 
-    <div class="page-header">
-      <div class="page-icon"><i class="pi pi-calendar-plus" /></div>
-      <div class="page-header-text">
-        <h1 class="page-title">إتمام الحجز</h1>
-        <p class="page-desc">راجع البيانات وأكد عملية الحجز</p>
+    <div class="sticky-hero">
+      <div class="hero-avatar"><i class="pi pi-calendar-plus" /></div>
+      <div class="hero-id">
+        <h1 class="hero-name">إتمام الحجز</h1>
+        <p class="hero-created">راجع البيانات وأكد عملية الحجز</p>
       </div>
-      <button
-        v-if="bookingInfo"
-        class="btn-confirm page-header-action"
-        :disabled="!canSubmit || submitting"
-        @click="submitBooking()"
-      >
-        <i v-if="submitting" class="pi pi-spin pi-spinner" />
-        <i v-else class="pi pi-check" />
-        تأكيد الحجز
-      </button>
+      <div class="page-header-actions">
+        <button
+          v-if="bookingInfo"
+          class="btn-confirm"
+          :disabled="!canSubmit || submitting"
+          @click="submitBooking()"
+        >
+          <i v-if="submitting" class="pi pi-spin pi-spinner" />
+          <i v-else class="pi pi-check" />
+          تأكيد الحجز
+        </button>
+      </div>
     </div>
 
     <div v-if="missingParams" class="card error-card">
@@ -482,29 +484,36 @@ onMounted(async () => {
 .crumb-current:hover { color: #0f172a; }
 .crumb-sep { font-size: 12px; color: #cbd5e1; }
 
-/* Sub-page main header — icon + title + desc */
-.page-header {
+/* Sticky hero bar — same compact frosted pattern as the booking detail page.
+   Pins under the layout topbar (52px + 14px×2 padding ≈ 80px). */
+.sticky-hero {
+  position: sticky;
+  top: 80px;
+  z-index: 50;
   display: flex;
   align-items: center;
   gap: 14px;
-  margin-bottom: 8px;
+  padding: 10px 16px;
+  border-radius: 12px;
+  background: rgba(248, 250, 252, 0.85);
+  backdrop-filter: blur(14px) saturate(180%);
+  -webkit-backdrop-filter: blur(14px) saturate(180%);
+  border: 1px solid #e9eef3;
 }
-.page-icon {
-  width: 52px;
-  height: 52px;
-  border-radius: 14px;
-  background: linear-gradient(135deg, rgba(249, 115, 22, 0.12), rgba(251, 191, 36, 0.12));
-  color: #ea580c;
-  display: inline-flex;
-  align-items: center;
-  justify-content: center;
+.hero-avatar {
+  width: 38px; height: 38px;
+  border-radius: 10px;
+  background: linear-gradient(135deg, #f97316, #ea580c);
+  color: #fff;
+  display: inline-flex; align-items: center; justify-content: center;
   flex-shrink: 0;
+  box-shadow: 0 4px 12px -4px rgba(249, 115, 22, 0.55);
 }
-.page-icon i { font-size: 22px; }
-.page-header-text { display: flex; flex-direction: column; gap: 4px; min-width: 0; flex: 1; }
-.page-header-action { flex-shrink: 0; }
-.page-title { font-size: 22px; font-weight: 800; color: #0f172a; margin: 0; line-height: 1.2; }
-.page-desc { font-size: 13.5px; color: #94a3b8; margin: 0; }
+.hero-avatar i { font-size: 16px; }
+.hero-id { display: flex; flex-direction: column; gap: 3px; min-width: 0; flex: 1; }
+.hero-name { font-size: 15px; font-weight: 800; color: #0f172a; margin: 0; line-height: 1.2; }
+.hero-created { font-size: 11.5px; color: #94a3b8; font-weight: 600; margin: 0; }
+.page-header-actions { display: flex; gap: 10px; flex-shrink: 0; }
 
 .card { background: #fff; border: 1px solid #f1f5f9; border-radius: 14px; padding: 18px; }
 .error-card { display: flex; flex-direction: column; align-items: center; gap: 12px; padding: 40px 20px; text-align: center; color: #b91c1c; }
@@ -517,8 +526,9 @@ onMounted(async () => {
 .bf-form { display: flex; flex-direction: column; gap: 16px; }
 
 @media (max-width: 540px) {
-  .page-header { flex-wrap: wrap; }
-  .page-header-action { width: 100%; justify-content: center; }
+  .sticky-hero { flex-wrap: wrap; }
+  .page-header-actions { width: 100%; }
+  .page-header-actions .btn-confirm { width: 100%; justify-content: center; }
 }
 
 .bf-submit-error {

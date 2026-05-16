@@ -93,6 +93,9 @@ const allSections = [
     permission: 'manage_users',
     items: [
       { label: 'المستخدمين', to: '/admin/users', icon: 'pi pi-users' },
+      { label: 'الملاك', to: '/admin/owners', icon: 'pi pi-user' },
+      { label: 'الشركات', to: '/admin/companies', icon: 'pi pi-briefcase' },
+      { label: 'الأدوار', to: '/admin/roles', icon: 'pi pi-key' },
     ],
   },
   {
@@ -100,8 +103,17 @@ const allSections = [
     permission: 'manage_chalets',
     items: [
       { label: 'الشاليهات', to: '/admin/chalets', icon: 'pi pi-building' },
-      { label: 'خيارات البحث', to: '/admin/settings/search-attributes', icon: 'pi pi-sliders-h' },
+      { label: 'المجموعات', to: '/admin/chalet-groups', icon: 'pi pi-folder' },
       { label: 'الكماليات', to: '/admin/settings/amenities', icon: 'pi pi-sparkles' },
+    ],
+  },
+  {
+    label: 'إعدادات النظام',
+    permission: 'manage_settings',
+    items: [
+      { label: 'القيم المرجعية', to: '/admin/settings/lookups', icon: 'pi pi-sliders-h' },
+      { label: 'القرى', to: '/admin/villages', icon: 'pi pi-map-marker' },
+      { label: 'إعدادات النظام', to: '/admin/settings/system', icon: 'pi pi-cog' },
     ],
   },
   {

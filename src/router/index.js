@@ -94,6 +94,30 @@ const routes = [
           roles: [ROLES.SUPER_ADMIN, ROLES.ADMIN_COMPANY, ROLES.ADMIN_VILLAGE, ROLES.CUSTOMER_SERVICE_COMPANY, ROLES.HEAD_CUSTOMER_SERVICE_VILLAGE],
         },
       },
+      {
+        path: 'roles',
+        name: 'admin-roles',
+        component: () => import('@/views/admin/users/RolesView.vue'),
+        meta: { title: 'الأدوار', roles: [ROLES.SUPER_ADMIN] },
+      },
+      {
+        path: 'owners',
+        name: 'admin-owners',
+        component: () => import('@/views/admin/users/OwnerListView.vue'),
+        meta: { title: 'الملاك', roles: [ROLES.SUPER_ADMIN, ROLES.ADMIN_COMPANY, ROLES.ADMIN_VILLAGE] },
+      },
+      {
+        path: 'companies',
+        name: 'admin-companies',
+        component: () => import('@/views/admin/users/CompanyListView.vue'),
+        meta: { title: 'الشركات', roles: [ROLES.SUPER_ADMIN, ROLES.ADMIN_COMPANY] },
+      },
+      {
+        path: 'companies/:id',
+        name: 'admin-company-detail',
+        component: () => import('@/views/admin/users/CompanyDetailView.vue'),
+        meta: { title: 'تفاصيل الشركة', roles: [ROLES.SUPER_ADMIN, ROLES.ADMIN_COMPANY, ROLES.FINANCIAL_MEMBER] },
+      },
 
       // Chalet management
       {
@@ -102,11 +126,33 @@ const routes = [
         component: () => import('@/views/admin/chalets/ChaletListView.vue'),
         meta: { title: 'الشاليهات', roles: [ROLES.SUPER_ADMIN, ROLES.ADMIN_COMPANY, ROLES.CUSTOMER_SERVICE_COMPANY] },
       },
+      // System lookups (shared CRUD: floors / rooms / bathrooms / areas / finishing / view / AC)
       {
-        path: 'settings/search-attributes',
-        name: 'admin-search-attributes',
-        component: () => import('@/views/admin/settings/SearchAttributesView.vue'),
-        meta: { title: 'خيارات البحث', roles: [ROLES.SUPER_ADMIN, ROLES.ADMIN_COMPANY, ROLES.CUSTOMER_SERVICE_COMPANY] },
+        path: 'settings/lookups',
+        name: 'admin-lookups',
+        component: () => import('@/views/admin/settings/LookupsView.vue'),
+        meta: { title: 'القيم المرجعية', roles: [ROLES.SUPER_ADMIN, ROLES.ADMIN_COMPANY] },
+      },
+      // Chalet groups CRUD
+      {
+        path: 'chalet-groups',
+        name: 'admin-chalet-groups',
+        component: () => import('@/views/admin/settings/ChaletGroupsView.vue'),
+        meta: { title: 'مجموعات الشاليهات', roles: [ROLES.SUPER_ADMIN, ROLES.ADMIN_COMPANY, ROLES.ADMIN_VILLAGE] },
+      },
+      // Villages (with nested chalet tiers)
+      {
+        path: 'villages',
+        name: 'admin-villages',
+        component: () => import('@/views/admin/settings/VillagesView.vue'),
+        meta: { title: 'القرى', roles: [ROLES.SUPER_ADMIN, ROLES.ADMIN_COMPANY, ROLES.ADMIN_VILLAGE] },
+      },
+      // Key/value system settings
+      {
+        path: 'settings/system',
+        name: 'admin-system-settings',
+        component: () => import('@/views/admin/settings/SystemSettingsView.vue'),
+        meta: { title: 'إعدادات النظام', roles: [ROLES.SUPER_ADMIN] },
       },
       {
         path: 'settings/amenities',
@@ -280,14 +326,6 @@ const routes = [
           title: 'ماسح QR',
           roles: [ROLES.SUPER_ADMIN, ROLES.SECURITY, ROLES.ADMIN_COMPANY, ROLES.ADMIN_VILLAGE],
         },
-      },
-
-      // General Settings — Super Admin only
-      {
-        path: 'settings/general',
-        name: 'admin-general-settings',
-        component: () => import('@/views/admin/settings/GeneralSettingsView.vue'),
-        meta: { title: 'الإعدادات العامة', roles: [ROLES.SUPER_ADMIN] },
       },
 
       // Site Terms — Super Admin only

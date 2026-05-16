@@ -1,49 +1,61 @@
 <template>
-  <div class="amenities-page">
+  <div class="companies-page">
     <div class="page-header">
-      <div class="page-icon"><i class="pi pi-sparkles" /></div>
+      <div class="page-icon"><i class="pi pi-briefcase" /></div>
       <div class="page-header-text">
-        <h1 class="page-title">الكماليات</h1>
-        <p class="page-desc">إدارة قائمة الكماليات المرتبطة بالشاليهات</p>
+        <h1 class="page-title">الشركات</h1>
+        <p class="page-desc">إدارة الشركات والأرصدة</p>
       </div>
       <button class="btn-primary" @click="openCreate">
-        <i class="pi pi-plus" /> إضافة كمالية
+        <i class="pi pi-plus" /> إضافة شركة
       </button>
     </div>
 
     <section class="bf-section">
+      <input
+        v-model="searchInput"
+        type="search"
+        class="search-input"
+        placeholder="ابحث باسم الشركة أو الهاتف..."
+        @input="onSearch"
+      />
+    </section>
+
+    <section class="bf-section">
       <div v-if="loading" class="empty"><i class="pi pi-spin pi-spinner" /> جاري التحميل...</div>
       <div v-else-if="!rows.length" class="empty">
-        <i class="pi pi-inbox" />
-        <p>لا توجد كماليات بعد</p>
+        <i class="pi pi-briefcase" />
+        <p>لا توجد شركات</p>
       </div>
-      <table v-else class="data-table">
-        <thead>
-          <tr>
-            <th>الأيقونة</th>
-            <th>الاسم بالعربية</th>
-            <th>الاسم بالإنجليزية</th>
-            <th class="actions-col"></th>
-          </tr>
-        </thead>
-        <tbody>
-          <tr v-for="row in rows" :key="row.id">
-            <td>
-              <div class="icon-cell">
-                <img v-if="row.icon && isImageUrl(row.icon)" :src="row.icon" :alt="row.name_ar" class="amenity-icon-img" />
-                <i v-else-if="row.icon" :class="row.icon" class="amenity-icon-class" />
-                <span v-else class="dash">—</span>
-              </div>
-            </td>
-            <td><strong>{{ row.name_ar || '—' }}</strong></td>
-            <td class="ltr">{{ row.name_en || '—' }}</td>
-            <td class="actions-col">
-              <button class="icon-btn edit" @click="openEdit(row)"><i class="pi pi-pencil" /></button>
-              <button class="icon-btn delete" @click="confirmDelete(row)"><i class="pi pi-trash" /></button>
-            </td>
-          </tr>
-        </tbody>
-      </table>
+      <div v-else class="row-list">
+        <div
+          v-for="row in rows"
+          :key="row.id"
+          class="row-card"
+        >
+          <button class="row-leading" @click="openDetail(row.id)">
+            <div class="row-avatar"><i class="pi pi-briefcase" /></div>
+            <div class="row-id">
+              <span class="row-name">{{ row.name }}</span>
+              <span class="row-phone ltr">{{ row.phone_number || '—' }}</span>
+            </div>
+          </button>
+          <div class="row-meta">
+            <span class="row-chip balance">
+              <i class="pi pi-wallet" />
+              {{ fmt(row.balance) }} ج.م
+            </span>
+            <span :class="['row-chip status', (row.account_status || 'ACTIVE').toLowerCase()]">
+              <i :class="row.account_status === 'ACTIVE' ? 'pi pi-circle-fill tiny' : 'pi pi-circle tiny'" />
+              {{ statusLabel(row.account_status) }}
+            </span>
+          </div>
+          <div class="row-actions">
+            <button class="icon-btn edit" @click="openEdit(row)"><i class="pi pi-pencil" /></button>
+            <button class="icon-btn delete" @click="confirmDelete(row)"><i class="pi pi-trash" /></button>
+          </div>
+        </div>
+      </div>
 
       <div v-if="!loading && rows.length && lastPage > 1" class="pagination">
         <div class="pagination-info">عرض {{ rangeFrom }} – {{ rangeTo }} من {{ total }}</div>
@@ -55,35 +67,35 @@
       </div>
     </section>
 
-    <!-- Create / Edit modal -->
+    <!-- Create / Edit -->
     <AppModal
       v-model="formOpen"
-      :title="editing ? 'تعديل كمالية' : 'إضافة كمالية'"
-      icon="pi pi-sparkles"
+      :title="editing ? 'تعديل الشركة' : 'إضافة شركة'"
+      icon="pi pi-briefcase"
       icon-color="#ea580c"
       icon-bg="rgba(249,115,22,0.08)"
       size="sm"
     >
       <form class="form-grid" @submit.prevent="handleSubmit">
         <label class="field">
-          <span class="field-label">الاسم بالعربية <span class="req">*</span></span>
-          <input v-model="form.name_ar" type="text" class="field-input" required />
+          <span class="field-label">الاسم <span class="req">*</span></span>
+          <input v-model="form.name" type="text" class="field-input" required />
         </label>
         <label class="field">
-          <span class="field-label">الاسم بالإنجليزية</span>
-          <input v-model="form.name_en" type="text" class="field-input ltr" />
+          <span class="field-label">رقم الهاتف</span>
+          <input v-model="form.phone_number" type="text" class="field-input ltr" />
         </label>
-        <label class="field">
-          <span class="field-label">الأيقونة (رابط أو فئة PrimeIcon)</span>
-          <input v-model="form.icon" type="text" class="field-input ltr" placeholder="https://... أو pi pi-star" />
-          <small v-if="form.icon" class="field-hint">
-            <span v-if="isImageUrl(form.icon)"><img :src="form.icon" alt="preview" class="amenity-icon-img" /></span>
-            <span v-else><i :class="form.icon" class="amenity-icon-class" /></span>
-          </small>
-        </label>
+        <div class="field">
+          <span class="field-label">الحالة</span>
+          <AppDropdown v-model="form.account_status" :options="statusOptions" />
+        </div>
+        <div v-if="editing && willDeactivate" class="warning">
+          <i class="pi pi-exclamation-triangle" />
+          <span>تعطيل الشركة سيمنع ظهورها في قوائم الحجز الجديدة.</span>
+        </div>
         <div class="form-actions">
           <button type="button" class="btn-cancel" @click="formOpen = false">إلغاء</button>
-          <button type="submit" class="btn-primary" :disabled="saving || !form.name_ar">
+          <button type="submit" class="btn-primary" :disabled="saving || !form.name">
             <i v-if="saving" class="pi pi-spin pi-spinner" />
             <i v-else :class="editing ? 'pi pi-check' : 'pi pi-plus'" />
             {{ editing ? 'حفظ' : 'إضافة' }}
@@ -95,14 +107,14 @@
     <!-- Delete confirm -->
     <AppModal
       v-model="deleteOpen"
-      title="حذف الكمالية؟"
-      subtitle="لا يمكن التراجع عن هذا الإجراء"
+      title="حذف الشركة؟"
+      subtitle="حذف ناعم — لن تظهر في القوائم النشطة"
       icon="pi pi-exclamation-triangle"
       icon-color="#ef4444"
       icon-bg="rgba(239,68,68,0.08)"
       size="sm"
     >
-      <p class="confirm-text">هل أنت متأكد من حذف <strong>{{ pendingDelete?.name_ar }}</strong>؟</p>
+      <p class="confirm-text">هل أنت متأكد من حذف <strong>{{ pendingDelete?.name }}</strong>؟</p>
       <div class="form-actions">
         <button type="button" class="btn-cancel" @click="deleteOpen = false">إلغاء</button>
         <button type="button" class="btn-danger" :disabled="deleting" @click="handleDelete">
@@ -116,29 +128,43 @@
 
 <script setup>
 import { ref, reactive, computed, onMounted } from 'vue'
-import { useAmenitiesStore } from '@/stores/amenities'
+import { useRouter } from 'vue-router'
+import { useCompaniesStore } from '@/stores/companies'
 import { useToastStore } from '@/stores/toast'
 import AppModal from '@/components/ui/AppModal.vue'
+import AppDropdown from '@/components/ui/AppDropdown.vue'
 
-const amenities = useAmenitiesStore()
+const router = useRouter()
+const companiesStore = useCompaniesStore()
 const toast = useToastStore()
 
 const rows = ref([])
 const loading = ref(true)
+const searchInput = ref('')
+const search = ref('')
 const currentPage = ref(1)
 const lastPage = ref(1)
 const total = ref(0)
 const rangeFrom = ref(0)
 const rangeTo = ref(0)
 
-function isImageUrl(s) { return /^https?:\/\//i.test(s) || /\.(png|jpe?g|svg|webp|gif)$/i.test(s) }
+const statusOptions = [
+  { value: 'ACTIVE', label: 'نشط' },
+  { value: 'SUSPENDED', label: 'موقوف' },
+  { value: 'PERMANENT_SUSPENDED', label: 'موقوف نهائياً' },
+]
+
+function statusLabel(s) {
+  return { ACTIVE: 'نشط', SUSPENDED: 'موقوف', PERMANENT_SUSPENDED: 'موقوف نهائياً' }[s] || s || '—'
+}
+function fmt(n) { return Number(n || 0).toLocaleString('ar-EG') }
 
 const pageWindow = computed(() => {
   const last = lastPage.value
   const cur = currentPage.value
   const span = 2
-  let start = Math.max(1, cur - span)
-  let end = Math.min(last, cur + span)
+  const start = Math.max(1, cur - span)
+  const end = Math.min(last, cur + span)
   const pages = []
   for (let i = start; i <= end; i++) pages.push(i)
   return pages
@@ -146,7 +172,7 @@ const pageWindow = computed(() => {
 
 async function load() {
   loading.value = true
-  const r = await amenities.list({ page: currentPage.value, limit: 10 })
+  const r = await companiesStore.list({ page: currentPage.value, limit: 10, search: search.value })
   loading.value = false
   if (r.ok) {
     rows.value = r.data.rows
@@ -166,31 +192,53 @@ function goToPage(p) {
   load()
 }
 
+let searchTimer = null
+function onSearch() {
+  if (searchTimer) clearTimeout(searchTimer)
+  searchTimer = setTimeout(() => {
+    search.value = searchInput.value.trim()
+    currentPage.value = 1
+    load()
+  }, 300)
+}
+
+function openDetail(id) {
+  router.push({ name: 'admin-company-detail', params: { id } })
+}
+
 // Form
 const formOpen = ref(false)
 const editing = ref(null)
 const saving = ref(false)
-const form = reactive({ name_ar: '', name_en: '', icon: '' })
+const form = reactive({ name: '', phone_number: '', account_status: 'ACTIVE' })
 
-function resetForm() { form.name_ar = ''; form.name_en = ''; form.icon = '' }
+const willDeactivate = computed(() =>
+  editing.value && form.account_status !== 'ACTIVE' && editing.value.account_status === 'ACTIVE'
+)
 
-function openCreate() { editing.value = null; resetForm(); formOpen.value = true }
+function openCreate() {
+  editing.value = null
+  form.name = ''
+  form.phone_number = ''
+  form.account_status = 'ACTIVE'
+  formOpen.value = true
+}
 
 function openEdit(row) {
   editing.value = row
-  form.name_ar = row.name_ar || ''
-  form.name_en = row.name_en || ''
-  form.icon = row.icon || ''
+  form.name = row.name || ''
+  form.phone_number = row.phone_number || ''
+  form.account_status = row.account_status || 'ACTIVE'
   formOpen.value = true
 }
 
 async function handleSubmit() {
-  if (!form.name_ar) return
+  if (!form.name) return
   saving.value = true
-  const payload = { name_ar: form.name_ar, name_en: form.name_en, icon: form.icon || null }
+  const payload = { ...form }
   const r = editing.value
-    ? await amenities.update(editing.value.id, payload)
-    : await amenities.create(payload)
+    ? await companiesStore.update(editing.value.id, payload)
+    : await companiesStore.create(payload)
   saving.value = false
   if (r.ok) {
     toast.success(editing.value ? 'تم التحديث' : 'تمت الإضافة')
@@ -211,7 +259,7 @@ function confirmDelete(row) { pendingDelete.value = row; deleteOpen.value = true
 async function handleDelete() {
   if (!pendingDelete.value) return
   deleting.value = true
-  const r = await amenities.remove(pendingDelete.value.id)
+  const r = await companiesStore.remove(pendingDelete.value.id)
   deleting.value = false
   if (r.ok) {
     toast.success('تم الحذف')
@@ -227,7 +275,7 @@ onMounted(load)
 </script>
 
 <style scoped>
-.amenities-page { display: flex; flex-direction: column; gap: 16px; }
+.companies-page { display: flex; flex-direction: column; gap: 16px; }
 .page-header { display: flex; align-items: center; gap: 14px; }
 .page-icon {
   width: 52px; height: 52px;
@@ -248,8 +296,7 @@ onMounted(load)
   background: linear-gradient(135deg, #f97316, #ea580c);
   border: 1px solid #ea580c; color: #fff;
   font-family: inherit; font-size: 13.5px; font-weight: 700;
-  cursor: pointer; box-shadow: 0 2px 10px rgba(249, 115, 22, 0.35);
-  transition: all 0.15s;
+  cursor: pointer; box-shadow: 0 2px 10px rgba(249, 115, 22, 0.35); transition: all 0.15s;
 }
 .btn-primary:hover:not(:disabled) { transform: translateY(-1px); box-shadow: 0 6px 18px rgba(249, 115, 22, 0.45); }
 .btn-primary:disabled { opacity: 0.5; cursor: not-allowed; }
@@ -269,39 +316,67 @@ onMounted(load)
   background: #fff; border: 1px solid #f1f5f9; border-radius: 14px;
   padding: 18px 20px; box-shadow: 0 2px 8px rgba(15, 23, 42, 0.04);
 }
-.data-table { width: 100%; border-collapse: collapse; }
-.data-table th {
-  padding: 10px 12px; text-align: right; font-size: 11.5px; font-weight: 800; color: #64748b;
-  background: #fafbfc; border-bottom: 1px solid #f1f5f9;
-  text-transform: uppercase; letter-spacing: 0.4px;
-}
-.data-table td { padding: 12px; font-size: 13.5px; color: #0f172a; border-bottom: 1px solid #f8fafc; }
-.data-table tr:last-child td { border-bottom: none; }
-.actions-col { width: 100px; text-align: end; white-space: nowrap; }
-.ltr { direction: ltr; text-align: right; }
-.dash { color: #cbd5e1; }
 
-.icon-cell { display: inline-flex; align-items: center; }
-.amenity-icon-img {
-  width: 34px; height: 34px;
-  border-radius: 8px;
-  object-fit: cover;
-  border: 1px solid #f1f5f9;
+.search-input {
+  width: 100%; padding: 10px 14px;
+  border-radius: 10px; border: 1px solid #e2e8f0; background: #fafbfc;
+  font-size: 13.5px; font-family: inherit; color: #0f172a;
 }
-.amenity-icon-class {
-  width: 34px; height: 34px;
-  border-radius: 8px;
-  background: rgba(249, 115, 22, 0.08);
+.search-input:focus { outline: none; border-color: #f97316; background: #fff; box-shadow: 0 0 0 3px rgba(249, 115, 22, 0.12); }
+
+.row-list { display: flex; flex-direction: column; gap: 8px; }
+.row-card {
+  display: flex; align-items: center; gap: 14px;
+  padding: 14px 16px;
+  background: #fff; border: 1px solid #f1f5f9; border-radius: 12px;
+  transition: all 0.15s;
+}
+.row-card:hover { border-color: #fed7aa; box-shadow: 0 4px 14px rgba(249, 115, 22, 0.10); }
+
+.row-leading {
+  display: flex; align-items: center; gap: 12px;
+  flex: 1; min-width: 0;
+  background: none; border: none; cursor: pointer; text-align: right;
+  font-family: inherit; padding: 0;
+}
+.row-avatar {
+  width: 40px; height: 40px;
+  border-radius: 11px;
+  background: linear-gradient(135deg, rgba(249, 115, 22, 0.10), rgba(251, 191, 36, 0.10));
   color: #ea580c;
   display: inline-flex; align-items: center; justify-content: center;
-  font-size: 16px;
+  flex-shrink: 0;
 }
+.row-avatar i { font-size: 16px; }
+.row-id { display: flex; flex-direction: column; gap: 2px; min-width: 0; }
+.row-name { font-size: 14px; font-weight: 800; color: #0f172a; }
+.row-phone { font-size: 12.5px; color: #64748b; }
+.row-leading:hover .row-name { color: #ea580c; }
 
+.row-meta { display: flex; flex-wrap: wrap; gap: 6px; }
+.row-chip {
+  display: inline-flex; align-items: center; gap: 5px;
+  padding: 5px 11px;
+  border-radius: 999px;
+  font-size: 11.5px; font-weight: 700;
+  border: 1px solid;
+}
+.row-chip i { font-size: 10.5px; }
+.row-chip i.tiny { font-size: 7px; }
+.row-chip.balance {
+  background: linear-gradient(135deg, rgba(249, 115, 22, 0.10), rgba(251, 191, 36, 0.10));
+  border-color: rgba(249, 115, 22, 0.30); color: #c2410c;
+}
+.row-chip.status.active { background: rgba(16, 185, 129, 0.10); color: #047857; border-color: rgba(16, 185, 129, 0.25); }
+.row-chip.status.suspended { background: rgba(249, 115, 22, 0.10); color: #c2410c; border-color: rgba(249, 115, 22, 0.25); }
+.row-chip.status.permanent_suspended { background: rgba(239, 68, 68, 0.10); color: #b91c1c; border-color: rgba(239, 68, 68, 0.25); }
+
+.row-actions { display: flex; gap: 4px; }
 .icon-btn {
   width: 32px; height: 32px; border-radius: 8px;
   background: #fff; border: 1px solid #e2e8f0; color: #64748b;
   cursor: pointer; display: inline-flex; align-items: center; justify-content: center;
-  transition: all 0.15s; margin-inline-start: 4px;
+  transition: all 0.15s;
 }
 .icon-btn.edit:hover { border-color: #fed7aa; color: #ea580c; }
 .icon-btn.delete:hover { border-color: #fecaca; color: #ef4444; }
@@ -324,8 +399,17 @@ onMounted(load)
   font-size: 13.5px; font-family: inherit; color: #0f172a;
 }
 .field-input:focus { outline: none; border-color: #f97316; box-shadow: 0 0 0 3px rgba(249, 115, 22, 0.12); }
-.field-hint { display: inline-flex; align-items: center; gap: 8px; font-size: 12px; color: #94a3b8; margin-top: 4px; }
-.field-hint .amenity-icon-img, .field-hint .amenity-icon-class { width: 28px; height: 28px; font-size: 14px; }
+
+.warning {
+  display: flex; align-items: center; gap: 10px;
+  padding: 10px 14px;
+  background: rgba(234, 179, 8, 0.10);
+  border: 1px solid rgba(234, 179, 8, 0.30);
+  color: #b45309;
+  border-radius: 10px;
+  font-size: 12.5px; font-weight: 600;
+}
+.warning i { font-size: 13px; }
 
 .form-actions { display: flex; gap: 10px; justify-content: flex-end; padding-top: 8px; margin-top: 6px; }
 .confirm-text { font-size: 14px; color: #475569; margin: 0 0 14px; line-height: 1.6; }

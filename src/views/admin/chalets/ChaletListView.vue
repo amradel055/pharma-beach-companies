@@ -209,14 +209,14 @@
 </template>
 
 <script setup>
-import { ref, reactive, computed, watch } from 'vue'
+import { ref, reactive, computed, watch, onMounted } from 'vue'
 import { useChaletsStore } from '@/stores/chalets'
 import { useUsersStore } from '@/stores/users'
 import { useApprovalsStore } from '@/stores/approvals'
 import { useAuthStore } from '@/stores/auth'
 import { useToastStore } from '@/stores/toast'
 import { usePermissions } from '@/composables/usePermissions'
-import { useSearchAttributesStore } from '@/stores/searchAttributes'
+import { useLookupsStore } from '@/stores/lookups'
 import { ROLES } from '@/constants/roles'
 import AppDropdown from '@/components/ui/AppDropdown.vue'
 import AppModal from '@/components/ui/AppModal.vue'
@@ -227,7 +227,18 @@ const approvalsStore = useApprovalsStore()
 const auth = useAuthStore()
 const toast = useToastStore()
 const { hasRole } = usePermissions()
-const searchAttr = useSearchAttributesStore()
+const lookupsStore = useLookupsStore()
+const floorLookups = ref([])
+const finishingLookups = ref([])
+
+onMounted(async () => {
+  const [floors, finishing] = await Promise.all([
+    lookupsStore.list('floors'),
+    lookupsStore.list('finishing_types'),
+  ])
+  if (floors.ok) floorLookups.value = floors.data
+  if (finishing.ok) finishingLookups.value = finishing.data
+})
 
 const search = ref('')
 const filterStatus = ref('')
@@ -241,8 +252,8 @@ const statusOptions = [
   { value: 'pending', label: 'قيد الاعتماد', dot: '#0ea5e9' },
 ]
 
-const floorOptions = computed(() => searchAttr.getActiveValues('floor').map((f) => ({ value: f.name, label: f.name })))
-const finishingOptions = computed(() => searchAttr.getActiveValues('finishing').map((f) => ({ value: f.name, label: f.name })))
+const floorOptions = computed(() => floorLookups.value.filter((f) => f.is_active).map((f) => ({ value: f.label_ar || f.value, label: f.label_ar || f.value })))
+const finishingOptions = computed(() => finishingLookups.value.filter((f) => f.is_active).map((f) => ({ value: f.name_ar || f.label_ar || f.value, label: f.name_ar || f.label_ar || f.value })))
 const categoryOptions = [
   { value: 'بحري', label: 'بحري' },
   { value: 'حدائق', label: 'حدائق' },

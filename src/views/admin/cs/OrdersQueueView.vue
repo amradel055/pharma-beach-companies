@@ -12,37 +12,6 @@
       </RouterLink>
     </div>
 
-    <!-- Stats row -->
-    <div class="stats-row">
-      <div class="stat-card">
-        <div class="stat-icon orange"><i class="pi pi-bookmark" /></div>
-        <div class="stat-body">
-          <span class="stat-label">إجمالي الحجوزات</span>
-          <strong class="stat-value">{{ stats.total }}</strong>
-        </div>
-      </div>
-      <div class="stat-card">
-        <div class="stat-icon green"><i class="pi pi-check-circle" /></div>
-        <div class="stat-body">
-          <span class="stat-label">تصاريح مؤكدة</span>
-          <strong class="stat-value">{{ stats.confirmed }}</strong>
-        </div>
-      </div>
-      <div class="stat-card">
-        <div class="stat-icon amber"><i class="pi pi-clock" /></div>
-        <div class="stat-body">
-          <span class="stat-label">قيد الانتظار</span>
-          <strong class="stat-value">{{ stats.pending }}</strong>
-        </div>
-      </div>
-      <div class="stat-card">
-        <div class="stat-icon blue"><i class="pi pi-moon" /></div>
-        <div class="stat-body">
-          <span class="stat-label">إجمالي الليالي</span>
-          <strong class="stat-value">{{ stats.nights }}</strong>
-        </div>
-      </div>
-    </div>
 
     <!-- Filter section -->
     <section class="bf-section">
@@ -120,43 +89,57 @@
         </RouterLink>
       </div>
 
-      <div v-else class="row-list">
-        <button
-          v-for="row in filteredRows"
-          :key="row.id"
-          type="button"
-          class="row-card"
-          @click="openBooking(row.id)"
-        >
-          <div class="row-leading">
-            <div class="row-avatar"><i class="pi pi-home" /></div>
-            <div class="row-id">
-              <span class="row-code">{{ row.booking_code }}</span>
-              <span class="row-chalet">
-                {{ row.chalet_name }}
-                <small v-if="row.chalet_code" class="row-chalet-code">· {{ row.chalet_code }}</small>
-              </span>
-            </div>
-          </div>
-
-          <div class="row-meta">
-            <span class="row-chip dates">
-              <i class="pi pi-calendar" />
-              {{ toDisplayDate(row.check_in) }}
-              <i class="pi pi-arrow-left tiny" />
-              {{ toDisplayDate(row.check_out) }}
-            </span>
-            <span class="row-chip nights">
-              <i class="pi pi-moon" /> {{ row.nights }} {{ row.nights === 1 ? 'ليلة' : 'ليالٍ' }}
-            </span>
-            <span :class="['row-chip', 'permit', row.permit_exists ? 'ok' : 'pending']">
-              <i :class="row.permit_exists ? 'pi pi-shield' : 'pi pi-clock'" />
-              {{ row.permit_exists ? 'تصريح مؤكد' : 'تصريح قيد الانتظار' }}
-            </span>
-          </div>
-
-          <i class="pi pi-chevron-left row-chev" />
-        </button>
+      <div v-else class="table-wrap">
+        <table class="p-table">
+          <thead>
+            <tr>
+              <th>كود الحجز</th>
+              <th>الشاليه</th>
+              <th>الإقامة</th>
+              <th>التصريح</th>
+              <th class="act-col"></th>
+            </tr>
+          </thead>
+          <tbody>
+            <tr
+              v-for="row in filteredRows"
+              :key="row.id"
+              class="p-row"
+              @click="openBooking(row.id)"
+            >
+              <td>
+                <span class="t-code">{{ row.booking_code }}</span>
+              </td>
+              <td>
+                <div class="t-chalet">
+                  <span class="t-chalet-name">{{ row.chalet_name }}</span>
+                  <small v-if="row.chalet_code" class="t-chalet-code">{{ row.chalet_code }}</small>
+                </div>
+              </td>
+              <td>
+                <div class="t-stay">
+                  <span class="t-dates">
+                    {{ toDisplayDate(row.check_in) }}
+                    <i class="pi pi-arrow-left" />
+                    {{ toDisplayDate(row.check_out) }}
+                  </span>
+                  <span class="t-nights">
+                    <i class="pi pi-moon" /> {{ row.nights }} {{ row.nights === 1 ? 'ليلة' : 'ليالٍ' }}
+                  </span>
+                </div>
+              </td>
+              <td>
+                <span :class="['t-status', row.permit_exists ? 'ok' : 'pending']">
+                  <i :class="row.permit_exists ? 'pi pi-check-circle' : 'pi pi-clock'" />
+                  {{ row.permit_exists ? 'تصريح مؤكد' : 'قيد الانتظار' }}
+                </span>
+              </td>
+              <td class="act-col">
+                <i class="pi pi-chevron-left t-chev" />
+              </td>
+            </tr>
+          </tbody>
+        </table>
       </div>
 
       <!-- Pagination — always shown when there are rows. Internal & display
@@ -264,15 +247,6 @@ const pageWindow = computed(() => {
   return pages
 })
 
-const stats = computed(() => {
-  const rows = filteredRows.value
-  return {
-    total: total.value, // server-provided across all pages
-    confirmed: rows.filter((r) => r.permit_exists).length,
-    pending: rows.filter((r) => !r.permit_exists).length,
-    nights: rows.reduce((s, r) => s + Number(r.nights || 0), 0),
-  }
-})
 
 const companies = ref([])
 const owners = ref([])
@@ -308,11 +282,10 @@ async function loadLookups() {
 async function reloadFiltered({ resetPage = false } = {}) {
   if (resetPage) currentPage.value = 1
   loading.value = true
-  // The API uses 0-based `page` query params (page=0 is the first page) like its
-  // sibling list endpoints. But the response is a Laravel paginator whose
-  // current_page/last_page are 1-based by convention. So we keep the UI 1-based
-  // and subtract 1 only when sending.
-  const r = await csBookings.listBookingsSlim({ page: currentPage.value - 1, ...filters })
+  // listBookingsSlim takes a 1-based `page` and applies the -1 wire offset
+  // itself, so pass currentPage as-is (don't pre-subtract — that double-
+  // decrements and every page shows page-1 data).
+  const r = await csBookings.listBookingsSlim({ page: currentPage.value, ...filters })
   loading.value = false
   if (r.ok) {
     filteredRows.value = r.data.rows
@@ -390,38 +363,6 @@ onMounted(async () => {
 }
 .btn-confirm:hover { transform: translateY(-1px); box-shadow: 0 6px 18px rgba(249, 115, 22, 0.45); }
 
-/* ── Stats row ── */
-.stats-row {
-  display: grid;
-  grid-template-columns: repeat(4, 1fr);
-  gap: 12px;
-}
-.stat-card {
-  display: flex;
-  align-items: center;
-  gap: 14px;
-  padding: 14px 16px;
-  background: #fff;
-  border: 1px solid #f1f5f9;
-  border-radius: 14px;
-  box-shadow: 0 1px 3px rgba(15, 23, 42, 0.04);
-  transition: border-color 0.15s, box-shadow 0.15s;
-}
-.stat-card:hover { border-color: #e2e8f0; box-shadow: 0 2px 6px rgba(15, 23, 42, 0.06); }
-.stat-icon {
-  width: 44px; height: 44px;
-  border-radius: 12px;
-  display: inline-flex; align-items: center; justify-content: center;
-  flex-shrink: 0;
-}
-.stat-icon i { font-size: 17px; }
-.stat-icon.orange { background: linear-gradient(135deg, rgba(249, 115, 22, 0.14), rgba(251, 191, 36, 0.14)); color: #ea580c; }
-.stat-icon.green { background: linear-gradient(135deg, rgba(16, 185, 129, 0.14), rgba(52, 211, 153, 0.14)); color: #059669; }
-.stat-icon.amber { background: linear-gradient(135deg, rgba(234, 179, 8, 0.14), rgba(251, 191, 36, 0.14)); color: #b45309; }
-.stat-icon.blue { background: linear-gradient(135deg, rgba(14, 165, 233, 0.14), rgba(56, 189, 248, 0.14)); color: #0284c7; }
-.stat-body { display: flex; flex-direction: column; gap: 4px; min-width: 0; }
-.stat-label { font-size: 11.5px; color: #94a3b8; font-weight: 700; text-transform: uppercase; letter-spacing: 0.5px; }
-.stat-value { font-size: 20px; font-weight: 800; color: #0f172a; line-height: 1; }
 
 /* ── Section card (matches BookingFormView convention) ── */
 .bf-section {
@@ -478,92 +419,92 @@ onMounted(async () => {
 .filter-field label { font-size: 11.5px; font-weight: 700; color: #64748b; }
 .filter-field-range { min-width: 220px; }
 
-/* ── Row list (replaces table) ── */
-.row-list { display: flex; flex-direction: column; gap: 8px; }
-.row-card {
-  display: flex;
-  align-items: center;
-  gap: 14px;
-  padding: 14px 16px;
-  background: #fff;
-  border: 1px solid #f1f5f9;
-  border-radius: 12px;
-  cursor: pointer;
-  font-family: inherit;
-  text-align: right;
+/* ── Card-style table (each row is its own card) ── */
+.table-wrap { overflow-x: auto; }
+.p-table {
   width: 100%;
-  transition: all 0.15s;
+  border-collapse: separate;
+  border-spacing: 0 10px;
+  min-width: 720px;
 }
-.row-card:hover {
-  border-color: #fed7aa;
-  box-shadow: 0 4px 14px rgba(249, 115, 22, 0.12);
-  transform: translateY(-1px);
-}
-
-.row-leading { display: flex; align-items: center; gap: 12px; min-width: 0; flex-shrink: 0; }
-.row-avatar {
-  width: 40px; height: 40px;
-  border-radius: 11px;
-  background: linear-gradient(135deg, rgba(249, 115, 22, 0.10), rgba(251, 191, 36, 0.10));
-  color: #ea580c;
-  display: inline-flex; align-items: center; justify-content: center;
-  flex-shrink: 0;
-}
-.row-avatar i { font-size: 16px; }
-.row-id { display: flex; flex-direction: column; gap: 2px; min-width: 0; }
-.row-code { font-size: 14px; font-weight: 800; color: #0f172a; direction: ltr; }
-.row-chalet { font-size: 12.5px; color: #64748b; font-weight: 600; }
-.row-chalet-code { color: #94a3b8; direction: ltr; }
-
-.row-meta {
-  display: flex;
-  flex-wrap: wrap;
-  align-items: center;
-  gap: 6px;
-  flex: 1;
-  justify-content: flex-end;
-}
-
-.row-chip {
-  display: inline-flex;
-  align-items: center;
-  gap: 5px;
-  padding: 5px 11px;
-  border-radius: 999px;
+.p-table thead th {
+  padding: 4px 18px 8px;
+  text-align: right;
   font-size: 11.5px;
-  font-weight: 700;
+  font-weight: 800;
+  color: #94a3b8;
+  text-transform: uppercase;
+  letter-spacing: 0.5px;
   white-space: nowrap;
 }
-.row-chip i { font-size: 10.5px; }
-.row-chip i.tiny { font-size: 9px; opacity: 0.6; }
+.p-table thead th.act-col { width: 1%; }
 
-.row-chip.dates {
-  background: #f8fafc;
-  border: 1px solid #f1f5f9;
-  color: #475569;
+.p-row { cursor: pointer; transition: transform 0.15s; }
+.p-table tbody td {
+  padding: 16px 18px;
+  vertical-align: middle;
+  background: #fff;
+  border-top: 1px solid #eef2f6;
+  border-bottom: 1px solid #eef2f6;
 }
+.p-table tbody td:first-child {
+  border-inline-start: 1px solid #eef2f6;
+  border-start-start-radius: 14px;
+  border-end-start-radius: 14px;
+}
+.p-table tbody td:last-child {
+  border-inline-end: 1px solid #eef2f6;
+  border-start-end-radius: 14px;
+  border-end-end-radius: 14px;
+}
+.p-row:hover { transform: translateY(-2px); }
+.p-row:hover td { background: #fffdfa; border-color: #fed7aa; }
 
-.row-chip.nights {
-  background: linear-gradient(135deg, #f97316, #ea580c);
-  color: #fff;
-  border: 1px solid #ea580c;
-  box-shadow: 0 2px 8px rgba(249, 115, 22, 0.25);
+.t-code {
+  font-size: 14.5px;
+  font-weight: 900;
+  color: #0f172a;
+  direction: ltr;
+  display: inline-block;
 }
-.row-chip.nights i { color: #fff; }
+.p-row:hover .t-code { color: #ea580c; }
 
-.row-chip.permit.ok {
-  background: rgba(16, 185, 129, 0.12);
-  color: #047857;
-  border: 1px solid rgba(16, 185, 129, 0.22);
-}
-.row-chip.permit.pending {
-  background: rgba(234, 179, 8, 0.12);
-  color: #b45309;
-  border: 1px solid rgba(234, 179, 8, 0.22);
-}
+.t-chalet { display: flex; flex-direction: column; gap: 3px; }
+.t-chalet-name { font-size: 13.5px; font-weight: 700; color: #334155; }
+.t-chalet-code { font-size: 11.5px; color: #94a3b8; direction: ltr; }
 
-.row-chev { color: #cbd5e1; font-size: 14px; flex-shrink: 0; transition: transform 0.15s; }
-.row-card:hover .row-chev { color: #f97316; transform: translateX(-3px); }
+.t-stay { display: flex; flex-direction: row; align-items: center; gap: 10px; }
+.t-dates {
+  display: inline-flex; align-items: center; gap: 7px;
+  font-size: 13px; font-weight: 700; color: #475569;
+  white-space: nowrap;
+}
+.t-dates i { font-size: 10px; color: #cbd5e1; }
+.t-nights {
+  display: inline-flex; align-items: center; gap: 5px;
+  padding: 4px 10px;
+  border-radius: 999px;
+  background: rgba(249, 115, 22, 0.10);
+  color: #c2410c;
+  font-size: 11px; font-weight: 800;
+  white-space: nowrap;
+}
+.t-nights i { font-size: 10px; }
+
+.t-status {
+  display: inline-flex; align-items: center; gap: 6px;
+  padding: 6px 13px;
+  border-radius: 999px;
+  font-size: 12px; font-weight: 800;
+  white-space: nowrap;
+}
+.t-status i { font-size: 12px; }
+.t-status.ok { background: rgba(16, 185, 129, 0.10); color: #047857; }
+.t-status.pending { background: rgba(234, 179, 8, 0.12); color: #b45309; }
+
+.act-col { white-space: nowrap; text-align: end; }
+.t-chev { color: #cbd5e1; font-size: 14px; transition: transform 0.15s, color 0.15s; }
+.p-row:hover .t-chev { color: #f97316; transform: translateX(-3px); }
 
 /* ── States ── */
 .loading-inline {
@@ -656,14 +597,6 @@ onMounted(async () => {
 }
 
 @media (max-width: 900px) {
-  .stats-row { grid-template-columns: 1fr 1fr; }
   .filter-grid { grid-template-columns: 1fr 1fr; }
-  .row-card { flex-wrap: wrap; }
-  .row-meta { justify-content: flex-start; }
-}
-
-@media (max-width: 540px) {
-  .stats-row { grid-template-columns: 1fr 1fr; }
-  .row-meta .row-chip { font-size: 11px; }
 }
 </style>

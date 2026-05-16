@@ -80,12 +80,17 @@
 
             <!-- Chalet rows -->
             <template v-for="(ch, ci) in calendarChalets" :key="ch.id">
-              <div class="bk-cell bk-chalet-name" :style="{ gridRow: ci + 2 }">
+              <RouterLink
+                :to="{ name: 'admin-village-booking-chalet', params: { id: ch.id } }"
+                class="bk-cell bk-chalet-name"
+                :style="{ gridRow: ci + 2 }"
+                :title="ch.name"
+              >
                 <strong>{{ ch.name }}</strong>
                 <span v-if="ch.chalet_code || ch.chalet_number" class="bk-chalet-code">
                   {{ ch.chalet_code || ch.chalet_number }}
                 </span>
-              </div>
+              </RouterLink>
               <div
                 v-for="d in monthDays"
                 :key="`c${ch.id}-${d.num}`"
@@ -794,8 +799,13 @@ onMounted(async () => {
   grid-column: 1;
   border-inline-end: 2px solid #e2e8f0;
   box-shadow: 2px 0 4px -2px rgba(15, 23, 42, 0.08);
+  text-decoration: none;
+  cursor: pointer;
+  transition: background 0.15s, color 0.15s;
 }
-.bk-chalet-name strong { font-size: 12px; font-weight: 700; color: #0f172a; line-height: 1.2; }
+.bk-chalet-name:hover { background: #fff7ed; }
+.bk-chalet-name:hover strong { color: #ea580c; }
+.bk-chalet-name strong { font-size: 12px; font-weight: 700; color: #0f172a; line-height: 1.2; transition: color 0.15s; }
 .bk-chalet-code { font-size: 9.5px; color: #94a3b8; font-weight: 600; letter-spacing: 0.02em; direction: ltr; }
 
 .bk-day-cell { background: #fff; transition: background 0.15s, box-shadow 0.15s; }

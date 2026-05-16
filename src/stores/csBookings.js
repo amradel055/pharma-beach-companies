@@ -132,6 +132,61 @@ export const useCsBookingsStore = defineStore('csBookings', () => {
     }
   }
 
+  // GET /v1/chalets — full chalet list (not the booking-availability view).
+  // Same mixed indexing as the other list endpoints: request `page` is 0-based
+  // (caller passes 1-based UI page, we subtract 1), response is a 1-based
+  // Laravel paginator. Rows are thin: { id, chalet_code, name }.
+  async function listChalets({ page = 1, limit = 10, company_id, owner_id, group_id, delegator_id } = {}) {
+    try {
+      const apiPage = Math.max(0, Number(page) - 1)
+      const res = await api.get('/v1/chalets', {
+        params: cleanParams({ page: apiPage, limit, company_id, owner_id, group_id, delegator_id }),
+      })
+      const payload = unwrap(res)
+
+      if (payload && Array.isArray(payload.data)) {
+        return {
+          ok: true,
+          data: {
+            rows: payload.data,
+            content: payload.data,
+            page: payload.current_page ?? 1,
+            lastPage: payload.last_page ?? 1,
+            perPage: payload.per_page || (payload.data?.length ?? limit),
+            total: payload.total ?? payload.data.length,
+            from: payload.from || 0,
+            to: payload.to || payload.data.length,
+          },
+        }
+      }
+
+      if (payload && Array.isArray(payload.content)) {
+        const rows = payload.content
+        return {
+          ok: true,
+          data: {
+            rows,
+            content: rows,
+            page: 1,
+            lastPage: 1,
+            perPage: rows.length,
+            total: payload.total ?? rows.length,
+            from: rows.length ? 1 : 0,
+            to: rows.length,
+          },
+        }
+      }
+
+      const rows = Array.isArray(payload) ? payload : []
+      return {
+        ok: true,
+        data: { rows, content: rows, page: 1, lastPage: 1, perPage: rows.length, total: rows.length, from: rows.length ? 1 : 0, to: rows.length },
+      }
+    } catch (error) {
+      return { ok: false, error: getErrorMessage(error, 'تعذر جلب الشاليهات') }
+    }
+  }
+
   async function listAvailableChalets({ page = 0, limit = 50, company_id, owner_id, group_id, delegator_id } = {}) {
     try {
       const res = await api.get('/v1/chalets/available', {
@@ -185,6 +240,29 @@ export const useCsBookingsStore = defineStore('csBookings', () => {
     }
   }
 
+  // GET /v1/bookings/stats — summary counters. Accepts the same optional
+  // filters as /v1/bookings-list so the cards stay in sync with the table.
+  // Response: { total_bookings, pending, confirmed_permits, total_nights }
+  async function getBookingStats({ company_id, owner_id, group_id, check_in, check_out, status } = {}) {
+    try {
+      const res = await api.get('/v1/bookings/stats', {
+        params: cleanParams({ company_id, owner_id, group_id, check_in, check_out, status }),
+      })
+      const data = unwrap(res) || {}
+      return {
+        ok: true,
+        data: {
+          total_bookings: data.total_bookings ?? 0,
+          pending: data.pending ?? 0,
+          confirmed_permits: data.confirmed_permits ?? 0,
+          total_nights: data.total_nights ?? 0,
+        },
+      }
+    } catch (error) {
+      return { ok: false, error: getErrorMessage(error, 'تعذر جلب الإحصائيات') }
+    }
+  }
+
   // GET /v1/bookings?page=0&limit=10 — paginated quick list (Screen 2 tab 1).
   async function listBookings({ page = 0, limit = 10 } = {}) {
     try {
@@ -208,11 +286,11 @@ export const useCsBookingsStore = defineStore('csBookings', () => {
   // and converts to 0-based when sending. Returned `page`/`lastPage` stay 1-based
   // since they mirror the response directly.
   // Response: { current_page, data: [...rows], last_page, per_page, total, from, to, ... }
-  async function listBookingsSlim({ page = 1, per_page, company_id, owner_id, group_id, check_in, check_out } = {}) {
+  async function listBookingsSlim({ page = 1, per_page, company_id, owner_id, group_id, check_in, check_out, status } = {}) {
     try {
       const apiPage = Math.max(0, Number(page) - 1)
       const res = await api.get('/v1/bookings-list', {
-        params: cleanParams({ page: apiPage, per_page, company_id, owner_id, group_id, check_in, check_out }),
+        params: cleanParams({ page: apiPage, per_page, company_id, owner_id, group_id, check_in, check_out, status }),
       })
       const payload = unwrap(res)
       if (payload && Array.isArray(payload.data)) {
@@ -275,6 +353,7 @@ export const useCsBookingsStore = defineStore('csBookings', () => {
     listOwners,
     listGroups,
     invalidateLookups,
+    listChalets,
     listAvailableChalets,
     listAvailableChaletsDetail,
     getChaletBookings,
@@ -282,6 +361,7 @@ export const useCsBookingsStore = defineStore('csBookings', () => {
     createVillageBooking,
     listBookings,
     listBookingsSlim,
+    getBookingStats,
     getBooking,
     confirmPermit,
     getPermit,

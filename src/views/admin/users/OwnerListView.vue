@@ -1,42 +1,52 @@
 <template>
-  <div class="amenities-page">
+  <div class="owners-page">
     <div class="page-header">
-      <div class="page-icon"><i class="pi pi-sparkles" /></div>
+      <div class="page-icon"><i class="pi pi-user" /></div>
       <div class="page-header-text">
-        <h1 class="page-title">الكماليات</h1>
-        <p class="page-desc">إدارة قائمة الكماليات المرتبطة بالشاليهات</p>
+        <h1 class="page-title">الملاك</h1>
+        <p class="page-desc">إدارة قائمة الملاك وحالاتهم</p>
       </div>
       <button class="btn-primary" @click="openCreate">
-        <i class="pi pi-plus" /> إضافة كمالية
+        <i class="pi pi-plus" /> إضافة مالك
       </button>
     </div>
 
     <section class="bf-section">
+      <input
+        v-model="searchInput"
+        type="search"
+        class="search-input"
+        placeholder="ابحث بالاسم أو الهاتف..."
+        @input="onSearch"
+      />
+    </section>
+
+    <section class="bf-section">
       <div v-if="loading" class="empty"><i class="pi pi-spin pi-spinner" /> جاري التحميل...</div>
       <div v-else-if="!rows.length" class="empty">
-        <i class="pi pi-inbox" />
-        <p>لا توجد كماليات بعد</p>
+        <i class="pi pi-user" />
+        <p>لا توجد نتائج</p>
       </div>
       <table v-else class="data-table">
         <thead>
           <tr>
-            <th>الأيقونة</th>
-            <th>الاسم بالعربية</th>
-            <th>الاسم بالإنجليزية</th>
+            <th>الاسم</th>
+            <th>الهاتف</th>
+            <th>هاتف بديل</th>
+            <th>الحالة</th>
             <th class="actions-col"></th>
           </tr>
         </thead>
         <tbody>
           <tr v-for="row in rows" :key="row.id">
+            <td><strong>{{ row.name }}</strong></td>
+            <td class="ltr">{{ row.phone || '—' }}</td>
+            <td class="ltr">{{ row.alternative_phone || '—' }}</td>
             <td>
-              <div class="icon-cell">
-                <img v-if="row.icon && isImageUrl(row.icon)" :src="row.icon" :alt="row.name_ar" class="amenity-icon-img" />
-                <i v-else-if="row.icon" :class="row.icon" class="amenity-icon-class" />
-                <span v-else class="dash">—</span>
-              </div>
+              <span :class="['status-badge', (row.account_status || 'ACTIVE').toLowerCase()]">
+                {{ statusLabel(row.account_status) }}
+              </span>
             </td>
-            <td><strong>{{ row.name_ar || '—' }}</strong></td>
-            <td class="ltr">{{ row.name_en || '—' }}</td>
             <td class="actions-col">
               <button class="icon-btn edit" @click="openEdit(row)"><i class="pi pi-pencil" /></button>
               <button class="icon-btn delete" @click="confirmDelete(row)"><i class="pi pi-trash" /></button>
@@ -55,35 +65,43 @@
       </div>
     </section>
 
-    <!-- Create / Edit modal -->
+    <!-- Create/Edit -->
     <AppModal
       v-model="formOpen"
-      :title="editing ? 'تعديل كمالية' : 'إضافة كمالية'"
-      icon="pi pi-sparkles"
+      :title="editing ? 'تعديل المالك' : 'إضافة مالك'"
+      icon="pi pi-user"
       icon-color="#ea580c"
       icon-bg="rgba(249,115,22,0.08)"
-      size="sm"
+      size="md"
     >
-      <form class="form-grid" @submit.prevent="handleSubmit">
+      <form class="form-grid two-col" @submit.prevent="handleSubmit">
         <label class="field">
-          <span class="field-label">الاسم بالعربية <span class="req">*</span></span>
-          <input v-model="form.name_ar" type="text" class="field-input" required />
+          <span class="field-label">الاسم <span class="req">*</span></span>
+          <input v-model="form.name" type="text" class="field-input" required />
         </label>
         <label class="field">
-          <span class="field-label">الاسم بالإنجليزية</span>
-          <input v-model="form.name_en" type="text" class="field-input ltr" />
+          <span class="field-label">الهاتف <span class="req">*</span></span>
+          <input v-model="form.phone" type="text" class="field-input ltr" required />
         </label>
         <label class="field">
-          <span class="field-label">الأيقونة (رابط أو فئة PrimeIcon)</span>
-          <input v-model="form.icon" type="text" class="field-input ltr" placeholder="https://... أو pi pi-star" />
-          <small v-if="form.icon" class="field-hint">
-            <span v-if="isImageUrl(form.icon)"><img :src="form.icon" alt="preview" class="amenity-icon-img" /></span>
-            <span v-else><i :class="form.icon" class="amenity-icon-class" /></span>
-          </small>
+          <span class="field-label">هاتف بديل</span>
+          <input v-model="form.alternative_phone" type="text" class="field-input ltr" />
         </label>
-        <div class="form-actions">
+        <div class="field">
+          <span class="field-label">الحالة</span>
+          <AppDropdown v-model="form.account_status" :options="statusOptions" />
+        </div>
+        <label class="field span-2">
+          <span class="field-label">العنوان</span>
+          <input v-model="form.address" type="text" class="field-input" />
+        </label>
+        <div v-if="editing && willSuspend" class="warning span-2">
+          <i class="pi pi-exclamation-triangle" />
+          <span>إيقاف هذا المالك سيمنع ظهوره في قوائم الحجز الجديدة.</span>
+        </div>
+        <div class="form-actions span-2">
           <button type="button" class="btn-cancel" @click="formOpen = false">إلغاء</button>
-          <button type="submit" class="btn-primary" :disabled="saving || !form.name_ar">
+          <button type="submit" class="btn-primary" :disabled="saving || !form.name || !form.phone">
             <i v-if="saving" class="pi pi-spin pi-spinner" />
             <i v-else :class="editing ? 'pi pi-check' : 'pi pi-plus'" />
             {{ editing ? 'حفظ' : 'إضافة' }}
@@ -95,14 +113,14 @@
     <!-- Delete confirm -->
     <AppModal
       v-model="deleteOpen"
-      title="حذف الكمالية؟"
-      subtitle="لا يمكن التراجع عن هذا الإجراء"
+      title="حذف المالك؟"
+      subtitle="حذف ناعم — لن يظهر في القوائم النشطة"
       icon="pi pi-exclamation-triangle"
       icon-color="#ef4444"
       icon-bg="rgba(239,68,68,0.08)"
       size="sm"
     >
-      <p class="confirm-text">هل أنت متأكد من حذف <strong>{{ pendingDelete?.name_ar }}</strong>؟</p>
+      <p class="confirm-text">هل أنت متأكد من حذف <strong>{{ pendingDelete?.name }}</strong>؟</p>
       <div class="form-actions">
         <button type="button" class="btn-cancel" @click="deleteOpen = false">إلغاء</button>
         <button type="button" class="btn-danger" :disabled="deleting" @click="handleDelete">
@@ -116,29 +134,41 @@
 
 <script setup>
 import { ref, reactive, computed, onMounted } from 'vue'
-import { useAmenitiesStore } from '@/stores/amenities'
+import { useOwnersStore } from '@/stores/owners'
 import { useToastStore } from '@/stores/toast'
 import AppModal from '@/components/ui/AppModal.vue'
+import AppDropdown from '@/components/ui/AppDropdown.vue'
 
-const amenities = useAmenitiesStore()
+const ownersStore = useOwnersStore()
 const toast = useToastStore()
 
 const rows = ref([])
 const loading = ref(true)
+const searchInput = ref('')
+const search = ref('')
+
 const currentPage = ref(1)
 const lastPage = ref(1)
 const total = ref(0)
 const rangeFrom = ref(0)
 const rangeTo = ref(0)
 
-function isImageUrl(s) { return /^https?:\/\//i.test(s) || /\.(png|jpe?g|svg|webp|gif)$/i.test(s) }
+const statusOptions = [
+  { value: 'ACTIVE', label: 'نشط' },
+  { value: 'SUSPENDED', label: 'موقوف' },
+  { value: 'PERMANENT_SUSPENDED', label: 'موقوف نهائياً' },
+]
+
+function statusLabel(s) {
+  return { ACTIVE: 'نشط', SUSPENDED: 'موقوف', PERMANENT_SUSPENDED: 'موقوف نهائياً' }[s] || s || '—'
+}
 
 const pageWindow = computed(() => {
   const last = lastPage.value
   const cur = currentPage.value
   const span = 2
-  let start = Math.max(1, cur - span)
-  let end = Math.min(last, cur + span)
+  const start = Math.max(1, cur - span)
+  const end = Math.min(last, cur + span)
   const pages = []
   for (let i = start; i <= end; i++) pages.push(i)
   return pages
@@ -146,7 +176,7 @@ const pageWindow = computed(() => {
 
 async function load() {
   loading.value = true
-  const r = await amenities.list({ page: currentPage.value, limit: 10 })
+  const r = await ownersStore.list({ page: currentPage.value, limit: 10, search: search.value })
   loading.value = false
   if (r.ok) {
     rows.value = r.data.rows
@@ -166,31 +196,55 @@ function goToPage(p) {
   load()
 }
 
+let searchTimer = null
+function onSearch() {
+  if (searchTimer) clearTimeout(searchTimer)
+  searchTimer = setTimeout(() => {
+    search.value = searchInput.value.trim()
+    currentPage.value = 1
+    load()
+  }, 300)
+}
+
 // Form
 const formOpen = ref(false)
 const editing = ref(null)
 const saving = ref(false)
-const form = reactive({ name_ar: '', name_en: '', icon: '' })
+const form = reactive({
+  name: '', phone: '', alternative_phone: '', address: '', account_status: 'ACTIVE',
+})
 
-function resetForm() { form.name_ar = ''; form.name_en = ''; form.icon = '' }
+const willSuspend = computed(() =>
+  editing.value && form.account_status !== 'ACTIVE' && editing.value.account_status === 'ACTIVE'
+)
+
+function resetForm() {
+  form.name = ''
+  form.phone = ''
+  form.alternative_phone = ''
+  form.address = ''
+  form.account_status = 'ACTIVE'
+}
 
 function openCreate() { editing.value = null; resetForm(); formOpen.value = true }
 
 function openEdit(row) {
   editing.value = row
-  form.name_ar = row.name_ar || ''
-  form.name_en = row.name_en || ''
-  form.icon = row.icon || ''
+  form.name = row.name || ''
+  form.phone = row.phone || ''
+  form.alternative_phone = row.alternative_phone || ''
+  form.address = row.address || ''
+  form.account_status = row.account_status || 'ACTIVE'
   formOpen.value = true
 }
 
 async function handleSubmit() {
-  if (!form.name_ar) return
+  if (!form.name || !form.phone) return
   saving.value = true
-  const payload = { name_ar: form.name_ar, name_en: form.name_en, icon: form.icon || null }
+  const payload = { ...form }
   const r = editing.value
-    ? await amenities.update(editing.value.id, payload)
-    : await amenities.create(payload)
+    ? await ownersStore.update(editing.value.id, payload)
+    : await ownersStore.create(payload)
   saving.value = false
   if (r.ok) {
     toast.success(editing.value ? 'تم التحديث' : 'تمت الإضافة')
@@ -211,7 +265,7 @@ function confirmDelete(row) { pendingDelete.value = row; deleteOpen.value = true
 async function handleDelete() {
   if (!pendingDelete.value) return
   deleting.value = true
-  const r = await amenities.remove(pendingDelete.value.id)
+  const r = await ownersStore.remove(pendingDelete.value.id)
   deleting.value = false
   if (r.ok) {
     toast.success('تم الحذف')
@@ -227,7 +281,7 @@ onMounted(load)
 </script>
 
 <style scoped>
-.amenities-page { display: flex; flex-direction: column; gap: 16px; }
+.owners-page { display: flex; flex-direction: column; gap: 16px; }
 .page-header { display: flex; align-items: center; gap: 14px; }
 .page-icon {
   width: 52px; height: 52px;
@@ -269,6 +323,14 @@ onMounted(load)
   background: #fff; border: 1px solid #f1f5f9; border-radius: 14px;
   padding: 18px 20px; box-shadow: 0 2px 8px rgba(15, 23, 42, 0.04);
 }
+
+.search-input {
+  width: 100%; padding: 10px 14px;
+  border-radius: 10px; border: 1px solid #e2e8f0; background: #fafbfc;
+  font-size: 13.5px; font-family: inherit; color: #0f172a;
+}
+.search-input:focus { outline: none; border-color: #f97316; background: #fff; box-shadow: 0 0 0 3px rgba(249, 115, 22, 0.12); }
+
 .data-table { width: 100%; border-collapse: collapse; }
 .data-table th {
   padding: 10px 12px; text-align: right; font-size: 11.5px; font-weight: 800; color: #64748b;
@@ -279,23 +341,14 @@ onMounted(load)
 .data-table tr:last-child td { border-bottom: none; }
 .actions-col { width: 100px; text-align: end; white-space: nowrap; }
 .ltr { direction: ltr; text-align: right; }
-.dash { color: #cbd5e1; }
 
-.icon-cell { display: inline-flex; align-items: center; }
-.amenity-icon-img {
-  width: 34px; height: 34px;
-  border-radius: 8px;
-  object-fit: cover;
-  border: 1px solid #f1f5f9;
+.status-badge {
+  display: inline-flex; align-items: center; padding: 4px 12px;
+  border-radius: 999px; font-size: 11.5px; font-weight: 800; border: 1px solid;
 }
-.amenity-icon-class {
-  width: 34px; height: 34px;
-  border-radius: 8px;
-  background: rgba(249, 115, 22, 0.08);
-  color: #ea580c;
-  display: inline-flex; align-items: center; justify-content: center;
-  font-size: 16px;
-}
+.status-badge.active { background: rgba(16, 185, 129, 0.10); color: #047857; border-color: rgba(16, 185, 129, 0.25); }
+.status-badge.suspended { background: rgba(249, 115, 22, 0.10); color: #c2410c; border-color: rgba(249, 115, 22, 0.25); }
+.status-badge.permanent_suspended { background: rgba(239, 68, 68, 0.10); color: #b91c1c; border-color: rgba(239, 68, 68, 0.25); }
 
 .icon-btn {
   width: 32px; height: 32px; border-radius: 8px;
@@ -316,6 +369,8 @@ onMounted(load)
 .empty p { margin: 0; font-size: 14px; font-weight: 600; }
 
 .form-grid { display: flex; flex-direction: column; gap: 12px; }
+.form-grid.two-col { display: grid; grid-template-columns: 1fr 1fr; gap: 12px; }
+.form-grid.two-col .field.span-2, .form-grid.two-col .form-actions.span-2, .form-grid.two-col .warning.span-2 { grid-column: 1 / -1; }
 .field { display: flex; flex-direction: column; gap: 6px; }
 .field-label { font-size: 12px; font-weight: 700; color: #64748b; }
 .field-label .req { color: #ef4444; }
@@ -324,8 +379,17 @@ onMounted(load)
   font-size: 13.5px; font-family: inherit; color: #0f172a;
 }
 .field-input:focus { outline: none; border-color: #f97316; box-shadow: 0 0 0 3px rgba(249, 115, 22, 0.12); }
-.field-hint { display: inline-flex; align-items: center; gap: 8px; font-size: 12px; color: #94a3b8; margin-top: 4px; }
-.field-hint .amenity-icon-img, .field-hint .amenity-icon-class { width: 28px; height: 28px; font-size: 14px; }
+
+.warning {
+  display: flex; align-items: center; gap: 10px;
+  padding: 10px 14px;
+  background: rgba(234, 179, 8, 0.10);
+  border: 1px solid rgba(234, 179, 8, 0.30);
+  color: #b45309;
+  border-radius: 10px;
+  font-size: 12.5px; font-weight: 600;
+}
+.warning i { font-size: 13px; }
 
 .form-actions { display: flex; gap: 10px; justify-content: flex-end; padding-top: 8px; margin-top: 6px; }
 .confirm-text { font-size: 14px; color: #475569; margin: 0 0 14px; line-height: 1.6; }

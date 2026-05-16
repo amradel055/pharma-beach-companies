@@ -73,40 +73,37 @@
         <p v-if="hasActiveFilter">جرّب تعديل عوامل التصفية</p>
       </div>
 
-      <div v-else class="row-list">
-        <button
-          v-for="ch in chalets"
-          :key="ch.id"
-          type="button"
-          class="row-card"
-          @click="openChalet(ch.id)"
-        >
-          <div class="row-leading">
-            <div class="row-avatar"><i class="pi pi-home" /></div>
-            <div class="row-id">
-              <span class="row-name">{{ ch.name }}</span>
-              <span class="row-sub">
-                <span v-if="ch.chalet_number">رقم {{ ch.chalet_number }}</span>
-                <span v-if="ch.chalet_code" class="ltr"> · {{ ch.chalet_code }}</span>
-              </span>
-            </div>
-          </div>
-
-          <div class="row-meta">
-            <span v-if="ch.village?.name" class="row-chip village">
-              <i class="pi pi-map-marker" /> {{ ch.village.name }}
-            </span>
-            <span class="row-chip price">
-              <i class="pi pi-tag" /> {{ fmtNum(ch.price) }} ج.م / ليلة
-            </span>
-            <span :class="['row-chip', 'status', ch.status?.toLowerCase()]">
-              <i :class="ch.status === 'AVAILABLE' ? 'pi pi-check-circle' : 'pi pi-ban'" />
-              {{ statusLabel(ch.status) }}
-            </span>
-          </div>
-
-          <i class="pi pi-chevron-left row-chev" />
-        </button>
+      <div v-else class="table-wrap">
+        <table class="p-table">
+          <thead>
+            <tr>
+              <th class="idx-col">#</th>
+              <th>اسم الشاليه</th>
+              <th class="act-col"></th>
+            </tr>
+          </thead>
+          <tbody>
+            <tr
+              v-for="(ch, i) in chalets"
+              :key="ch.id"
+              class="p-row"
+              @click="openChalet(ch.id)"
+            >
+              <td class="idx-col">{{ rangeFrom + i }}</td>
+              <td>
+                <div class="t-chalet">
+                  <span class="t-chalet-avatar"><i class="pi pi-home" /></span>
+                  <span class="t-chalet-name">{{ ch.name }}</span>
+                </div>
+              </td>
+              <td class="act-col">
+                <span class="t-open">
+                  عرض التفاصيل <i class="pi pi-chevron-left" />
+                </span>
+              </td>
+            </tr>
+          </tbody>
+        </table>
       </div>
 
       <!-- Pagination -->
@@ -231,7 +228,7 @@ async function loadLookups() {
 async function reload({ resetPage = false } = {}) {
   if (resetPage) currentPage.value = 1
   loading.value = true
-  const r = await csBookings.listAvailableChaletsDetail({
+  const r = await csBookings.listChalets({
     page: currentPage.value,
     limit: PAGE_SIZE,
     company_id: filters.company_id,
@@ -266,20 +263,9 @@ function clearFilters() {
   reload({ resetPage: true })
 }
 
-function statusLabel(s) {
-  return {
-    AVAILABLE: 'متاح',
-    UNAVAILABLE: 'غير متاح',
-    SOLD: 'مباع',
-    RESERVED: 'محجوز',
-  }[s] || s || '—'
-}
-
 function openChalet(id) {
   router.push({ name: 'admin-village-booking-chalet', params: { id } })
 }
-
-function fmtNum(n) { return Number(n || 0).toLocaleString('ar-EG') }
 
 onMounted(async () => {
   await Promise.all([loadLookups(), reload()])
@@ -341,82 +327,78 @@ onMounted(async () => {
 .filter-field { display: flex; flex-direction: column; gap: 6px; min-width: 0; }
 .filter-field label { font-size: 11.5px; font-weight: 700; color: #64748b; }
 
-/* Row list */
-.row-list { display: flex; flex-direction: column; gap: 8px; }
-.row-card {
-  display: flex;
-  align-items: center;
-  gap: 14px;
-  padding: 14px 16px;
-  background: #fff;
-  border: 1px solid #f1f5f9;
-  border-radius: 12px;
-  cursor: pointer;
-  font-family: inherit;
-  text-align: right;
+/* ── Card-style table (each row is its own card) ── */
+.table-wrap { overflow-x: auto; }
+.p-table {
   width: 100%;
-  transition: all 0.15s;
+  border-collapse: separate;
+  border-spacing: 0 10px;
+  min-width: 720px;
 }
-.row-card:hover {
-  border-color: #fed7aa;
-  box-shadow: 0 4px 14px rgba(249, 115, 22, 0.12);
-  transform: translateY(-1px);
+.p-table thead th {
+  padding: 4px 18px 8px;
+  text-align: right;
+  font-size: 11.5px;
+  font-weight: 800;
+  color: #94a3b8;
+  text-transform: uppercase;
+  letter-spacing: 0.5px;
+  white-space: nowrap;
+}
+.p-table thead th.act-col { width: 1%; }
+
+.p-row { cursor: pointer; transition: transform 0.15s; }
+.p-table tbody td {
+  padding: 16px 18px;
+  vertical-align: middle;
+  background: #fff;
+  border-top: 1px solid #eef2f6;
+  border-bottom: 1px solid #eef2f6;
+}
+.p-table tbody td:first-child {
+  border-inline-start: 1px solid #eef2f6;
+  border-start-start-radius: 14px;
+  border-end-start-radius: 14px;
+}
+.p-table tbody td:last-child {
+  border-inline-end: 1px solid #eef2f6;
+  border-start-end-radius: 14px;
+  border-end-end-radius: 14px;
+}
+.p-row:hover { transform: translateY(-2px); }
+.p-row:hover td { background: #fffdfa; border-color: #fed7aa; }
+
+.idx-col {
+  width: 1%;
+  white-space: nowrap;
+  color: #94a3b8;
+  font-weight: 800;
+  font-size: 12.5px;
 }
 
-.row-leading { display: flex; align-items: center; gap: 12px; min-width: 0; flex-shrink: 0; }
-.row-avatar {
-  width: 40px; height: 40px;
-  border-radius: 11px;
-  background: linear-gradient(135deg, rgba(249, 115, 22, 0.10), rgba(251, 191, 36, 0.10));
+.t-chalet { display: flex; align-items: center; gap: 11px; }
+.t-chalet-avatar {
+  width: 36px; height: 36px;
+  border-radius: 10px;
+  background: linear-gradient(135deg, rgba(249, 115, 22, 0.12), rgba(251, 191, 36, 0.12));
   color: #ea580c;
   display: inline-flex; align-items: center; justify-content: center;
   flex-shrink: 0;
 }
-.row-avatar i { font-size: 16px; }
-.row-id { display: flex; flex-direction: column; gap: 2px; min-width: 0; }
-.row-name { font-size: 14.5px; font-weight: 800; color: #0f172a; }
-.row-sub { font-size: 12.5px; color: #64748b; font-weight: 600; display: inline-flex; gap: 4px; align-items: center; }
-.row-sub .ltr { direction: ltr; color: #94a3b8; }
+.t-chalet-avatar i { font-size: 15px; }
+.t-chalet-name { font-size: 14px; font-weight: 800; color: #0f172a; }
+.p-row:hover .t-chalet-name { color: #ea580c; }
 
-.row-meta {
-  display: flex;
-  flex-wrap: wrap;
-  align-items: center;
-  gap: 6px;
-  flex: 1;
-  justify-content: flex-end;
+.act-col { white-space: nowrap; text-align: end; }
+.t-open {
+  display: inline-flex; align-items: center; gap: 6px;
+  font-size: 12.5px; font-weight: 800;
+  color: #94a3b8;
+  transition: color 0.15s;
 }
-
-.row-chip {
-  display: inline-flex;
-  align-items: center;
-  gap: 5px;
-  padding: 5px 11px;
-  border-radius: 999px;
-  font-size: 11.5px;
-  font-weight: 700;
-  white-space: nowrap;
-  border: 1px solid transparent;
-}
-.row-chip i { font-size: 10.5px; }
-
-.row-chip.village { background: #f8fafc; border-color: #f1f5f9; color: #475569; }
-.row-chip.village i { color: #94a3b8; }
-
-.row-chip.price {
-  background: linear-gradient(135deg, rgba(249, 115, 22, 0.08), rgba(251, 191, 36, 0.08));
-  color: #c2410c;
-  border-color: rgba(249, 115, 22, 0.22);
-}
-.row-chip.price i { color: #ea580c; }
-
-.row-chip.status.available { background: rgba(16, 185, 129, 0.12); color: #047857; border-color: rgba(16, 185, 129, 0.22); }
-.row-chip.status.unavailable { background: rgba(239, 68, 68, 0.10); color: #b91c1c; border-color: rgba(239, 68, 68, 0.22); }
-.row-chip.status.sold,
-.row-chip.status.reserved { background: rgba(100, 116, 139, 0.12); color: #475569; border-color: rgba(100, 116, 139, 0.22); }
-
-.row-chev { color: #cbd5e1; font-size: 14px; flex-shrink: 0; transition: transform 0.15s; }
-.row-card:hover .row-chev { color: #f97316; transform: translateX(-3px); }
+.t-open i { font-size: 12px; transition: transform 0.15s; }
+.p-row:hover .t-open { color: #ea580c; }
+.p-row:hover .t-open i { transform: translateX(-3px); }
 
 /* Loading + empty */
 .loading-inline { padding: 40px 20px; text-align: center; color: #64748b; font-size: 13.5px; }
@@ -486,7 +468,5 @@ onMounted(async () => {
 
 @media (max-width: 900px) {
   .filter-grid { grid-template-columns: 1fr 1fr; }
-  .row-card { flex-wrap: wrap; }
-  .row-meta { justify-content: flex-start; }
 }
 </style>
