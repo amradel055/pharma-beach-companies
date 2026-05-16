@@ -6,6 +6,20 @@ export const REASON_CODES = {
   INSUFFICIENT_BALANCE: 'INSUFFICIENT_BALANCE_SELECT_CASH_OR_BANK',
   CHALET_UNAVAILABLE: 'CHALET_NOT_AVAILABLE_FOR_SELECTED_DATES',
   GUESTS_EXCEED_MAX: 'GUESTS_EXCEED_MAXIMUM_ALLOWED',
+  // CS-supervisor actions
+  ALREADY_CHECKED_IN: 'BOOKING_ALREADY_CHECKED_IN',
+  ALREADY_CANCELLED: 'BOOKING_ALREADY_CANCELLED',
+  CANNOT_CANCEL_AFTER_CHECK_IN: 'CANNOT_CANCEL_AFTER_CHECK_IN',
+}
+
+// Arabic messages for the supervisor-flow 422 reason phrases.
+const REASON_MESSAGES = {
+  INSUFFICIENT_BALANCE_SELECT_CASH_OR_BANK: 'الرصيد غير كافٍ، اختر نقدي أو تحويل بنكي',
+  CHALET_NOT_AVAILABLE_FOR_SELECTED_DATES: 'الشاليه غير متاح في التواريخ المختارة',
+  GUESTS_EXCEED_MAXIMUM_ALLOWED: 'عدد الضيوف يتجاوز الحد المسموح',
+  BOOKING_ALREADY_CHECKED_IN: 'تم تسجيل الدخول بالفعل — لا يمكن التعديل',
+  BOOKING_ALREADY_CANCELLED: 'الحجز ملغى بالفعل',
+  CANNOT_CANCEL_AFTER_CHECK_IN: 'لا يمكن الإلغاء بعد تسجيل الدخول',
 }
 
 function unwrap(response) {
@@ -338,6 +352,66 @@ export const useCsBookingsStore = defineStore('csBookings', () => {
     }
   }
 
+  // Shared error shaper for the supervisor actions: surfaces the 422 reason
+  // phrase + a localized message so views can branch / toast cleanly.
+  function _supervisorError(error, fallback) {
+    const reason = reasonOf(error)
+    const message = (reason && REASON_MESSAGES[reason]) || getErrorMessage(error, fallback)
+    return { ok: false, reason, error: message }
+  }
+
+  // PUT /v1/bookings/{id}/guests-cars — edit guests + cars (before check-in).
+  // body: { guests:[{name,national_id,role,phone,type}], cars:[{plate_number}], payment_type }
+  async function editGuestsCars(bookingId, payload) {
+    try {
+      const res = await api.put(`/v1/bookings/${bookingId}/guests-cars`, payload)
+      return { ok: true, data: unwrap(res) }
+    } catch (error) {
+      return _supervisorError(error, 'تعذر تعديل بيانات الضيوف والسيارات')
+    }
+  }
+
+  // POST /v1/bookings/{id}/extend — body: { additional_days, payment_type }
+  async function extendBooking(bookingId, payload) {
+    try {
+      const res = await api.post(`/v1/bookings/${bookingId}/extend`, payload)
+      return { ok: true, data: unwrap(res) }
+    } catch (error) {
+      return _supervisorError(error, 'تعذر تمديد الحجز')
+    }
+  }
+
+  // POST /v1/bookings/{id}/transfer — body: { new_chalet_id, payment_type }
+  async function transferBooking(bookingId, payload) {
+    try {
+      const res = await api.post(`/v1/bookings/${bookingId}/transfer`, payload)
+      return { ok: true, data: unwrap(res) }
+    } catch (error) {
+      return _supervisorError(error, 'تعذر نقل الحجز')
+    }
+  }
+
+  // POST /v1/bookings/{id}/transfer-and-extend
+  // body: { new_chalet_id, additional_days, payment_type }
+  async function transferAndExtend(bookingId, payload) {
+    try {
+      const res = await api.post(`/v1/bookings/${bookingId}/transfer-and-extend`, payload)
+      return { ok: true, data: unwrap(res) }
+    } catch (error) {
+      return _supervisorError(error, 'تعذر نقل وتمديد الحجز')
+    }
+  }
+
+  // PUT /v1/bookings/{id}/cancel — no body.
+  async function cancelBooking(bookingId) {
+    try {
+      const res = await api.put(`/v1/bookings/${bookingId}/cancel`)
+      return { ok: true, data: unwrap(res) }
+    } catch (error) {
+      return _supervisorError(error, 'تعذر إلغاء الحجز')
+    }
+  }
+
   // GET /v1/bookings/{id}/permit — Screen 5 print payload.
   async function getPermit(bookingId) {
     try {
@@ -364,6 +438,11 @@ export const useCsBookingsStore = defineStore('csBookings', () => {
     getBookingStats,
     getBooking,
     confirmPermit,
+    editGuestsCars,
+    extendBooking,
+    transferBooking,
+    transferAndExtend,
+    cancelBooking,
     getPermit,
   }
 })

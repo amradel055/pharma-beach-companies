@@ -17,42 +17,51 @@
         <i class="pi pi-inbox" />
         <p>لا توجد كماليات بعد</p>
       </div>
-      <table v-else class="data-table">
-        <thead>
-          <tr>
-            <th>الأيقونة</th>
-            <th>الاسم بالعربية</th>
-            <th>الاسم بالإنجليزية</th>
-            <th class="actions-col"></th>
-          </tr>
-        </thead>
-        <tbody>
-          <tr v-for="row in rows" :key="row.id">
-            <td>
-              <div class="icon-cell">
-                <img v-if="row.icon && isImageUrl(row.icon)" :src="row.icon" :alt="row.name_ar" class="amenity-icon-img" />
-                <i v-else-if="row.icon" :class="row.icon" class="amenity-icon-class" />
-                <span v-else class="dash">—</span>
-              </div>
-            </td>
-            <td><strong>{{ row.name_ar || '—' }}</strong></td>
-            <td class="ltr">{{ row.name_en || '—' }}</td>
-            <td class="actions-col">
-              <button class="icon-btn edit" @click="openEdit(row)"><i class="pi pi-pencil" /></button>
-              <button class="icon-btn delete" @click="confirmDelete(row)"><i class="pi pi-trash" /></button>
-            </td>
-          </tr>
-        </tbody>
-      </table>
-
-      <div v-if="!loading && rows.length && lastPage > 1" class="pagination">
-        <div class="pagination-info">عرض {{ rangeFrom }} – {{ rangeTo }} من {{ total }}</div>
-        <div class="pagination-controls">
-          <button class="page-btn nav" :disabled="currentPage === 1" @click="goToPage(currentPage - 1)"><i class="pi pi-chevron-right" /></button>
-          <button v-for="p in pageWindow" :key="p" :class="['page-btn', { active: p === currentPage }]" @click="goToPage(p)">{{ p }}</button>
-          <button class="page-btn nav" :disabled="currentPage === lastPage" @click="goToPage(currentPage + 1)"><i class="pi pi-chevron-left" /></button>
-        </div>
+      <div v-else class="table-wrap">
+        <table class="p-table">
+          <thead>
+            <tr>
+              <th>الأيقونة</th>
+              <th>الاسم بالعربية</th>
+              <th>الاسم بالإنجليزية</th>
+              <th class="act-col"></th>
+            </tr>
+          </thead>
+          <tbody>
+            <tr v-for="row in rows" :key="row.id" class="p-row">
+              <td>
+                <span class="amenity-tile" :class="{ 'amenity-tile--empty': iconKind(row) === 'empty' }">
+                  <img
+                    v-if="iconKind(row) === 'img'"
+                    :src="row.icon"
+                    :alt="row.name_ar || ''"
+                    @error="markIconBroken(row.id)"
+                  />
+                  <i v-else-if="iconKind(row) === 'class'" :class="row.icon" />
+                  <i v-else class="pi pi-sparkles" />
+                </span>
+              </td>
+              <td><span class="t-strong">{{ row.name_ar || '—' }}</span></td>
+              <td class="t-ltr">{{ row.name_en || '—' }}</td>
+              <td class="act-col">
+                <span class="t-actions">
+                  <button class="icon-btn edit" @click="openEdit(row)"><i class="pi pi-pencil" /></button>
+                  <button class="icon-btn delete" @click="confirmDelete(row)"><i class="pi pi-trash" /></button>
+                </span>
+              </td>
+            </tr>
+          </tbody>
+        </table>
       </div>
+
+      <AppPagination
+        :current-page="currentPage"
+        :last-page="lastPage"
+        :total="total"
+        :range-from="rangeFrom"
+        :range-to="rangeTo"
+        @change="goToPage"
+      />
     </section>
 
     <!-- Create / Edit modal -->
@@ -115,10 +124,11 @@
 </template>
 
 <script setup>
-import { ref, reactive, computed, onMounted } from 'vue'
+import { ref, reactive, onMounted } from 'vue'
 import { useAmenitiesStore } from '@/stores/amenities'
 import { useToastStore } from '@/stores/toast'
 import AppModal from '@/components/ui/AppModal.vue'
+import AppPagination from '@/components/ui/AppPagination.vue'
 
 const amenities = useAmenitiesStore()
 const toast = useToastStore()
@@ -132,17 +142,23 @@ const rangeFrom = ref(0)
 const rangeTo = ref(0)
 
 function isImageUrl(s) { return /^https?:\/\//i.test(s) || /\.(png|jpe?g|svg|webp|gif)$/i.test(s) }
+// Looks like an icon-font class (PrimeIcons, FontAwesome, Bootstrap, MDI).
+function isIconClass(s) { return /(^|\s)(pi|fa[srlb]?|bi|mdi)-[a-z0-9-]+/i.test(s) }
 
-const pageWindow = computed(() => {
-  const last = lastPage.value
-  const cur = currentPage.value
-  const span = 2
-  let start = Math.max(1, cur - span)
-  let end = Math.min(last, cur + span)
-  const pages = []
-  for (let i = start; i <= end; i++) pages.push(i)
-  return pages
-})
+// Track image URLs that fail to load so we fall back to the placeholder.
+const brokenIcons = reactive(new Set())
+function markIconBroken(id) { brokenIcons.add(id) }
+
+// Classify a row's icon so the cell renders one consistent tile:
+//   'img'   → a real image URL        'class' → an icon-font class
+//   'empty' → missing / unrecognized (e.g. the literal "string" test value)
+function iconKind(row) {
+  const s = (row.icon || '').trim()
+  if (!s) return 'empty'
+  if (isImageUrl(s)) return brokenIcons.has(row.id) ? 'empty' : 'img'
+  if (isIconClass(s)) return 'class'
+  return 'empty'
+}
 
 async function load() {
   loading.value = true
@@ -269,19 +285,30 @@ onMounted(load)
   background: #fff; border: 1px solid #f1f5f9; border-radius: 14px;
   padding: 18px 20px; box-shadow: 0 2px 8px rgba(15, 23, 42, 0.04);
 }
-.data-table { width: 100%; border-collapse: collapse; }
-.data-table th {
-  padding: 10px 12px; text-align: right; font-size: 11.5px; font-weight: 800; color: #64748b;
-  background: #fafbfc; border-bottom: 1px solid #f1f5f9;
-  text-transform: uppercase; letter-spacing: 0.4px;
+/* Unified icon tile — same footprint for every row so the column stays
+   aligned whether the amenity has an image, an icon class, or nothing. */
+.amenity-tile {
+  width: 40px; height: 40px;
+  border-radius: 11px;
+  display: inline-flex; align-items: center; justify-content: center;
+  overflow: hidden;
+  flex-shrink: 0;
+  background: linear-gradient(135deg, rgba(249, 115, 22, 0.12), rgba(251, 191, 36, 0.12));
+  border: 1px solid rgba(249, 115, 22, 0.20);
+  color: #ea580c;
+  transition: transform 0.15s;
 }
-.data-table td { padding: 12px; font-size: 13.5px; color: #0f172a; border-bottom: 1px solid #f8fafc; }
-.data-table tr:last-child td { border-bottom: none; }
-.actions-col { width: 100px; text-align: end; white-space: nowrap; }
-.ltr { direction: ltr; text-align: right; }
-.dash { color: #cbd5e1; }
+.p-row:hover .amenity-tile { transform: scale(1.06); }
+.amenity-tile img { width: 100%; height: 100%; object-fit: cover; display: block; }
+.amenity-tile i { font-size: 18px; }
+.amenity-tile--empty {
+  background: #f8fafc;
+  border: 1px dashed #e2e8f0;
+  color: #cbd5e1;
+}
+.amenity-tile--empty i { font-size: 16px; }
 
-.icon-cell { display: inline-flex; align-items: center; }
+/* Form-modal live preview keeps its own compact swatch. */
 .amenity-icon-img {
   width: 34px; height: 34px;
   border-radius: 8px;
@@ -296,16 +323,6 @@ onMounted(load)
   display: inline-flex; align-items: center; justify-content: center;
   font-size: 16px;
 }
-
-.icon-btn {
-  width: 32px; height: 32px; border-radius: 8px;
-  background: #fff; border: 1px solid #e2e8f0; color: #64748b;
-  cursor: pointer; display: inline-flex; align-items: center; justify-content: center;
-  transition: all 0.15s; margin-inline-start: 4px;
-}
-.icon-btn.edit:hover { border-color: #fed7aa; color: #ea580c; }
-.icon-btn.delete:hover { border-color: #fecaca; color: #ef4444; }
-.icon-btn i { font-size: 13px; }
 
 .empty {
   padding: 40px 20px; text-align: center; color: #94a3b8;
@@ -330,25 +347,4 @@ onMounted(load)
 .form-actions { display: flex; gap: 10px; justify-content: flex-end; padding-top: 8px; margin-top: 6px; }
 .confirm-text { font-size: 14px; color: #475569; margin: 0 0 14px; line-height: 1.6; }
 .confirm-text strong { color: #0f172a; }
-
-.pagination {
-  display: flex; align-items: center; justify-content: space-between; gap: 12px;
-  margin-top: 14px; padding-top: 14px; border-top: 1px solid #f1f5f9; flex-wrap: wrap;
-}
-.pagination-info { font-size: 12.5px; color: #64748b; font-weight: 600; }
-.pagination-controls { display: flex; align-items: center; gap: 4px; }
-.page-btn {
-  min-width: 34px; height: 34px; padding: 0 10px; border-radius: 9px;
-  border: 1px solid #e2e8f0; background: #fff; color: #475569;
-  font-size: 13px; font-weight: 700; font-family: inherit;
-  cursor: pointer; display: inline-flex; align-items: center; justify-content: center;
-  transition: all 0.15s;
-}
-.page-btn:hover:not(:disabled):not(.active) { border-color: #fed7aa; color: #f97316; }
-.page-btn:disabled { opacity: 0.4; cursor: not-allowed; }
-.page-btn.active {
-  background: linear-gradient(135deg, #f97316, #ea580c); border-color: transparent;
-  color: #fff; box-shadow: 0 2px 8px rgba(249, 115, 22, 0.30);
-}
-.page-btn.nav i { font-size: 12px; }
 </style>

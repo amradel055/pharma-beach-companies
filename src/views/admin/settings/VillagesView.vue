@@ -17,81 +17,94 @@
         <i class="pi pi-map" />
         <p>لا توجد قرى بعد</p>
       </div>
-      <table v-else class="data-table">
-        <thead>
-          <tr>
-            <th class="num-col"></th>
-            <th>الاسم</th>
-            <th>تاريخ الإنشاء</th>
-            <th class="actions-col"></th>
-          </tr>
-        </thead>
-        <tbody>
-          <template v-for="row in rows" :key="row.id">
-            <tr class="row clickable" @click="toggleExpand(row)">
-              <td class="num-col">
-                <i :class="['pi', expanded[row.id] ? 'pi-chevron-down' : 'pi-chevron-left', 'expand-chev']" />
-              </td>
-              <td><strong>{{ row.name }}</strong></td>
-              <td class="muted">{{ row.created_at ? toDisplayDate(row.created_at) : '—' }}</td>
-              <td class="actions-col">
-                <button class="icon-btn edit" @click.stop="openEdit(row)"><i class="pi pi-pencil" /></button>
-                <button class="icon-btn delete" @click.stop="confirmDelete(row)"><i class="pi pi-trash" /></button>
-              </td>
-            </tr>
-            <tr v-if="expanded[row.id]" class="expand-row">
-              <td colspan="4">
-                <div class="tiers-box">
-                  <div class="tiers-head">
-                    <h4 class="tiers-title"><i class="pi pi-th-large" /> فئات الشاليهات</h4>
-                    <button class="btn-primary btn-sm" @click.stop="openTierCreate(row)">
-                      <i class="pi pi-plus" /> فئة جديدة
-                    </button>
-                  </div>
-                  <div v-if="tiersLoading[row.id]" class="muted-row">
-                    <i class="pi pi-spin pi-spinner" /> جاري تحميل الفئات...
-                  </div>
-                  <div v-else-if="!(tiers[row.id] || []).length" class="muted-row">
-                    لا توجد فئات لهذه القرية
-                  </div>
-                  <table v-else class="data-table inner">
-                    <thead>
-                      <tr>
-                        <th>الاسم</th>
-                        <th>رسوم القرية</th>
-                        <th>الحد الأقصى للضيوف</th>
-                        <th>ضيوف إضافيون</th>
-                        <th class="actions-col"></th>
-                      </tr>
-                    </thead>
-                    <tbody>
-                      <tr v-for="t in tiers[row.id]" :key="t.id">
-                        <td><strong>{{ t.name || '—' }}</strong></td>
-                        <td>{{ fmt(t.village_fee) }} ج.م</td>
-                        <td>{{ t.max_guests ?? '—' }}</td>
-                        <td>{{ t.max_extra_guest ?? '—' }}</td>
-                        <td class="actions-col">
-                          <button class="icon-btn edit" @click.stop="openTierEdit(row, t)"><i class="pi pi-pencil" /></button>
-                          <button class="icon-btn delete" @click.stop="confirmTierDelete(row, t)"><i class="pi pi-trash" /></button>
-                        </td>
-                      </tr>
-                    </tbody>
-                  </table>
-                </div>
-              </td>
-            </tr>
-          </template>
-        </tbody>
-      </table>
+      <div v-else class="acc-list">
+        <div
+          v-for="row in rows"
+          :key="row.id"
+          :class="['acc-item', { open: expanded[row.id] }]"
+        >
+          <div class="acc-header" @click="toggleExpand(row)">
+            <span class="acc-caret"><i class="pi pi-chevron-left" /></span>
+            <span class="acc-avatar"><i class="pi pi-map-marker" /></span>
+            <span class="acc-titles">
+              <span class="acc-name">{{ row.name }}</span>
+              <span class="acc-sub">
+                <i class="pi pi-calendar" />
+                {{ row.created_at ? toDisplayDate(row.created_at) : '—' }}
+              </span>
+            </span>
+            <span v-if="tiers[row.id]" class="acc-count">{{ tiers[row.id].length }} فئة</span>
+            <span class="acc-actions">
+              <button class="icon-btn edit" @click.stop="openEdit(row)"><i class="pi pi-pencil" /></button>
+              <button class="icon-btn delete" @click.stop="confirmDelete(row)"><i class="pi pi-trash" /></button>
+            </span>
+          </div>
 
-      <div v-if="!loading && rows.length && lastPage > 1" class="pagination">
-        <div class="pagination-info">عرض {{ rangeFrom }} – {{ rangeTo }} من {{ total }}</div>
-        <div class="pagination-controls">
-          <button class="page-btn nav" :disabled="currentPage === 1" @click="goToPage(currentPage - 1)"><i class="pi pi-chevron-right" /></button>
-          <button v-for="p in pageWindow" :key="p" :class="['page-btn', { active: p === currentPage }]" @click="goToPage(p)">{{ p }}</button>
-          <button class="page-btn nav" :disabled="currentPage === lastPage" @click="goToPage(currentPage + 1)"><i class="pi pi-chevron-left" /></button>
+          <div class="acc-panel">
+            <div class="acc-panel-clip">
+              <div class="acc-panel-body">
+                <div class="tiers-head">
+                  <div class="tiers-title">
+                    <span class="tiers-title-icon"><i class="pi pi-th-large" /></span>
+                    <span>فئات الشاليهات</span>
+                    <span v-if="(tiers[row.id] || []).length" class="tiers-count">
+                      {{ tiers[row.id].length }}
+                    </span>
+                  </div>
+                  <button class="btn-primary btn-sm" @click.stop="openTierCreate(row)">
+                    <i class="pi pi-plus" /> فئة جديدة
+                  </button>
+                </div>
+
+                <div v-if="tiersLoading[row.id]" class="muted-row">
+                  <i class="pi pi-spin pi-spinner" /> جاري تحميل الفئات...
+                </div>
+                <div v-else-if="!(tiers[row.id] || []).length" class="tiers-empty">
+                  <div class="tiers-empty-icon"><i class="pi pi-inbox" /></div>
+                  <p>لا توجد فئات لهذه القرية</p>
+                  <button class="btn-primary btn-sm" @click.stop="openTierCreate(row)">
+                    <i class="pi pi-plus" /> إضافة أول فئة
+                  </button>
+                </div>
+                <table v-else class="tier-table">
+                  <thead>
+                    <tr>
+                      <th>الاسم</th>
+                      <th>رسوم القرية</th>
+                      <th>الحد الأقصى للضيوف</th>
+                      <th>ضيوف إضافيون</th>
+                      <th class="tier-actions-col"></th>
+                    </tr>
+                  </thead>
+                  <tbody>
+                    <tr v-for="t in tiers[row.id]" :key="t.id" class="tier-row">
+                      <td>
+                        <span class="tier-name">{{ t.name || '—' }}</span>
+                      </td>
+                      <td><span class="tier-num">{{ fmt(t.village_fee) }}</span> <span class="tier-unit">ج.م</span></td>
+                      <td><span class="tier-num">{{ t.max_guests ?? '—' }}</span></td>
+                      <td><span class="tier-num">{{ t.max_extra_guest ?? '—' }}</span></td>
+                      <td class="tier-actions-col">
+                        <button class="icon-btn edit" @click.stop="openTierEdit(row, t)"><i class="pi pi-pencil" /></button>
+                        <button class="icon-btn delete" @click.stop="confirmTierDelete(row, t)"><i class="pi pi-trash" /></button>
+                      </td>
+                    </tr>
+                  </tbody>
+                </table>
+              </div>
+            </div>
+          </div>
         </div>
       </div>
+
+      <AppPagination
+        :current-page="currentPage"
+        :last-page="lastPage"
+        :total="total"
+        :range-from="rangeFrom"
+        :range-to="rangeTo"
+        @change="goToPage"
+      />
     </section>
 
     <!-- Village create/edit -->
@@ -210,11 +223,12 @@
 </template>
 
 <script setup>
-import { ref, reactive, computed, onMounted } from 'vue'
+import { ref, reactive, onMounted } from 'vue'
 import { useVillagesStore } from '@/stores/villages'
 import { useToastStore } from '@/stores/toast'
 import { toDisplayDate } from '@/utils/date'
 import AppModal from '@/components/ui/AppModal.vue'
+import AppPagination from '@/components/ui/AppPagination.vue'
 
 const villagesStore = useVillagesStore()
 const toast = useToastStore()
@@ -227,17 +241,6 @@ const lastPage = ref(1)
 const total = ref(0)
 const rangeFrom = ref(0)
 const rangeTo = ref(0)
-
-const pageWindow = computed(() => {
-  const last = lastPage.value
-  const cur = currentPage.value
-  const span = 2
-  const start = Math.max(1, cur - span)
-  const end = Math.min(last, cur + span)
-  const pages = []
-  for (let i = start; i <= end; i++) pages.push(i)
-  return pages
-})
 
 async function load() {
   loading.value = true
@@ -468,44 +471,155 @@ onMounted(load)
   padding: 18px 20px; box-shadow: 0 2px 8px rgba(15, 23, 42, 0.04);
 }
 
-.data-table { width: 100%; border-collapse: collapse; }
-.data-table th {
-  padding: 10px 12px; text-align: right; font-size: 11.5px; font-weight: 800; color: #64748b;
-  background: #fafbfc; border-bottom: 1px solid #f1f5f9;
-  text-transform: uppercase; letter-spacing: 0.4px;
-}
-.data-table td { padding: 12px; font-size: 13.5px; color: #0f172a; border-bottom: 1px solid #f8fafc; }
-.row.clickable { cursor: pointer; }
-.row:hover { background: #fafbfc; }
-.num-col { width: 40px; text-align: center; color: #94a3b8; }
-.expand-chev { font-size: 12px; }
-.actions-col { width: 100px; text-align: end; white-space: nowrap; }
-.muted { color: #94a3b8; }
+/* ── Accordion list ── */
+.acc-list { display: flex; flex-direction: column; gap: 10px; }
 
-.expand-row td { background: #fafbfc; padding: 14px; }
-.tiers-box {
-  background: #fff; border: 1px solid #f1f5f9; border-radius: 12px;
-  padding: 14px;
+.acc-item {
+  background: #fff;
+  border: 1px solid #eef2f6;
+  border-radius: 14px;
+  overflow: hidden;
+  transition: border-color 0.2s, box-shadow 0.2s;
 }
-.tiers-head { display: flex; align-items: center; justify-content: space-between; gap: 10px; margin-bottom: 10px; }
+.acc-item:hover { border-color: #e2e8f0; }
+.acc-item.open {
+  border-color: #fed7aa;
+  box-shadow: 0 8px 24px rgba(249, 115, 22, 0.08);
+}
+
+.acc-header {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  padding: 14px 16px;
+  cursor: pointer;
+  user-select: none;
+  transition: background 0.2s;
+}
+.acc-header:hover { background: #fcfcfd; }
+.acc-item.open .acc-header {
+  background: linear-gradient(135deg, rgba(249, 115, 22, 0.07), rgba(251, 191, 36, 0.07));
+}
+
+.acc-caret {
+  width: 28px; height: 28px;
+  border-radius: 8px;
+  flex-shrink: 0;
+  display: inline-flex; align-items: center; justify-content: center;
+  background: #f1f5f9;
+  color: #94a3b8;
+  transition: background 0.2s, color 0.2s;
+}
+.acc-caret i { font-size: 11px; transition: transform 0.25s ease; }
+.acc-header:hover .acc-caret { background: #fed7aa; color: #ea580c; }
+.acc-item.open .acc-caret { background: linear-gradient(135deg, #f97316, #ea580c); color: #fff; }
+.acc-item.open .acc-caret i { transform: rotate(-90deg); }
+
+.acc-avatar {
+  width: 38px; height: 38px;
+  border-radius: 10px;
+  flex-shrink: 0;
+  display: inline-flex; align-items: center; justify-content: center;
+  background: rgba(249, 115, 22, 0.10);
+  color: #ea580c;
+  font-size: 15px;
+}
+
+.acc-titles { display: flex; flex-direction: column; gap: 3px; min-width: 0; flex: 1; }
+.acc-name { font-size: 14.5px; font-weight: 800; color: #0f172a; }
+.acc-sub {
+  display: inline-flex; align-items: center; gap: 5px;
+  font-size: 12px; color: #94a3b8; font-weight: 600;
+}
+.acc-sub i { font-size: 11px; }
+
+.acc-count {
+  padding: 4px 11px;
+  border-radius: 999px;
+  background: #f1f5f9;
+  color: #475569;
+  font-size: 11.5px;
+  font-weight: 800;
+  white-space: nowrap;
+  flex-shrink: 0;
+}
+.acc-item.open .acc-count { background: #ffedd5; color: #c2410c; }
+
+.acc-actions { display: inline-flex; gap: 6px; flex-shrink: 0; }
+
+/* Height accordion via the grid-rows trick: 0fr → 1fr animates to the
+   content's real height (no magic max-height, no <tr> animation). */
+.acc-panel {
+  display: grid;
+  grid-template-rows: 0fr;
+  transition: grid-template-rows 0.3s ease;
+}
+.acc-item.open .acc-panel { grid-template-rows: 1fr; }
+.acc-panel-clip { overflow: hidden; min-height: 0; }
+.acc-panel-body {
+  padding: 6px 16px 16px;
+  border-top: 1px solid #f4ede4;
+  opacity: 0;
+  transition: opacity 0.25s ease;
+}
+.acc-item.open .acc-panel-body { opacity: 1; }
+
+.tiers-head { display: flex; align-items: center; justify-content: space-between; gap: 10px; margin: 10px 0 12px; }
 .tiers-title {
-  display: inline-flex; align-items: center; gap: 8px;
-  margin: 0; font-size: 13px; font-weight: 800; color: #0f172a;
+  display: inline-flex; align-items: center; gap: 9px;
+  font-size: 13.5px; font-weight: 800; color: #0f172a;
+}
+.tiers-title-icon {
+  width: 28px; height: 28px;
+  border-radius: 8px;
+  display: inline-flex; align-items: center; justify-content: center;
+  background: linear-gradient(135deg, rgba(249, 115, 22, 0.14), rgba(251, 191, 36, 0.14));
+  color: #ea580c;
+  font-size: 12px;
+}
+.tiers-count {
+  padding: 2px 9px;
+  border-radius: 999px;
+  background: #f1f5f9;
+  color: #475569;
+  font-size: 11px;
+  font-weight: 800;
+}
+.muted-row { padding: 18px; text-align: center; color: #94a3b8; font-size: 13px; }
+
+.tiers-empty {
+  display: flex; flex-direction: column; align-items: center; gap: 10px;
+  padding: 26px 16px;
+}
+.tiers-empty-icon {
+  width: 48px; height: 48px;
+  border-radius: 14px;
+  background: #f8fafc;
+  color: #cbd5e1;
+  display: inline-flex; align-items: center; justify-content: center;
+}
+.tiers-empty-icon i { font-size: 20px; }
+.tiers-empty p { margin: 0; font-size: 13px; font-weight: 600; color: #94a3b8; }
+
+/* Compact inner tiers sub-table — card rows like the main table */
+.tier-table { width: 100%; border-collapse: separate; border-spacing: 0 6px; }
+.tier-table th {
+  padding: 4px 12px 6px; text-align: right; font-size: 11px; font-weight: 800; color: #94a3b8;
   text-transform: uppercase; letter-spacing: 0.4px;
 }
-.tiers-title i { color: #f97316; font-size: 12px; }
-.muted-row { padding: 14px; text-align: center; color: #94a3b8; font-size: 13px; }
-.data-table.inner th { background: #fafbfc; }
-
-.icon-btn {
-  width: 32px; height: 32px; border-radius: 8px;
-  background: #fff; border: 1px solid #e2e8f0; color: #64748b;
-  cursor: pointer; display: inline-flex; align-items: center; justify-content: center;
-  transition: all 0.15s; margin-inline-start: 4px;
+.tier-row td {
+  padding: 12px; font-size: 13.5px; color: #475569;
+  background: #fafbfc;
+  border-top: 1px solid #f1f5f9;
+  border-bottom: 1px solid #f1f5f9;
 }
-.icon-btn.edit:hover { border-color: #fed7aa; color: #ea580c; }
-.icon-btn.delete:hover { border-color: #fecaca; color: #ef4444; }
-.icon-btn i { font-size: 13px; }
+.tier-row td:first-child { border-right: 1px solid #f1f5f9; border-top-right-radius: 10px; border-bottom-right-radius: 10px; }
+.tier-row td:last-child { border-left: 1px solid #f1f5f9; border-top-left-radius: 10px; border-bottom-left-radius: 10px; }
+.tier-name { font-weight: 800; color: #0f172a; }
+.tier-num { font-weight: 800; color: #0f172a; }
+.tier-unit { font-size: 11px; color: #94a3b8; font-weight: 700; }
+.tier-actions-col { width: 100px; text-align: end; white-space: nowrap; }
+.tier-table .icon-btn { margin-inline-start: 4px; }
 
 .empty {
   padding: 40px 20px; text-align: center; color: #94a3b8;
@@ -532,25 +646,4 @@ onMounted(load)
 .form-actions { display: flex; gap: 10px; justify-content: flex-end; padding-top: 8px; margin-top: 6px; }
 .confirm-text { font-size: 14px; color: #475569; margin: 0 0 14px; line-height: 1.6; }
 .confirm-text strong { color: #0f172a; }
-
-.pagination {
-  display: flex; align-items: center; justify-content: space-between; gap: 12px;
-  margin-top: 14px; padding-top: 14px; border-top: 1px solid #f1f5f9; flex-wrap: wrap;
-}
-.pagination-info { font-size: 12.5px; color: #64748b; font-weight: 600; }
-.pagination-controls { display: flex; align-items: center; gap: 4px; }
-.page-btn {
-  min-width: 34px; height: 34px; padding: 0 10px; border-radius: 9px;
-  border: 1px solid #e2e8f0; background: #fff; color: #475569;
-  font-size: 13px; font-weight: 700; font-family: inherit;
-  cursor: pointer; display: inline-flex; align-items: center; justify-content: center;
-  transition: all 0.15s;
-}
-.page-btn:hover:not(:disabled):not(.active) { border-color: #fed7aa; color: #f97316; }
-.page-btn:disabled { opacity: 0.4; cursor: not-allowed; }
-.page-btn.active {
-  background: linear-gradient(135deg, #f97316, #ea580c); border-color: transparent;
-  color: #fff; box-shadow: 0 2px 8px rgba(249, 115, 22, 0.30);
-}
-.page-btn.nav i { font-size: 12px; }
 </style>

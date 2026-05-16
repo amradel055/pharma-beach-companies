@@ -14,45 +14,68 @@
         <i class="pi pi-inbox" />
         <p>لا توجد إعدادات</p>
       </div>
-      <table v-else class="data-table">
-        <thead>
-          <tr>
-            <th>المفتاح</th>
-            <th>القيمة</th>
-            <th>آخر تحديث</th>
-            <th class="actions-col"></th>
-          </tr>
-        </thead>
-        <tbody>
-          <tr v-for="row in rows" :key="row.key">
-            <td class="ltr"><strong>{{ row.key }}</strong></td>
-            <td>
-              <input
-                v-if="editing === row.key"
-                v-model="draft"
-                class="inline-input"
-                :disabled="savingKey === row.key"
-                @keyup.enter="save(row)"
-                @keyup.esc="cancel"
-              />
-              <span v-else class="value-text">{{ row.value || '—' }}</span>
-            </td>
-            <td class="muted">{{ row.updated_at ? toDisplayDateTime(row.updated_at) : '—' }}</td>
-            <td class="actions-col">
-              <template v-if="editing === row.key">
-                <button class="icon-btn save" :disabled="savingKey === row.key" @click="save(row)">
-                  <i v-if="savingKey === row.key" class="pi pi-spin pi-spinner" />
-                  <i v-else class="pi pi-check" />
-                </button>
-                <button class="icon-btn cancel" @click="cancel"><i class="pi pi-times" /></button>
-              </template>
-              <button v-else class="icon-btn edit" @click="startEdit(row)">
-                <i class="pi pi-pencil" />
-              </button>
-            </td>
-          </tr>
-        </tbody>
-      </table>
+      <div v-else class="table-wrap">
+        <table class="p-table">
+          <thead>
+            <tr>
+              <th>الإعداد</th>
+              <th>النطاق</th>
+              <th>القيمة</th>
+              <th>آخر تحديث</th>
+              <th class="act-col"></th>
+            </tr>
+          </thead>
+          <tbody>
+            <tr v-for="row in rows" :key="row.key" class="p-row">
+              <td>
+                <div class="setting-key">
+                  <span class="t-strong">{{ keyLabel(row.key) }}</span>
+                  <code class="key-code">{{ row.key }}</code>
+                </div>
+              </td>
+              <td>
+                <span :class="['t-status', scopeTone(row.scope)]">{{ scopeLabel(row.scope) }}</span>
+              </td>
+              <td>
+                <textarea
+                  v-if="editing === row.key && isLong(row.key)"
+                  v-model="draft"
+                  class="inline-input inline-area"
+                  rows="4"
+                  :disabled="savingKey === row.key"
+                  @keyup.esc="cancel"
+                />
+                <input
+                  v-else-if="editing === row.key"
+                  v-model="draft"
+                  class="inline-input"
+                  :disabled="savingKey === row.key"
+                  @keyup.enter="save(row)"
+                  @keyup.esc="cancel"
+                />
+                <span v-else :class="['value-text', { 'value-empty': !row.value, 'value-clamp': isLong(row.key) }]">
+                  {{ row.value || '— غير محدد' }}
+                </span>
+              </td>
+              <td class="t-muted">{{ row.updated_at ? toDisplayDateTime(row.updated_at) : '—' }}</td>
+              <td class="act-col">
+                <span class="t-actions">
+                  <template v-if="editing === row.key">
+                    <button class="icon-btn save" :disabled="savingKey === row.key" @click="save(row)">
+                      <i v-if="savingKey === row.key" class="pi pi-spin pi-spinner" />
+                      <i v-else class="pi pi-check" />
+                    </button>
+                    <button class="icon-btn cancel" @click="cancel"><i class="pi pi-times" /></button>
+                  </template>
+                  <button v-else class="icon-btn edit" @click="startEdit(row)">
+                    <i class="pi pi-pencil" />
+                  </button>
+                </span>
+              </td>
+            </tr>
+          </tbody>
+        </table>
+      </div>
     </section>
   </div>
 </template>
@@ -65,6 +88,23 @@ import { toDisplayDateTime } from '@/utils/date'
 
 const settings = useSystemSettingsStore()
 const toast = useToastStore()
+
+// Human-readable labels for the known setting keys (falls back to the raw
+// key for any new key the backend introduces).
+const KEY_LABELS = {
+  site_name: 'اسم الموقع',
+  contact_email: 'البريد الإلكتروني للتواصل',
+  contact_phone: 'هاتف التواصل',
+  site_terms: 'شروط وأحكام الموقع',
+  village_terms: 'شروط وأحكام القرية',
+}
+// Keys whose value is long-form text → edited via a textarea.
+const LONG_KEYS = new Set(['site_terms', 'village_terms'])
+
+function keyLabel(k) { return KEY_LABELS[k] || k }
+function isLong(k) { return LONG_KEYS.has(k) }
+function scopeLabel(s) { return { SITE: 'الموقع', VILLAGE: 'القرية' }[s] || s || '—' }
+function scopeTone(s) { return { SITE: 'info', VILLAGE: 'neutral' }[s] || 'neutral' }
 
 const rows = ref([])
 const loading = ref(true)
@@ -135,19 +175,30 @@ onMounted(load)
   padding: 18px 20px; box-shadow: 0 2px 8px rgba(15, 23, 42, 0.04);
 }
 
-.data-table { width: 100%; border-collapse: collapse; }
-.data-table th {
-  padding: 10px 12px; text-align: right;
-  font-size: 11.5px; font-weight: 800; color: #64748b;
-  background: #fafbfc; border-bottom: 1px solid #f1f5f9;
-  text-transform: uppercase; letter-spacing: 0.4px;
+.setting-key { display: flex; flex-direction: column; gap: 3px; min-width: 0; }
+.key-code {
+  font-size: 11px;
+  color: #94a3b8;
+  font-weight: 700;
+  /* Keep the key's characters in LTR order, but anchor the block to the
+     column's start (right edge in this RTL table) so it lines up under
+     the label above instead of drifting to the far (left) side. */
+  direction: ltr;
+  text-align: right;
+  font-family: ui-monospace, SFMono-Regular, Menlo, monospace;
 }
-.data-table td { padding: 12px 12px; font-size: 13.5px; color: #0f172a; border-bottom: 1px solid #f8fafc; }
-.data-table tr:last-child td { border-bottom: none; }
-.ltr { direction: ltr; text-align: right; }
-.muted { color: #94a3b8; font-size: 12.5px; }
+
 .value-text { color: #0f172a; font-weight: 600; }
-.actions-col { width: 100px; text-align: end; white-space: nowrap; }
+.value-empty { color: #cbd5e1; font-weight: 700; }
+.value-clamp {
+  display: -webkit-box;
+  -webkit-line-clamp: 2;
+  -webkit-box-orient: vertical;
+  overflow: hidden;
+  font-weight: 500;
+  color: #475569;
+  max-width: 420px;
+}
 
 .inline-input {
   width: 100%;
@@ -161,19 +212,7 @@ onMounted(load)
   box-shadow: 0 0 0 3px rgba(249, 115, 22, 0.12);
 }
 .inline-input:focus { outline: none; }
-
-.icon-btn {
-  width: 32px; height: 32px; border-radius: 8px;
-  background: #fff; border: 1px solid #e2e8f0; color: #64748b;
-  cursor: pointer; display: inline-flex; align-items: center; justify-content: center;
-  transition: all 0.15s; margin-inline-start: 4px;
-}
-.icon-btn.edit:hover { border-color: #fed7aa; color: #ea580c; }
-.icon-btn.save { border-color: rgba(16, 185, 129, 0.40); color: #059669; }
-.icon-btn.save:hover { background: rgba(16, 185, 129, 0.10); }
-.icon-btn.cancel:hover { border-color: #fecaca; color: #ef4444; }
-.icon-btn:disabled { opacity: 0.5; cursor: not-allowed; }
-.icon-btn i { font-size: 13px; }
+.inline-area { resize: vertical; line-height: 1.6; min-width: 280px; }
 
 .empty {
   padding: 40px 20px; text-align: center; color: #94a3b8;

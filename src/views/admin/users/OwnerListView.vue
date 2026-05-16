@@ -27,42 +27,46 @@
         <i class="pi pi-user" />
         <p>لا توجد نتائج</p>
       </div>
-      <table v-else class="data-table">
-        <thead>
-          <tr>
-            <th>الاسم</th>
-            <th>الهاتف</th>
-            <th>هاتف بديل</th>
-            <th>الحالة</th>
-            <th class="actions-col"></th>
-          </tr>
-        </thead>
-        <tbody>
-          <tr v-for="row in rows" :key="row.id">
-            <td><strong>{{ row.name }}</strong></td>
-            <td class="ltr">{{ row.phone || '—' }}</td>
-            <td class="ltr">{{ row.alternative_phone || '—' }}</td>
-            <td>
-              <span :class="['status-badge', (row.account_status || 'ACTIVE').toLowerCase()]">
-                {{ statusLabel(row.account_status) }}
-              </span>
-            </td>
-            <td class="actions-col">
-              <button class="icon-btn edit" @click="openEdit(row)"><i class="pi pi-pencil" /></button>
-              <button class="icon-btn delete" @click="confirmDelete(row)"><i class="pi pi-trash" /></button>
-            </td>
-          </tr>
-        </tbody>
-      </table>
-
-      <div v-if="!loading && rows.length && lastPage > 1" class="pagination">
-        <div class="pagination-info">عرض {{ rangeFrom }} – {{ rangeTo }} من {{ total }}</div>
-        <div class="pagination-controls">
-          <button class="page-btn nav" :disabled="currentPage === 1" @click="goToPage(currentPage - 1)"><i class="pi pi-chevron-right" /></button>
-          <button v-for="p in pageWindow" :key="p" :class="['page-btn', { active: p === currentPage }]" @click="goToPage(p)">{{ p }}</button>
-          <button class="page-btn nav" :disabled="currentPage === lastPage" @click="goToPage(currentPage + 1)"><i class="pi pi-chevron-left" /></button>
-        </div>
+      <div v-else class="table-wrap">
+        <table class="p-table">
+          <thead>
+            <tr>
+              <th>الاسم</th>
+              <th>الهاتف</th>
+              <th>هاتف بديل</th>
+              <th>الحالة</th>
+              <th class="act-col"></th>
+            </tr>
+          </thead>
+          <tbody>
+            <tr v-for="row in rows" :key="row.id" class="p-row">
+              <td><span class="t-strong">{{ row.name }}</span></td>
+              <td class="t-ltr">{{ row.phone || '—' }}</td>
+              <td class="t-ltr">{{ row.alternative_phone || '—' }}</td>
+              <td>
+                <span :class="['t-status', statusTone(row.account_status)]">
+                  {{ statusLabel(row.account_status) }}
+                </span>
+              </td>
+              <td class="act-col">
+                <span class="t-actions">
+                  <button class="icon-btn edit" @click="openEdit(row)"><i class="pi pi-pencil" /></button>
+                  <button class="icon-btn delete" @click="confirmDelete(row)"><i class="pi pi-trash" /></button>
+                </span>
+              </td>
+            </tr>
+          </tbody>
+        </table>
       </div>
+
+      <AppPagination
+        :current-page="currentPage"
+        :last-page="lastPage"
+        :total="total"
+        :range-from="rangeFrom"
+        :range-to="rangeTo"
+        @change="goToPage"
+      />
     </section>
 
     <!-- Create/Edit -->
@@ -138,6 +142,7 @@ import { useOwnersStore } from '@/stores/owners'
 import { useToastStore } from '@/stores/toast'
 import AppModal from '@/components/ui/AppModal.vue'
 import AppDropdown from '@/components/ui/AppDropdown.vue'
+import AppPagination from '@/components/ui/AppPagination.vue'
 
 const ownersStore = useOwnersStore()
 const toast = useToastStore()
@@ -162,17 +167,9 @@ const statusOptions = [
 function statusLabel(s) {
   return { ACTIVE: 'نشط', SUSPENDED: 'موقوف', PERMANENT_SUSPENDED: 'موقوف نهائياً' }[s] || s || '—'
 }
-
-const pageWindow = computed(() => {
-  const last = lastPage.value
-  const cur = currentPage.value
-  const span = 2
-  const start = Math.max(1, cur - span)
-  const end = Math.min(last, cur + span)
-  const pages = []
-  for (let i = start; i <= end; i++) pages.push(i)
-  return pages
-})
+function statusTone(s) {
+  return { ACTIVE: 'ok', SUSPENDED: 'pending', PERMANENT_SUSPENDED: 'danger' }[s] || 'neutral'
+}
 
 async function load() {
   loading.value = true
@@ -331,35 +328,6 @@ onMounted(load)
 }
 .search-input:focus { outline: none; border-color: #f97316; background: #fff; box-shadow: 0 0 0 3px rgba(249, 115, 22, 0.12); }
 
-.data-table { width: 100%; border-collapse: collapse; }
-.data-table th {
-  padding: 10px 12px; text-align: right; font-size: 11.5px; font-weight: 800; color: #64748b;
-  background: #fafbfc; border-bottom: 1px solid #f1f5f9;
-  text-transform: uppercase; letter-spacing: 0.4px;
-}
-.data-table td { padding: 12px; font-size: 13.5px; color: #0f172a; border-bottom: 1px solid #f8fafc; }
-.data-table tr:last-child td { border-bottom: none; }
-.actions-col { width: 100px; text-align: end; white-space: nowrap; }
-.ltr { direction: ltr; text-align: right; }
-
-.status-badge {
-  display: inline-flex; align-items: center; padding: 4px 12px;
-  border-radius: 999px; font-size: 11.5px; font-weight: 800; border: 1px solid;
-}
-.status-badge.active { background: rgba(16, 185, 129, 0.10); color: #047857; border-color: rgba(16, 185, 129, 0.25); }
-.status-badge.suspended { background: rgba(249, 115, 22, 0.10); color: #c2410c; border-color: rgba(249, 115, 22, 0.25); }
-.status-badge.permanent_suspended { background: rgba(239, 68, 68, 0.10); color: #b91c1c; border-color: rgba(239, 68, 68, 0.25); }
-
-.icon-btn {
-  width: 32px; height: 32px; border-radius: 8px;
-  background: #fff; border: 1px solid #e2e8f0; color: #64748b;
-  cursor: pointer; display: inline-flex; align-items: center; justify-content: center;
-  transition: all 0.15s; margin-inline-start: 4px;
-}
-.icon-btn.edit:hover { border-color: #fed7aa; color: #ea580c; }
-.icon-btn.delete:hover { border-color: #fecaca; color: #ef4444; }
-.icon-btn i { font-size: 13px; }
-
 .empty {
   padding: 40px 20px; text-align: center; color: #94a3b8;
   display: flex; flex-direction: column; align-items: center; gap: 12px;
@@ -394,25 +362,4 @@ onMounted(load)
 .form-actions { display: flex; gap: 10px; justify-content: flex-end; padding-top: 8px; margin-top: 6px; }
 .confirm-text { font-size: 14px; color: #475569; margin: 0 0 14px; line-height: 1.6; }
 .confirm-text strong { color: #0f172a; }
-
-.pagination {
-  display: flex; align-items: center; justify-content: space-between; gap: 12px;
-  margin-top: 14px; padding-top: 14px; border-top: 1px solid #f1f5f9; flex-wrap: wrap;
-}
-.pagination-info { font-size: 12.5px; color: #64748b; font-weight: 600; }
-.pagination-controls { display: flex; align-items: center; gap: 4px; }
-.page-btn {
-  min-width: 34px; height: 34px; padding: 0 10px; border-radius: 9px;
-  border: 1px solid #e2e8f0; background: #fff; color: #475569;
-  font-size: 13px; font-weight: 700; font-family: inherit;
-  cursor: pointer; display: inline-flex; align-items: center; justify-content: center;
-  transition: all 0.15s;
-}
-.page-btn:hover:not(:disabled):not(.active) { border-color: #fed7aa; color: #f97316; }
-.page-btn:disabled { opacity: 0.4; cursor: not-allowed; }
-.page-btn.active {
-  background: linear-gradient(135deg, #f97316, #ea580c); border-color: transparent;
-  color: #fff; box-shadow: 0 2px 8px rgba(249, 115, 22, 0.30);
-}
-.page-btn.nav i { font-size: 12px; }
 </style>

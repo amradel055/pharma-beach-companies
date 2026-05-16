@@ -20,31 +20,35 @@
           <i class="pi pi-plus" /> إضافة مجموعة
         </button>
       </div>
-      <table v-else class="data-table">
-        <thead>
-          <tr>
-            <th>الاسم</th>
-            <th>الوصف</th>
-            <th>الحالة</th>
-            <th class="actions-col"></th>
-          </tr>
-        </thead>
-        <tbody>
-          <tr v-for="row in rows" :key="row.id">
-            <td><strong>{{ row.name }}</strong></td>
-            <td>{{ row.description || '—' }}</td>
-            <td>
-              <span :class="['status-badge', (row.status || 'ACTIVE').toLowerCase()]">
-                {{ statusLabel(row.status) }}
-              </span>
-            </td>
-            <td class="actions-col">
-              <button class="icon-btn edit" @click="openEdit(row)"><i class="pi pi-pencil" /></button>
-              <button class="icon-btn delete" @click="confirmDelete(row)"><i class="pi pi-trash" /></button>
-            </td>
-          </tr>
-        </tbody>
-      </table>
+      <div v-else class="table-wrap">
+        <table class="p-table">
+          <thead>
+            <tr>
+              <th>الاسم</th>
+              <th>الوصف</th>
+              <th>الحالة</th>
+              <th class="act-col"></th>
+            </tr>
+          </thead>
+          <tbody>
+            <tr v-for="row in rows" :key="row.id" class="p-row">
+              <td><span class="t-strong">{{ row.name }}</span></td>
+              <td>{{ row.description || '—' }}</td>
+              <td>
+                <span :class="['t-status', statusTone(row.status)]">
+                  {{ statusLabel(row.status) }}
+                </span>
+              </td>
+              <td class="act-col">
+                <span class="t-actions">
+                  <button class="icon-btn edit" @click="openEdit(row)"><i class="pi pi-pencil" /></button>
+                  <button class="icon-btn delete" @click="confirmDelete(row)"><i class="pi pi-trash" /></button>
+                </span>
+              </td>
+            </tr>
+          </tbody>
+        </table>
+      </div>
     </section>
 
     <!-- Create / Edit -->
@@ -125,6 +129,9 @@ const statusOptions = [
 
 function statusLabel(s) {
   return { ACTIVE: 'نشط', INACTIVE: 'غير نشط' }[s] || s || '—'
+}
+function statusTone(s) {
+  return { ACTIVE: 'ok', INACTIVE: 'neutral' }[s] || 'neutral'
 }
 
 async function load() {
@@ -254,34 +261,6 @@ onMounted(load)
   background: #fff; border: 1px solid #f1f5f9; border-radius: 14px;
   padding: 18px 20px; box-shadow: 0 2px 8px rgba(15, 23, 42, 0.04);
 }
-
-.data-table { width: 100%; border-collapse: collapse; }
-.data-table th {
-  padding: 10px 12px; text-align: right;
-  font-size: 11.5px; font-weight: 800; color: #64748b;
-  background: #fafbfc; border-bottom: 1px solid #f1f5f9;
-  text-transform: uppercase; letter-spacing: 0.4px;
-}
-.data-table td { padding: 12px 12px; font-size: 13.5px; color: #0f172a; border-bottom: 1px solid #f8fafc; }
-.data-table tr:last-child td { border-bottom: none; }
-.actions-col { width: 100px; text-align: end; white-space: nowrap; }
-
-.status-badge {
-  display: inline-flex; align-items: center; padding: 4px 12px;
-  border-radius: 999px; font-size: 11.5px; font-weight: 800; border: 1px solid;
-}
-.status-badge.active { background: rgba(16, 185, 129, 0.10); color: #047857; border-color: rgba(16, 185, 129, 0.25); }
-.status-badge.inactive { background: rgba(100, 116, 139, 0.10); color: #475569; border-color: rgba(100, 116, 139, 0.25); }
-
-.icon-btn {
-  width: 32px; height: 32px; border-radius: 8px;
-  background: #fff; border: 1px solid #e2e8f0; color: #64748b;
-  cursor: pointer; display: inline-flex; align-items: center; justify-content: center;
-  transition: all 0.15s; margin-inline-start: 4px;
-}
-.icon-btn.edit:hover { border-color: #fed7aa; color: #ea580c; }
-.icon-btn.delete:hover { border-color: #fecaca; color: #ef4444; }
-.icon-btn i { font-size: 13px; }
 
 .empty {
   padding: 40px 20px; text-align: center; color: #94a3b8;

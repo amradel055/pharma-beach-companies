@@ -37,41 +37,59 @@
         </button>
       </div>
 
-      <table v-else class="data-table">
-        <thead>
-          <tr>
-            <th>القيمة</th>
-            <th>الاسم بالعربية</th>
-            <th>الاسم بالإنجليزية</th>
-            <th>الترتيب</th>
-            <th>نشط</th>
-            <th class="actions-col"></th>
-          </tr>
-        </thead>
-        <tbody>
-          <tr v-for="row in visibleItems" :key="row.id">
-            <td class="ltr"><strong>{{ row.value ?? '—' }}</strong></td>
-            <td>{{ row.label_ar || '—' }}</td>
-            <td>{{ row.label_en || '—' }}</td>
-            <td>{{ row.sort_order ?? '—' }}</td>
-            <td>
-              <AppToggle
-                :model-value="!!row.is_active"
-                :disabled="togglingId === row.id"
-                @update:model-value="toggleActive(row, $event)"
-              />
-            </td>
-            <td class="actions-col">
-              <button class="icon-btn edit" @click="openEdit(row)" aria-label="تعديل">
-                <i class="pi pi-pencil" />
-              </button>
-              <button class="icon-btn delete" @click="confirmDelete(row)" aria-label="حذف">
-                <i class="pi pi-trash" />
-              </button>
-            </td>
-          </tr>
-        </tbody>
-      </table>
+      <div v-else class="table-wrap">
+        <table class="p-table">
+          <thead>
+            <tr>
+              <th v-if="shape === 'value'">القيمة</th>
+              <template v-else-if="shape === 'range'">
+                <th>أقل مساحة (م²)</th>
+                <th>أقصى مساحة (م²)</th>
+              </template>
+              <th v-else-if="shape === 'code'">الكود</th>
+              <th>الاسم بالعربية</th>
+              <th>الاسم بالإنجليزية</th>
+              <th>الترتيب</th>
+              <th>نشط</th>
+              <th class="act-col"></th>
+            </tr>
+          </thead>
+          <tbody>
+            <tr v-for="row in visibleItems" :key="row.id" class="p-row">
+              <td v-if="shape === 'value'" class="t-ltr">
+                <span class="t-strong">{{ row.value ?? '—' }}</span>
+              </td>
+              <template v-else-if="shape === 'range'">
+                <td class="t-ltr">{{ row.min_area ?? '—' }}</td>
+                <td class="t-ltr">{{ row.max_area ?? '∞' }}</td>
+              </template>
+              <td v-else-if="shape === 'code'" class="t-ltr">
+                <span class="t-strong">{{ row.code ?? '—' }}</span>
+              </td>
+              <td>{{ rowAr(row) || '—' }}</td>
+              <td class="t-ltr">{{ rowEn(row) || '—' }}</td>
+              <td>{{ row.sort_order ?? '—' }}</td>
+              <td>
+                <AppToggle
+                  :model-value="!!row.is_active"
+                  :disabled="togglingId === row.id"
+                  @update:model-value="toggleActive(row, $event)"
+                />
+              </td>
+              <td class="act-col">
+                <span class="t-actions">
+                  <button class="icon-btn edit" @click="openEdit(row)" aria-label="تعديل">
+                    <i class="pi pi-pencil" />
+                  </button>
+                  <button class="icon-btn delete" @click="confirmDelete(row)" aria-label="حذف">
+                    <i class="pi pi-trash" />
+                  </button>
+                </span>
+              </td>
+            </tr>
+          </tbody>
+        </table>
+      </div>
     </section>
 
     <!-- Create / Edit modal -->
@@ -84,17 +102,33 @@
       size="sm"
     >
       <form class="form-grid" @submit.prevent="handleSubmit">
-        <label class="field">
+        <!-- Primary identifier — differs per category shape -->
+        <label v-if="shape === 'value'" class="field">
           <span class="field-label">القيمة <span class="req">*</span></span>
           <input v-model="form.value" type="text" class="field-input ltr" required />
         </label>
+        <template v-else-if="shape === 'range'">
+          <label class="field">
+            <span class="field-label">أقل مساحة (م²) <span class="req">*</span></span>
+            <input v-model.number="form.min_area" type="number" min="0" class="field-input ltr" required />
+          </label>
+          <label class="field">
+            <span class="field-label">أقصى مساحة (م²)</span>
+            <input v-model.number="form.max_area" type="number" min="0" class="field-input ltr" placeholder="اتركه فارغاً لمساحة مفتوحة" />
+          </label>
+        </template>
+        <label v-else-if="shape === 'code'" class="field">
+          <span class="field-label">الكود <span class="req">*</span></span>
+          <input v-model="form.code" type="text" class="field-input ltr" required />
+        </label>
+
         <label class="field">
           <span class="field-label">الاسم بالعربية</span>
-          <input v-model="form.label_ar" type="text" class="field-input" />
+          <input v-model="form.name_ar" type="text" class="field-input" />
         </label>
         <label class="field">
           <span class="field-label">الاسم بالإنجليزية</span>
-          <input v-model="form.label_en" type="text" class="field-input ltr" />
+          <input v-model="form.name_en" type="text" class="field-input ltr" />
         </label>
         <label class="field">
           <span class="field-label">الترتيب</span>
@@ -105,7 +139,7 @@
         </label>
         <div class="form-actions">
           <button type="button" class="btn-cancel" @click="formOpen = false">إلغاء</button>
-          <button type="submit" class="btn-primary" :disabled="saving || !form.value">
+          <button type="submit" class="btn-primary" :disabled="saving || !canSubmit">
             <i v-if="saving" class="pi pi-spin pi-spinner" />
             <i v-else :class="editing ? 'pi pi-check' : 'pi pi-plus'" />
             {{ editing ? 'حفظ' : 'إضافة' }}
@@ -126,7 +160,7 @@
     >
       <p class="confirm-text">
         هل أنت متأكد من حذف
-        <strong>{{ pendingDelete?.label_ar || pendingDelete?.value }}</strong>؟
+        <strong>{{ rowAr(pendingDelete) || pendingDelete?.value || pendingDelete?.code || '—' }}</strong>؟
       </p>
       <div class="form-actions">
         <button type="button" class="btn-cancel" @click="deleteOpen = false">إلغاء</button>
@@ -161,6 +195,16 @@ const visibleItems = computed(() => {
   return [...list].sort((a, b) => (a.sort_order ?? 0) - (b.sort_order ?? 0))
 })
 
+const activeCategory = computed(
+  () => categories.find((c) => c.key === activeKey.value) || categories[0],
+)
+const shape = computed(() => activeCategory.value.shape)
+
+// The Arabic / English label lives under different keys depending on the
+// category schema (label_* for value/range, name_* for code). Read both.
+function rowAr(row) { return row?.label_ar ?? row?.name_ar ?? '' }
+function rowEn(row) { return row?.label_en ?? row?.name_en ?? '' }
+
 async function loadAll() {
   loading.value = true
   const r = await lookups.listAll()
@@ -186,15 +230,30 @@ async function reloadCurrent() {
 const formOpen = ref(false)
 const editing = ref(null)
 const saving = ref(false)
-const form = reactive({ value: '', label_ar: '', label_en: '', sort_order: 0, is_active: true })
+// One flat form holding every possible field; buildPayload() picks the
+// right subset for the active shape. `name_ar`/`name_en` are the unified
+// label inputs (mapped to label_* or name_* per shape on submit).
+const form = reactive({
+  value: '', code: '', min_area: '', max_area: '',
+  name_ar: '', name_en: '', sort_order: 0, is_active: true,
+})
 
 function resetForm() {
   form.value = ''
-  form.label_ar = ''
-  form.label_en = ''
+  form.code = ''
+  form.min_area = ''
+  form.max_area = ''
+  form.name_ar = ''
+  form.name_en = ''
   form.sort_order = 0
   form.is_active = true
 }
+
+const canSubmit = computed(() => {
+  if (shape.value === 'range') return form.min_area !== '' && form.min_area !== null
+  if (shape.value === 'code') return !!String(form.code).trim()
+  return form.value !== '' && form.value !== null
+})
 
 function openCreate() {
   editing.value = null
@@ -205,23 +264,38 @@ function openCreate() {
 function openEdit(row) {
   editing.value = row
   form.value = row.value ?? ''
-  form.label_ar = row.label_ar ?? ''
-  form.label_en = row.label_en ?? ''
+  form.code = row.code ?? ''
+  form.min_area = row.min_area ?? ''
+  form.max_area = row.max_area ?? ''
+  form.name_ar = rowAr(row)
+  form.name_en = rowEn(row)
   form.sort_order = row.sort_order ?? 0
   form.is_active = !!row.is_active
   formOpen.value = true
 }
 
-async function handleSubmit() {
-  if (!form.value) return
-  saving.value = true
-  const payload = {
-    value: form.value,
-    label_ar: form.label_ar,
-    label_en: form.label_en,
-    sort_order: Number(form.sort_order) || 0,
-    is_active: form.is_active,
+// Map the flat form to the backend payload for the active category shape.
+function buildPayload() {
+  const common = { sort_order: Number(form.sort_order) || 0, is_active: form.is_active }
+  if (shape.value === 'range') {
+    return {
+      ...common,
+      min_area: Number(form.min_area) || 0,
+      max_area: form.max_area === '' || form.max_area === null ? null : Number(form.max_area),
+      label_ar: form.name_ar,
+      label_en: form.name_en,
+    }
   }
+  if (shape.value === 'code') {
+    return { ...common, code: String(form.code).trim(), name_ar: form.name_ar, name_en: form.name_en }
+  }
+  return { ...common, value: form.value, label_ar: form.name_ar, label_en: form.name_en }
+}
+
+async function handleSubmit() {
+  if (!canSubmit.value) return
+  saving.value = true
+  const payload = buildPayload()
   const r = editing.value
     ? await lookups.update(activeKey.value, editing.value.id, payload)
     : await lookups.create(activeKey.value, payload)
@@ -397,44 +471,6 @@ onMounted(loadAll)
   padding: 18px 20px;
   box-shadow: 0 2px 8px rgba(15, 23, 42, 0.04);
 }
-
-/* Table */
-.data-table { width: 100%; border-collapse: collapse; }
-.data-table th {
-  padding: 10px 12px;
-  text-align: right;
-  font-size: 11.5px;
-  font-weight: 800;
-  color: #64748b;
-  background: #fafbfc;
-  border-bottom: 1px solid #f1f5f9;
-  text-transform: uppercase;
-  letter-spacing: 0.4px;
-}
-.data-table td {
-  padding: 12px 12px;
-  font-size: 13.5px;
-  color: #0f172a;
-  border-bottom: 1px solid #f8fafc;
-}
-.data-table tr:last-child td { border-bottom: none; }
-.ltr { direction: ltr; text-align: right; }
-.actions-col { width: 100px; text-align: end; white-space: nowrap; }
-
-.icon-btn {
-  width: 32px; height: 32px;
-  border-radius: 8px;
-  background: #fff;
-  border: 1px solid #e2e8f0;
-  color: #64748b;
-  cursor: pointer;
-  display: inline-flex; align-items: center; justify-content: center;
-  transition: all 0.15s;
-  margin-inline-start: 4px;
-}
-.icon-btn.edit:hover { border-color: #fed7aa; color: #ea580c; }
-.icon-btn.delete:hover { border-color: #fecaca; color: #ef4444; }
-.icon-btn i { font-size: 13px; }
 
 /* States */
 .empty {

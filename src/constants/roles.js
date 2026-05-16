@@ -133,6 +133,14 @@ export const PERMISSIONS = {
   // Company payments (dotted keys per spec)
   'company_payments.create': [ROLES.SUPER_ADMIN, ROLES.ADMIN_COMPANY, ROLES.FINANCIAL_MEMBER],
   'company_payments.edit': [ROLES.SUPER_ADMIN, ROLES.ADMIN_COMPANY, ROLES.FINANCIAL_MEMBER],
+
+  // ── CS-Supervisor booking actions (cs-supervisor-endpoints.md) ──
+  // Fallback role map; the API also returns these keys in user.permissions.
+  'bookings.edit-guests-cars': [ROLES.SUPER_ADMIN, ROLES.ADMIN_VILLAGE, ROLES.HEAD_CUSTOMER_SERVICE_VILLAGE],
+  'bookings.extend': [ROLES.SUPER_ADMIN, ROLES.ADMIN_VILLAGE, ROLES.HEAD_CUSTOMER_SERVICE_VILLAGE],
+  'bookings.transfer': [ROLES.SUPER_ADMIN, ROLES.ADMIN_VILLAGE, ROLES.HEAD_CUSTOMER_SERVICE_VILLAGE],
+  'bookings.transfer-and-extend': [ROLES.SUPER_ADMIN, ROLES.ADMIN_VILLAGE, ROLES.HEAD_CUSTOMER_SERVICE_VILLAGE],
+  'bookings.cancel': [ROLES.SUPER_ADMIN, ROLES.ADMIN_VILLAGE, ROLES.HEAD_CUSTOMER_SERVICE_VILLAGE],
 }
 
 // Which roles each role is allowed to create from the user-management UI.

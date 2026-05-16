@@ -206,34 +206,14 @@
         </table>
       </div>
 
-      <!-- Pagination — same convention as bookings-list (1-based UI, 0-based wire) -->
-      <div v-if="!loading && rows.length" class="pagination">
-        <div class="pagination-info">
-          عرض {{ rangeFrom }} – {{ rangeTo }} من {{ total }}
-        </div>
-        <div class="pagination-controls">
-          <button class="page-btn nav" :disabled="currentPage === 1" @click="goToPage(currentPage - 1)" aria-label="السابق">
-            <i class="pi pi-chevron-right" />
-          </button>
-          <button v-if="pageWindow[0] > 1" class="page-btn" @click="goToPage(1)">1</button>
-          <span v-if="pageWindow[0] > 2" class="page-ellipsis">…</span>
-          <button
-            v-for="p in pageWindow"
-            :key="p"
-            :class="['page-btn', { active: p === currentPage }]"
-            @click="goToPage(p)"
-          >{{ p }}</button>
-          <span v-if="pageWindow[pageWindow.length - 1] < lastPage - 1" class="page-ellipsis">…</span>
-          <button
-            v-if="pageWindow[pageWindow.length - 1] < lastPage"
-            class="page-btn"
-            @click="goToPage(lastPage)"
-          >{{ lastPage }}</button>
-          <button class="page-btn nav" :disabled="currentPage === lastPage" @click="goToPage(currentPage + 1)" aria-label="التالي">
-            <i class="pi pi-chevron-left" />
-          </button>
-        </div>
-      </div>
+      <AppPagination
+        :current-page="currentPage"
+        :last-page="lastPage"
+        :total="total"
+        :range-from="rangeFrom"
+        :range-to="rangeTo"
+        @change="goToPage"
+      />
     </section>
   </div>
 </template>
@@ -248,6 +228,7 @@ import { ROLES } from '@/constants/roles'
 import { toDisplayDate } from '@/utils/date'
 import AppDropdown from '@/components/ui/AppDropdown.vue'
 import DateRangePicker from '@/components/ui/DateRangePicker.vue'
+import AppPagination from '@/components/ui/AppPagination.vue'
 
 const router = useRouter()
 const csBookings = useCsBookingsStore()
@@ -298,21 +279,6 @@ const rangeTo = ref(0)
 
 const hasActiveFilter = computed(() => Object.values(filters).some((v) => v))
 const activeFilterCount = computed(() => Object.values(filters).filter((v) => !!v).length)
-
-const pageWindow = computed(() => {
-  const last = lastPage.value
-  const cur = currentPage.value
-  const span = 2
-  let start = Math.max(1, cur - span)
-  let end = Math.min(last, cur + span)
-  if (end - start < span * 2) {
-    if (start === 1) end = Math.min(last, start + span * 2)
-    else if (end === last) start = Math.max(1, end - span * 2)
-  }
-  const pages = []
-  for (let i = start; i <= end; i++) pages.push(i)
-  return pages
-})
 
 // Status filtering is done server-side (sent as ?status=); the table just
 // renders whatever the API returns.
@@ -544,213 +510,6 @@ onMounted(async () => {
 .filter-field-range { min-width: 220px; }
 .filter-field-pills { min-width: 0; }
 
-/* ── Card-style table (each row is its own card) ── */
-.table-wrap {
-  overflow-x: auto;
-}
-.p-table {
-  width: 100%;
-  border-collapse: separate;
-  border-spacing: 0 10px;
-  min-width: 720px;
-}
-.p-table thead th {
-  padding: 4px 18px 8px;
-  text-align: right;
-  font-size: 11.5px;
-  font-weight: 800;
-  color: #94a3b8;
-  text-transform: uppercase;
-  letter-spacing: 0.5px;
-  white-space: nowrap;
-}
-.p-table thead th.act-col { width: 1%; }
-
-.p-row {
-  cursor: pointer;
-  transition: transform 0.15s, box-shadow 0.15s;
-}
-.p-table tbody td {
-  padding: 16px 18px;
-  vertical-align: middle;
-  background: #fff;
-  border-top: 1px solid #eef2f6;
-  border-bottom: 1px solid #eef2f6;
-}
-/* Round the row ends so each <tr> reads as a single card */
-.p-table tbody td:first-child {
-  border-inline-start: 1px solid #eef2f6;
-  border-start-start-radius: 14px;
-  border-end-start-radius: 14px;
-}
-.p-table tbody td:last-child {
-  border-inline-end: 1px solid #eef2f6;
-  border-start-end-radius: 14px;
-  border-end-end-radius: 14px;
-}
-.p-row:hover {
-  transform: translateY(-2px);
-}
-.p-row:hover td {
-  background: #fffdfa;
-  border-color: #fed7aa;
-}
-
-.t-code {
-  font-size: 14.5px;
-  font-weight: 900;
-  color: #0f172a;
-  direction: ltr;
-  display: inline-block;
-}
-.p-row:hover .t-code { color: #ea580c; }
-
-.t-chalet { display: flex; flex-direction: column; gap: 3px; }
-.t-chalet-name { font-size: 13.5px; font-weight: 700; color: #334155; }
-.t-chalet-code { font-size: 11.5px; color: #94a3b8; direction: ltr; }
-
-.t-stay { display: flex; flex-direction: row; align-items: center; gap: 10px; }
-.t-dates {
-  display: inline-flex; align-items: center; gap: 7px;
-  font-size: 13px; font-weight: 700; color: #475569;
-  white-space: nowrap;
-}
-.t-dates i { font-size: 10px; color: #cbd5e1; }
-.t-nights {
-  display: inline-flex; align-items: center; gap: 5px;
-  padding: 4px 10px;
-  border-radius: 999px;
-  background: rgba(249, 115, 22, 0.10);
-  color: #c2410c;
-  font-size: 11px; font-weight: 800;
-  white-space: nowrap;
-}
-.t-nights i { font-size: 10px; }
-
-.t-status {
-  display: inline-flex; align-items: center; gap: 6px;
-  padding: 6px 13px;
-  border-radius: 999px;
-  font-size: 12px; font-weight: 800;
-  white-space: nowrap;
-}
-.t-status i { font-size: 12px; }
-.t-status.ok {
-  background: rgba(16, 185, 129, 0.10);
-  color: #047857;
-}
-.t-status.pending {
-  background: rgba(234, 179, 8, 0.12);
-  color: #b45309;
-}
-
-.act-col { white-space: nowrap; text-align: end; }
-.t-btn {
-  display: inline-flex; align-items: center; gap: 6px;
-  padding: 9px 16px;
-  border-radius: 10px;
-  font-family: inherit;
-  font-size: 12.5px;
-  font-weight: 800;
-  cursor: pointer;
-  text-decoration: none;
-  border: 1px solid;
-  white-space: nowrap;
-  transition: all 0.15s;
-}
-.t-btn i { font-size: 12px; }
-.t-btn.view {
-  background: linear-gradient(135deg, #10b981, #047857);
-  border-color: #047857;
-  color: #fff;
-  box-shadow: 0 2px 8px rgba(16, 185, 129, 0.28);
-}
-.t-btn.view:hover { transform: translateY(-1px); box-shadow: 0 5px 14px rgba(16, 185, 129, 0.38); }
-.t-btn.confirm {
-  background: linear-gradient(135deg, #f97316, #ea580c);
-  border-color: #ea580c;
-  color: #fff;
-  box-shadow: 0 2px 8px rgba(249, 115, 22, 0.28);
-}
-.t-btn.confirm:hover:not(:disabled) { transform: translateY(-1px); box-shadow: 0 5px 14px rgba(249, 115, 22, 0.40); }
-.t-btn.confirm:disabled { opacity: 0.6; cursor: not-allowed; }
-.t-btn.ghost {
-  background: #fff;
-  border-color: #e2e8f0;
-  color: #475569;
-}
-.t-btn.ghost:hover { border-color: #f97316; color: #ea580c; background: #fff7ed; }
-
-/* States */
-.loading-inline {
-  padding: 40px 20px;
-  text-align: center;
-  color: #64748b;
-  font-size: 13.5px;
-}
-.loading-inline i { font-size: 16px; margin-left: 8px; color: #f97316; }
-
-.empty-state {
-  padding: 50px 20px;
-  text-align: center;
-  color: #64748b;
-  display: flex;
-  flex-direction: column;
-  align-items: center;
-  gap: 8px;
-}
-.empty-icon {
-  width: 60px; height: 60px;
-  border-radius: 16px;
-  background: #f1f5f9;
-  color: #cbd5e1;
-  display: inline-flex; align-items: center; justify-content: center;
-  margin-bottom: 6px;
-}
-.empty-icon i { font-size: 24px; }
-.empty-state h3 { font-size: 16px; font-weight: 800; color: #475569; margin: 0; }
-.empty-state p { font-size: 13px; margin: 0; }
-
-/* Pagination */
-.pagination {
-  display: flex;
-  align-items: center;
-  justify-content: space-between;
-  gap: 12px;
-  margin-top: 14px;
-  padding-top: 14px;
-  border-top: 1px solid #f1f5f9;
-  flex-wrap: wrap;
-}
-.pagination-info { font-size: 12.5px; color: #64748b; font-weight: 600; }
-.pagination-controls { display: flex; align-items: center; gap: 4px; }
-.page-btn {
-  min-width: 34px;
-  height: 34px;
-  padding: 0 10px;
-  border-radius: 9px;
-  border: 1px solid #e2e8f0;
-  background: #fff;
-  color: #475569;
-  font-size: 13px;
-  font-weight: 700;
-  font-family: inherit;
-  cursor: pointer;
-  display: inline-flex;
-  align-items: center;
-  justify-content: center;
-  transition: all 0.15s;
-}
-.page-btn:hover:not(:disabled):not(.active) { border-color: #fed7aa; color: #f97316; }
-.page-btn:disabled { opacity: 0.4; cursor: not-allowed; }
-.page-btn.active {
-  background: linear-gradient(135deg, #f97316, #ea580c);
-  border-color: transparent;
-  color: #fff;
-  box-shadow: 0 2px 8px rgba(249, 115, 22, 0.30);
-}
-.page-btn.nav i { font-size: 12px; }
-.page-ellipsis { padding: 0 4px; color: #cbd5e1; font-weight: 700; }
 
 @media (max-width: 900px) {
   .stats-row { grid-template-columns: 1fr 1fr; }

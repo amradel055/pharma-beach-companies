@@ -16,7 +16,12 @@ function cleanParams(params = {}) {
 }
 
 export const useCompaniesStore = defineStore('companies', () => {
-  // GET /v1/companies?page=0&limit=10&search=
+  // GET /v1/companies?page=&limit=&search=
+  // Response is a Laravel paginator nested under `data`:
+  //   { current_page, data:[...], last_page, per_page, total, from, to }
+  // Same mixed indexing as the bookings-list page: caller passes a 1-based
+  // UI `page`, we send it 0-based on the wire (page-1); the response's
+  // current_page/last_page stay 1-based and are mirrored as-is.
   async function list({ page = 1, limit = 10, search } = {}) {
     try {
       const apiPage = Math.max(0, Number(page) - 1)

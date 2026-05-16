@@ -60,7 +60,6 @@
 import { ref, computed } from 'vue'
 import { useRoute } from 'vue-router'
 import { usePermissions } from '@/composables/usePermissions'
-import { useApprovalsStore } from '@/stores/approvals'
 import logo from '@/assets/images/logo.png'
 
 const props = defineProps({
@@ -71,7 +70,6 @@ defineEmits(['toggle', 'closeMobile'])
 
 const route = useRoute()
 const { hasPermission } = usePermissions()
-const approvalsStore = useApprovalsStore()
 const hoveredItem = ref(null)
 
 function isActive(path) {
@@ -80,14 +78,6 @@ function isActive(path) {
 }
 
 const allSections = [
-  {
-    label: 'الحجوزات',
-    permission: 'view_owner_dashboard',
-    items: [
-      { label: 'التقويم', to: '/admin/owner', icon: 'pi pi-calendar' },
-      { label: 'السجل', to: '/admin/bookings', icon: 'pi pi-list' },
-    ],
-  },
   {
     label: 'إدارة المستخدمين',
     permission: 'manage_users',
@@ -102,7 +92,6 @@ const allSections = [
     label: 'إدارة الشاليهات',
     permission: 'manage_chalets',
     items: [
-      { label: 'الشاليهات', to: '/admin/chalets', icon: 'pi pi-building' },
       { label: 'المجموعات', to: '/admin/chalet-groups', icon: 'pi pi-folder' },
       { label: 'الكماليات', to: '/admin/settings/amenities', icon: 'pi pi-sparkles' },
     ],
@@ -117,68 +106,12 @@ const allSections = [
     ],
   },
   {
-    label: 'الاعتمادات',
-    permission: 'manage_approvals',
-    items: [
-      { label: 'طلبات الاعتماد', to: '/admin/approvals', icon: 'pi pi-check-circle', badge: computed(() => approvalsStore.pendingCount || null) },
-    ],
-  },
-  {
-    label: 'إدارة القرية',
-    permission: 'view_village_dashboard',
-    items: [
-      { label: 'تقارير القرية', to: '/admin/village', icon: 'pi pi-chart-bar' },
-    ],
-  },
-  {
     label: 'العمليات',
     permission: 'manage_orders',
     items: [
       { label: 'الحجوزات', to: '/admin/village-bookings', icon: 'pi pi-clipboard' },
       { label: 'الشاليهات', to: '/admin/village-chalets', icon: 'pi pi-home' },
       { label: 'التصاريح', to: '/admin/permits', icon: 'pi pi-id-card' },
-    ],
-  },
-  {
-    label: 'المشغلين',
-    permission: 'manage_operators',
-    items: [
-      { label: 'إدارة المشغلين', to: '/admin/operators', icon: 'pi pi-cog' },
-    ],
-  },
-  {
-    label: 'لوحة المشغل',
-    permission: 'view_operator_dashboard',
-    items: [
-      { label: 'لوحة المشغل', to: '/admin/operator', icon: 'pi pi-objects-column' },
-    ],
-  },
-  {
-    label: 'إدارة الأمن',
-    permission: 'manage_security',
-    items: [
-      { label: 'أعضاء الأمن', to: '/admin/security', icon: 'pi pi-shield' },
-    ],
-  },
-  {
-    label: 'الأمن',
-    permission: 'scan_qr',
-    items: [
-      { label: 'ماسح QR', to: '/admin/security/scanner', icon: 'pi pi-qrcode' },
-    ],
-  },
-  {
-    label: 'البروكر',
-    permission: 'view_broker_dashboard',
-    items: [
-      { label: 'لوحة البروكر', to: '/admin/broker', icon: 'pi pi-briefcase' },
-    ],
-  },
-  {
-    label: 'التسويق',
-    permission: 'manage_coupons',
-    items: [
-      { label: 'كوبونات الخصم', to: '/admin/coupons', icon: 'pi pi-tag' },
     ],
   },
 ]

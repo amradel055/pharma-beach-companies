@@ -33,51 +33,55 @@
         <p>لا توجد نتائج</p>
       </div>
 
-      <table v-else class="data-table">
-        <thead>
-          <tr>
-            <th>اسم المستخدم</th>
-            <th>البريد الإلكتروني</th>
-            <th>الهاتف</th>
-            <th>الحالة</th>
-            <th>الأدوار</th>
-            <th class="actions-col"></th>
-          </tr>
-        </thead>
-        <tbody>
-          <tr v-for="row in rows" :key="row.id">
-            <td><strong>{{ row.user_name }}</strong></td>
-            <td class="ltr">{{ row.email || '—' }}</td>
-            <td class="ltr">{{ row.phone_number || '—' }}</td>
-            <td>
-              <span :class="['status-badge', (row.account_status || 'ACTIVE').toLowerCase()]">
-                {{ statusLabel(row.account_status) }}
-              </span>
-            </td>
-            <td>
-              <div class="role-chips">
-                <span v-for="r in row.roles || []" :key="r.id" class="role-chip">
-                  {{ r.name || r.code }}
+      <div v-else class="table-wrap">
+        <table class="p-table">
+          <thead>
+            <tr>
+              <th>اسم المستخدم</th>
+              <th>البريد الإلكتروني</th>
+              <th>الهاتف</th>
+              <th>الحالة</th>
+              <th>الأدوار</th>
+              <th class="act-col"></th>
+            </tr>
+          </thead>
+          <tbody>
+            <tr v-for="row in rows" :key="row.id" class="p-row">
+              <td><span class="t-strong">{{ row.user_name || '—' }}</span></td>
+              <td class="t-ltr">{{ row.email || '—' }}</td>
+              <td class="t-ltr">{{ row.phone_number || '—' }}</td>
+              <td>
+                <span :class="['t-status', statusTone(row.account_status)]">
+                  {{ statusLabel(row.account_status) }}
                 </span>
-                <span v-if="!(row.roles || []).length" class="dash">—</span>
-              </div>
-            </td>
-            <td class="actions-col">
-              <button class="icon-btn edit" @click="openEdit(row)"><i class="pi pi-pencil" /></button>
-              <button class="icon-btn delete" @click="confirmDelete(row)"><i class="pi pi-trash" /></button>
-            </td>
-          </tr>
-        </tbody>
-      </table>
-
-      <div v-if="!loading && rows.length && lastPage > 1" class="pagination">
-        <div class="pagination-info">عرض {{ rangeFrom }} – {{ rangeTo }} من {{ total }}</div>
-        <div class="pagination-controls">
-          <button class="page-btn nav" :disabled="currentPage === 1" @click="goToPage(currentPage - 1)"><i class="pi pi-chevron-right" /></button>
-          <button v-for="p in pageWindow" :key="p" :class="['page-btn', { active: p === currentPage }]" @click="goToPage(p)">{{ p }}</button>
-          <button class="page-btn nav" :disabled="currentPage === lastPage" @click="goToPage(currentPage + 1)"><i class="pi pi-chevron-left" /></button>
-        </div>
+              </td>
+              <td>
+                <div class="role-chips">
+                  <span v-for="r in row.roles || []" :key="r.code" class="role-chip">
+                    {{ r.name || r.code }}
+                  </span>
+                  <span v-if="!(row.roles || []).length" class="t-dash">—</span>
+                </div>
+              </td>
+              <td class="act-col">
+                <span class="t-actions">
+                  <button class="icon-btn edit" @click="openEdit(row)"><i class="pi pi-pencil" /></button>
+                  <button class="icon-btn delete" @click="confirmDelete(row)"><i class="pi pi-trash" /></button>
+                </span>
+              </td>
+            </tr>
+          </tbody>
+        </table>
       </div>
+
+      <AppPagination
+        :current-page="currentPage"
+        :last-page="lastPage"
+        :total="total"
+        :range-from="rangeFrom"
+        :range-to="rangeTo"
+        @change="goToPage"
+      />
     </section>
 
     <!-- Create modal -->
@@ -112,17 +116,12 @@
         </div>
         <div class="field span-2">
           <span class="field-label">الأدوار <span class="req">*</span></span>
-          <div class="role-grid">
-            <label v-for="r in allRoles" :key="r.id" class="role-pick">
-              <input
-                type="checkbox"
-                :value="r.id"
-                :checked="createForm.role_ids.includes(r.id)"
-                @change="toggleCreateRole(r.id)"
-              />
-              <span>{{ r.name || r.code }}</span>
-            </label>
-          </div>
+          <AppMultiSelect
+            v-model="createForm.role_ids"
+            :options="roleOptions"
+            placeholder="اختر دوراً أو أكثر"
+            empty-text="لا توجد أدوار"
+          />
           <small v-if="!createForm.role_ids.length" class="hint-error">اختر دوراً واحداً على الأقل</small>
         </div>
         <div class="form-actions span-2">
@@ -136,39 +135,59 @@
       </form>
     </AppModal>
 
-    <!-- Edit modal (single role swap per spec) -->
+    <!-- Edit modal -->
     <AppModal
       v-model="editOpen"
       title="تعديل العضو"
-      icon="pi pi-pencil"
+      subtitle="تعديل بيانات العضو ودوره"
+      icon="pi pi-user-edit"
       icon-color="#ea580c"
       icon-bg="rgba(249,115,22,0.08)"
-      size="sm"
+      size="md"
     >
-      <form class="form-grid" @submit.prevent="handleEdit">
+      <form class="form-grid two-col" @submit.prevent="handleEdit">
         <label class="field">
-          <span class="field-label">اسم المستخدم</span>
-          <input v-model="editForm.user_name" type="text" class="field-input" />
+          <span class="field-label">اسم المستخدم <span class="req">*</span></span>
+          <input v-model="editForm.user_name" type="text" class="field-input" required minlength="2" maxlength="50" />
         </label>
         <label class="field">
-          <span class="field-label">رمز الدولة</span>
-          <input v-model="editForm.phone_code" type="text" class="field-input ltr" placeholder="+20" />
+          <span class="field-label">البريد الإلكتروني <span class="req">*</span></span>
+          <input v-model="editForm.email" type="email" class="field-input ltr" required />
         </label>
         <label class="field">
-          <span class="field-label">رقم الهاتف</span>
-          <input v-model="editForm.phone_number" type="text" class="field-input ltr" />
+          <span class="field-label">رقم الهاتف <span class="req">*</span></span>
+          <input v-model="editForm.phone_number" type="text" class="field-input ltr" required />
+        </label>
+        <label class="field">
+          <span class="field-label">كلمة المرور</span>
+          <input
+            v-model="editForm.password"
+            type="password"
+            class="field-input ltr"
+            minlength="6"
+            placeholder="اتركه فارغاً لعدم التغيير"
+          />
         </label>
         <div class="field">
-          <span class="field-label">الدور</span>
-          <AppDropdown v-model="editForm.role_id" :options="roleOptions" placeholder="اختر دوراً" />
-          <small class="hint">يمكن تغيير دور واحد فقط من خلال التعديل</small>
+          <span class="field-label">الحالة</span>
+          <AppDropdown v-model="editForm.account_status" :options="statusOptions" />
         </div>
-        <div class="form-actions">
+        <div class="field span-2">
+          <span class="field-label">الأدوار <span class="req">*</span></span>
+          <AppMultiSelect
+            v-model="editForm.role_ids"
+            :options="roleOptions"
+            placeholder="اختر دوراً أو أكثر"
+            empty-text="لا توجد أدوار"
+          />
+          <small v-if="!editForm.role_ids.length" class="hint-error">اختر دوراً واحداً على الأقل</small>
+        </div>
+        <div class="form-actions span-2">
           <button type="button" class="btn-cancel" @click="editOpen = false">إلغاء</button>
-          <button type="submit" class="btn-primary" :disabled="editSaving">
+          <button type="submit" class="btn-primary" :disabled="editSaving || !canEdit">
             <i v-if="editSaving" class="pi pi-spin pi-spinner" />
             <i v-else class="pi pi-check" />
-            حفظ
+            حفظ التغييرات
           </button>
         </div>
       </form>
@@ -184,7 +203,7 @@
       icon-bg="rgba(239,68,68,0.08)"
       size="sm"
     >
-      <p class="confirm-text">هل أنت متأكد من حذف <strong>{{ pendingDelete?.user_name }}</strong>؟</p>
+      <p class="confirm-text">هل أنت متأكد من حذف <strong>{{ pendingDelete?.user_name || pendingDelete?.email }}</strong>؟</p>
       <div class="form-actions">
         <button type="button" class="btn-cancel" @click="deleteOpen = false">إلغاء</button>
         <button type="button" class="btn-danger" :disabled="deleting" @click="handleDelete">
@@ -203,6 +222,8 @@ import { useRolesStore } from '@/stores/roles'
 import { useToastStore } from '@/stores/toast'
 import AppModal from '@/components/ui/AppModal.vue'
 import AppDropdown from '@/components/ui/AppDropdown.vue'
+import AppMultiSelect from '@/components/ui/AppMultiSelect.vue'
+import AppPagination from '@/components/ui/AppPagination.vue'
 
 const membersStore = useAdminMembersStore()
 const rolesStore = useRolesStore()
@@ -221,6 +242,24 @@ const rangeTo = ref(0)
 
 const allRoles = ref([])
 
+// Roles lookup is fetched lazily — only when a modal that needs it opens
+// (not on page mount). Memoized so repeated opens don't refetch; a failed
+// attempt clears the cache so the next open retries.
+const rolesLoaded = ref(false)
+let rolesInflight = null
+async function ensureRoles() {
+  if (rolesLoaded.value) return
+  if (!rolesInflight) rolesInflight = rolesStore.listAll()
+  const resp = await rolesInflight
+  if (resp.ok) {
+    allRoles.value = resp.data
+    rolesLoaded.value = true
+  } else {
+    rolesInflight = null
+    toast.error(resp.error)
+  }
+}
+
 const statusOptions = [
   { value: 'ACTIVE', label: 'نشط' },
   { value: 'SUSPENDED', label: 'موقوف' },
@@ -232,17 +271,9 @@ const roleOptions = computed(() => allRoles.value.map((r) => ({ value: r.id, lab
 function statusLabel(s) {
   return { ACTIVE: 'نشط', SUSPENDED: 'موقوف', PERMANENT_SUSPENDED: 'موقوف نهائياً' }[s] || s || '—'
 }
-
-const pageWindow = computed(() => {
-  const last = lastPage.value
-  const cur = currentPage.value
-  const span = 2
-  const start = Math.max(1, cur - span)
-  const end = Math.min(last, cur + span)
-  const pages = []
-  for (let i = start; i <= end; i++) pages.push(i)
-  return pages
-})
+function statusTone(s) {
+  return { ACTIVE: 'ok', SUSPENDED: 'pending', PERMANENT_SUSPENDED: 'danger' }[s] || 'neutral'
+}
 
 async function load() {
   loading.value = true
@@ -300,13 +331,9 @@ function resetCreate() {
 function openCreate() {
   resetCreate()
   createOpen.value = true
+  ensureRoles()
 }
 
-function toggleCreateRole(id) {
-  const i = createForm.role_ids.indexOf(id)
-  if (i === -1) createForm.role_ids.push(id)
-  else createForm.role_ids.splice(i, 1)
-}
 
 async function handleCreate() {
   if (!canCreate.value) return
@@ -330,30 +357,56 @@ async function handleCreate() {
   }
 }
 
-// Edit form (single role per spec)
+// Edit form — mirrors the create form's elements (same fields + the
+// multi-select roles control). Password is optional here (blank = keep).
 const editOpen = ref(false)
 const editSaving = ref(false)
 const editTarget = ref(null)
-const editForm = reactive({ user_name: '', phone_code: '', phone_number: '', role_id: '' })
+const editForm = reactive({
+  user_name: '', email: '', phone_number: '', password: '',
+  account_status: 'ACTIVE', role_ids: [],
+})
 
-function openEdit(row) {
+const canEdit = computed(() =>
+  editForm.user_name && editForm.email && editForm.phone_number && editForm.role_ids.length,
+)
+
+async function openEdit(row) {
   editTarget.value = row
   editForm.user_name = row.user_name || ''
-  editForm.phone_code = row.phone_code || ''
+  editForm.email = row.email || ''
   editForm.phone_number = row.phone_number || ''
-  editForm.role_id = row.roles?.[0]?.id || ''
+  editForm.password = ''
+  editForm.account_status = row.account_status || 'ACTIVE'
+  editForm.role_ids = []
   editOpen.value = true
+  // List rows carry role codes (no UUID); resolve real role ids from the
+  // roles lookup by matching code/name. Load the lookup lazily here.
+  await ensureRoles()
+  const rowRoles = row.roles || []
+  const codes = rowRoles.map((r) => String(r.code || r.name || '').toUpperCase())
+  const resolved = allRoles.value
+    .filter((x) =>
+      codes.includes(String(x.code || '').toUpperCase()) ||
+      codes.includes(String(x.name || '').toUpperCase()),
+    )
+    .map((x) => x.id)
+  // Keep any ids that already came through in object form.
+  for (const r of rowRoles) if (r.id && !resolved.includes(r.id)) resolved.push(r.id)
+  editForm.role_ids = resolved
 }
 
 async function handleEdit() {
-  if (!editTarget.value) return
+  if (!editTarget.value || !canEdit.value) return
   editSaving.value = true
   const payload = {
     user_name: editForm.user_name,
-    phone_code: editForm.phone_code,
+    email: editForm.email,
     phone_number: editForm.phone_number,
-    role_id: editForm.role_id,
+    account_status: editForm.account_status,
+    role_ids: editForm.role_ids,
   }
+  if (editForm.password) payload.password = editForm.password
   const r = await membersStore.update(editTarget.value.id, payload)
   editSaving.value = false
   if (r.ok) {
@@ -387,11 +440,7 @@ async function handleDelete() {
   }
 }
 
-onMounted(async () => {
-  const rolesResp = await rolesStore.listAll()
-  if (rolesResp.ok) allRoles.value = rolesResp.data
-  await load()
-})
+onMounted(load)
 </script>
 
 <style scoped>
@@ -453,27 +502,6 @@ onMounted(async () => {
 }
 .search-input:focus { outline: none; border-color: #f97316; background: #fff; box-shadow: 0 0 0 3px rgba(249, 115, 22, 0.12); }
 
-.data-table { width: 100%; border-collapse: collapse; }
-.data-table th {
-  padding: 10px 12px; text-align: right;
-  font-size: 11.5px; font-weight: 800; color: #64748b;
-  background: #fafbfc; border-bottom: 1px solid #f1f5f9;
-  text-transform: uppercase; letter-spacing: 0.4px;
-}
-.data-table td { padding: 12px; font-size: 13.5px; color: #0f172a; border-bottom: 1px solid #f8fafc; }
-.data-table tr:last-child td { border-bottom: none; }
-.actions-col { width: 100px; text-align: end; white-space: nowrap; }
-.ltr { direction: ltr; text-align: right; }
-.dash { color: #cbd5e1; font-weight: 700; }
-
-.status-badge {
-  display: inline-flex; align-items: center; padding: 4px 12px;
-  border-radius: 999px; font-size: 11.5px; font-weight: 800; border: 1px solid;
-}
-.status-badge.active { background: rgba(16, 185, 129, 0.10); color: #047857; border-color: rgba(16, 185, 129, 0.25); }
-.status-badge.suspended { background: rgba(249, 115, 22, 0.10); color: #c2410c; border-color: rgba(249, 115, 22, 0.25); }
-.status-badge.permanent_suspended { background: rgba(239, 68, 68, 0.10); color: #b91c1c; border-color: rgba(239, 68, 68, 0.25); }
-
 .role-chips { display: flex; flex-wrap: wrap; gap: 4px; }
 .role-chip {
   display: inline-flex; padding: 3px 9px;
@@ -483,16 +511,6 @@ onMounted(async () => {
   border-radius: 999px;
   font-size: 11px; font-weight: 700;
 }
-
-.icon-btn {
-  width: 32px; height: 32px; border-radius: 8px;
-  background: #fff; border: 1px solid #e2e8f0; color: #64748b;
-  cursor: pointer; display: inline-flex; align-items: center; justify-content: center;
-  transition: all 0.15s; margin-inline-start: 4px;
-}
-.icon-btn.edit:hover { border-color: #fed7aa; color: #ea580c; }
-.icon-btn.delete:hover { border-color: #fecaca; color: #ef4444; }
-.icon-btn i { font-size: 13px; }
 
 .empty {
   padding: 40px 20px; text-align: center; color: #94a3b8;
@@ -517,52 +535,7 @@ onMounted(async () => {
 .hint { font-size: 11.5px; color: #94a3b8; }
 .hint-error { font-size: 11.5px; color: #ef4444; }
 
-.role-grid {
-  display: grid;
-  grid-template-columns: repeat(auto-fill, minmax(180px, 1fr));
-  gap: 8px;
-  padding: 10px;
-  border: 1px solid #f1f5f9;
-  border-radius: 10px;
-  background: #fafbfc;
-}
-.role-pick {
-  display: flex; align-items: center; gap: 8px;
-  padding: 6px 10px;
-  background: #fff;
-  border: 1px solid #f1f5f9;
-  border-radius: 8px;
-  font-size: 12.5px;
-  font-weight: 600;
-  color: #475569;
-  cursor: pointer;
-  transition: all 0.15s;
-}
-.role-pick:hover { border-color: #fed7aa; }
-.role-pick input[type="checkbox"] { accent-color: #f97316; }
-
 .form-actions { display: flex; gap: 10px; justify-content: flex-end; padding-top: 8px; margin-top: 6px; }
 .confirm-text { font-size: 14px; color: #475569; margin: 0 0 14px; line-height: 1.6; }
 .confirm-text strong { color: #0f172a; }
-
-.pagination {
-  display: flex; align-items: center; justify-content: space-between; gap: 12px;
-  margin-top: 14px; padding-top: 14px; border-top: 1px solid #f1f5f9; flex-wrap: wrap;
-}
-.pagination-info { font-size: 12.5px; color: #64748b; font-weight: 600; }
-.pagination-controls { display: flex; align-items: center; gap: 4px; }
-.page-btn {
-  min-width: 34px; height: 34px; padding: 0 10px; border-radius: 9px;
-  border: 1px solid #e2e8f0; background: #fff; color: #475569;
-  font-size: 13px; font-weight: 700; font-family: inherit;
-  cursor: pointer; display: inline-flex; align-items: center; justify-content: center;
-  transition: all 0.15s;
-}
-.page-btn:hover:not(:disabled):not(.active) { border-color: #fed7aa; color: #f97316; }
-.page-btn:disabled { opacity: 0.4; cursor: not-allowed; }
-.page-btn.active {
-  background: linear-gradient(135deg, #f97316, #ea580c); border-color: transparent;
-  color: #fff; box-shadow: 0 2px 8px rgba(249, 115, 22, 0.30);
-}
-.page-btn.nav i { font-size: 12px; }
 </style>

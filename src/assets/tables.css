@@ -1,0 +1,197 @@
+/* ============================================================================
+   Shared table + pagination design — canonical source is the
+   /admin/village-bookings (OrdersQueueView) screen. Imported globally in
+   main.js so every list/table page looks and paginates identically.
+   Global (un-scoped) on purpose: pages just use these class names and delete
+   their local copies.
+   ============================================================================ */
+
+/* ── Card-style table ── */
+.table-wrap { overflow-x: auto; }
+
+.p-table {
+  width: 100%;
+  border-collapse: separate;
+  border-spacing: 0 10px;
+  min-width: 720px;
+}
+.p-table thead th {
+  padding: 4px 18px 8px;
+  text-align: right;
+  font-size: 11.5px;
+  font-weight: 800;
+  color: #94a3b8;
+  text-transform: uppercase;
+  letter-spacing: 0.5px;
+  white-space: nowrap;
+}
+.p-table thead th.act-col { width: 1%; }
+
+.p-row { transition: transform 0.15s; }
+.p-row.clickable { cursor: pointer; }
+.p-table tbody td {
+  padding: 16px 18px;
+  vertical-align: middle;
+  background: #fff;
+  border-top: 1px solid #eef2f6;
+  border-bottom: 1px solid #eef2f6;
+  font-size: 13.5px;
+  color: #475569;
+}
+/* Physical (not logical) sides on purpose: the app is RTL, so the DOM-first
+   cell is the rightmost column and must round on the RIGHT. Logical props
+   here would flip whenever a boundary cell carries `direction: ltr`
+   (e.g. .t-ltr), putting the rounded border on the wrong side. */
+.p-table tbody td:first-child {
+  border-right: 1px solid #eef2f6;
+  border-top-right-radius: 14px;
+  border-bottom-right-radius: 14px;
+}
+.p-table tbody td:last-child {
+  border-left: 1px solid #eef2f6;
+  border-top-left-radius: 14px;
+  border-bottom-left-radius: 14px;
+}
+.p-row:hover { transform: translateY(-2px); }
+.p-row:hover td { background: #fffdfa; border-color: #fed7aa; }
+
+/* Generic cell helpers */
+.t-strong { font-weight: 800; color: #0f172a; }
+.t-code {
+  font-size: 14.5px;
+  font-weight: 900;
+  color: #0f172a;
+  direction: ltr;
+  display: inline-block;
+}
+.p-row.clickable:hover .t-code { color: #ea580c; }
+.t-muted { color: #94a3b8; }
+.t-ltr { direction: ltr; text-align: right; }
+.t-dash { color: #cbd5e1; font-weight: 700; }
+.act-col { white-space: nowrap; text-align: end; }
+.t-chev { color: #cbd5e1; font-size: 14px; transition: transform 0.15s, color 0.15s; }
+.p-row.clickable:hover .t-chev { color: #f97316; transform: translateX(-3px); }
+
+/* Row action icon buttons (edit / delete / etc.) */
+.t-actions { display: inline-flex; gap: 6px; }
+.icon-btn {
+  width: 32px; height: 32px;
+  border-radius: 8px;
+  background: #fff;
+  border: 1px solid #e2e8f0;
+  color: #64748b;
+  cursor: pointer;
+  display: inline-flex; align-items: center; justify-content: center;
+  transition: all 0.15s;
+}
+.icon-btn:disabled { opacity: 0.5; cursor: not-allowed; }
+.icon-btn.edit:hover { border-color: #fed7aa; color: #ea580c; }
+.icon-btn.delete:hover { border-color: #fecaca; color: #ef4444; }
+.icon-btn.cancel:hover { border-color: #fecaca; color: #ef4444; }
+.icon-btn.save { border-color: rgba(16, 185, 129, 0.40); color: #059669; }
+.icon-btn.save:hover { background: rgba(16, 185, 129, 0.10); }
+.icon-btn i { font-size: 13px; }
+
+/* Status pill (green / amber / grey / red) */
+.t-status {
+  display: inline-flex; align-items: center; gap: 6px;
+  padding: 6px 13px;
+  border-radius: 999px;
+  font-size: 12px; font-weight: 800;
+  white-space: nowrap;
+}
+.t-status i { font-size: 12px; }
+.t-status.ok      { background: rgba(16, 185, 129, 0.10); color: #047857; }
+.t-status.pending { background: rgba(234, 179, 8, 0.12);  color: #b45309; }
+.t-status.neutral { background: rgba(100, 116, 139, 0.12); color: #475569; }
+.t-status.danger  { background: rgba(239, 68, 68, 0.10);  color: #b91c1c; }
+.t-status.info    { background: rgba(14, 165, 233, 0.12); color: #0369a1; }
+
+/* ── Loading / empty states ── */
+.loading-inline {
+  padding: 40px 20px;
+  text-align: center;
+  color: #64748b;
+  font-size: 13.5px;
+}
+.loading-inline i { font-size: 16px; margin-left: 8px; color: #f97316; }
+
+.empty-state {
+  padding: 50px 20px;
+  text-align: center;
+  color: #64748b;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 8px;
+}
+.empty-icon {
+  width: 60px; height: 60px;
+  border-radius: 16px;
+  background: #f1f5f9;
+  color: #cbd5e1;
+  display: inline-flex; align-items: center; justify-content: center;
+  margin-bottom: 6px;
+}
+.empty-icon i { font-size: 24px; }
+.empty-state h3 { font-size: 16px; font-weight: 800; color: #475569; margin: 0; }
+.empty-state p { font-size: 13px; margin: 0; }
+
+/* ── Pagination ── */
+.pagination {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 12px;
+  margin-top: 14px;
+  padding-top: 14px;
+  border-top: 1px solid #f1f5f9;
+  flex-wrap: wrap;
+}
+.pagination-info {
+  font-size: 12.5px;
+  color: #64748b;
+  font-weight: 600;
+}
+.pagination-controls {
+  display: flex;
+  align-items: center;
+  gap: 4px;
+}
+.page-btn {
+  min-width: 34px;
+  height: 34px;
+  padding: 0 10px;
+  border-radius: 9px;
+  border: 1px solid #e2e8f0;
+  background: #fff;
+  color: #475569;
+  font-size: 13px;
+  font-weight: 700;
+  font-family: inherit;
+  cursor: pointer;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  transition: all 0.15s;
+}
+.page-btn:hover:not(:disabled):not(.active) {
+  border-color: #fed7aa;
+  color: #f97316;
+}
+.page-btn:disabled {
+  opacity: 0.4;
+  cursor: not-allowed;
+}
+.page-btn.active {
+  background: linear-gradient(135deg, #f97316, #ea580c);
+  border-color: transparent;
+  color: #fff;
+  box-shadow: 0 2px 8px rgba(249, 115, 22, 0.30);
+}
+.page-btn.nav i { font-size: 12px; }
+.page-ellipsis {
+  padding: 0 4px;
+  color: #cbd5e1;
+  font-weight: 700;
+}

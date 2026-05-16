@@ -6,6 +6,37 @@ function unwrap(response) {
   return data?.data ?? data
 }
 
+// The members endpoint returns rows as:
+//   { id, user_name|null, email, phone, roles:["SUPER_ADMIN", ...], status }
+// The rest of the app expects `phone_number`, `account_status`, and `roles`
+// as objects ({ id, code, name }). Normalize here so views/edit code keep
+// working regardless of which field names the backend uses. Role rows from
+// this list carry only the uppercase code (no UUID) — the edit modal
+// resolves the real role id from the roles lookup by matching the code.
+// Display label = the raw role code with underscores turned into spaces
+// (e.g. HEAD_CUSTOMER_SERVICE_VILLAGE -> "HEAD CUSTOMER SERVICE VILLAGE").
+function roleLabel(code) {
+  return String(code || '').replace(/_/g, ' ')
+}
+
+function normalizeMember(r = {}) {
+  const roles = (Array.isArray(r.roles) ? r.roles : []).map((role) => {
+    if (role && typeof role === 'object') {
+      const code = role.code || role.name || ''
+      return { id: role.id ?? null, code, name: roleLabel(code) }
+    }
+    const code = String(role)
+    return { id: null, code, name: roleLabel(code) }
+  })
+  return {
+    ...r,
+    user_name: r.user_name || null,
+    phone_number: r.phone_number ?? r.phone ?? '',
+    account_status: r.account_status ?? r.status ?? null,
+    roles,
+  }
+}
+
 function cleanParams(params = {}) {
   const out = {}
   for (const [k, v] of Object.entries(params)) {
@@ -17,7 +48,10 @@ function cleanParams(params = {}) {
 
 export const useAdminMembersStore = defineStore('adminMembers', () => {
   // GET /v1/admin/members?page=0&limit=10&search=
-  // Spec uses { content, total } shape on the response. UI is 1-based.
+  // Request `page` is 0-based on the wire (caller passes 1-based UI page,
+  // we subtract 1). Response is a Laravel paginator nested under `data`
+  // with 1-based current_page / last_page. Rows are normalized via
+  // normalizeMember so the view sees a stable shape.
   async function list({ page = 1, limit = 10, search } = {}) {
     try {
       const apiPage = Math.max(0, Number(page) - 1)
@@ -26,8 +60,26 @@ export const useAdminMembersStore = defineStore('adminMembers', () => {
       })
       const payload = unwrap(res)
 
+      // Real shape: Laravel paginator nested under `data`
+      // ({ current_page, data:[...], last_page, per_page, total, from, to }).
+      // current_page / last_page are 1-based and mirrored straight back.
+      if (payload && Array.isArray(payload.data)) {
+        return {
+          ok: true,
+          data: {
+            rows: payload.data.map(normalizeMember),
+            page: payload.current_page ?? 1,
+            lastPage: payload.last_page ?? 1,
+            perPage: payload.per_page || limit,
+            total: payload.total ?? payload.data.length,
+            from: payload.from || 0,
+            to: payload.to || payload.data.length,
+          },
+        }
+      }
+      // Legacy { content, total } fallback.
       if (payload && Array.isArray(payload.content)) {
-        const rows = payload.content
+        const rows = payload.content.map(normalizeMember)
         const total = payload.total ?? rows.length
         const lastPage = Math.max(1, Math.ceil(total / (limit || 10)))
         return {
@@ -43,22 +95,7 @@ export const useAdminMembersStore = defineStore('adminMembers', () => {
           },
         }
       }
-      // Laravel paginator fallback
-      if (payload && Array.isArray(payload.data)) {
-        return {
-          ok: true,
-          data: {
-            rows: payload.data,
-            page: payload.current_page ?? 1,
-            lastPage: payload.last_page ?? 1,
-            perPage: payload.per_page || limit,
-            total: payload.total ?? payload.data.length,
-            from: payload.from || 0,
-            to: payload.to || payload.data.length,
-          },
-        }
-      }
-      const rows = Array.isArray(payload) ? payload : []
+      const rows = (Array.isArray(payload) ? payload : []).map(normalizeMember)
       return { ok: true, data: { rows, page: 1, lastPage: 1, perPage: rows.length, total: rows.length, from: rows.length ? 1 : 0, to: rows.length } }
     } catch (error) {
       return { ok: false, error: getErrorMessage(error, 'تعذر جلب الأعضاء') }

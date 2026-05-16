@@ -18,6 +18,16 @@ export function usePermissions() {
   }
 
   function hasPermission(permission) {
+    // The backend `user.permissions[]` uses granular keys (e.g.
+    // `bookings.edit-guests-cars`); the app's own sidebar/route gates use
+    // coarse keys (e.g. `manage_users`) that live ONLY in the role map.
+    // These are two separate namespaces, so:
+    //   1) a positive match in the API list grants access, but
+    //   2) absence from the API list must NOT deny — fall through to the
+    //      static role → permission map (otherwise every coarse gate breaks).
+    const apiPerms = auth.user?.permissions
+    if (Array.isArray(apiPerms) && apiPerms.includes(permission)) return true
+
     const allowedRoles = PERMISSIONS[permission]
     if (!allowedRoles) return false
     return allowedRoles.includes(userRole.value)

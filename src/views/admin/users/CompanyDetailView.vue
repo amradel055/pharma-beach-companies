@@ -80,40 +80,42 @@
           <i class="pi pi-inbox" />
           <p>لا توجد سندات بعد</p>
         </div>
-        <table v-else class="data-table">
-          <thead>
-            <tr>
-              <th>المبلغ</th>
-              <th>الملاحظات</th>
-              <th>الحالة</th>
-              <th>تاريخ الإنشاء</th>
-              <th class="actions-col"></th>
-            </tr>
-          </thead>
-          <tbody>
-            <tr v-for="p in payments" :key="p.id" :class="{ 'is-cancelled': p.status === 'CANCELLED' }">
-              <td><strong>{{ fmt(p.amount) }} <small>ج.م</small></strong></td>
-              <td>{{ p.notes || '—' }}</td>
-              <td>
-                <span :class="['status-badge', (p.status || 'ACTIVE').toLowerCase()]">
-                  {{ p.status === 'CANCELLED' ? 'ملغى' : 'نشط' }}
-                </span>
-              </td>
-              <td class="muted">{{ p.created_at ? toDisplayDateTime(p.created_at) : '—' }}</td>
-              <td class="actions-col">
-                <template v-if="canEdit && p.status !== 'CANCELLED'">
-                  <button class="icon-btn edit" @click="openEdit(p)" :title="'تعديل'">
-                    <i class="pi pi-pencil" />
-                  </button>
-                  <button class="icon-btn cancel" @click="confirmCancel(p)" :title="'إلغاء'">
-                    <i class="pi pi-ban" />
-                  </button>
-                </template>
-                <span v-else-if="p.status === 'CANCELLED'" class="muted-sm">—</span>
-              </td>
-            </tr>
-          </tbody>
-        </table>
+        <div v-else class="table-wrap">
+          <table class="p-table">
+            <thead>
+              <tr>
+                <th>المبلغ</th>
+                <th>الملاحظات</th>
+                <th>الحالة</th>
+                <th>تاريخ الإنشاء</th>
+                <th class="act-col"></th>
+              </tr>
+            </thead>
+            <tbody>
+              <tr v-for="p in payments" :key="p.id" class="p-row" :class="{ 'is-cancelled': p.status === 'CANCELLED' }">
+                <td><strong>{{ fmt(p.amount) }} <small>ج.م</small></strong></td>
+                <td>{{ p.notes || '—' }}</td>
+                <td>
+                  <span :class="['t-status', p.status === 'CANCELLED' ? 'danger' : 'ok']">
+                    {{ p.status === 'CANCELLED' ? 'ملغى' : 'نشط' }}
+                  </span>
+                </td>
+                <td class="t-muted">{{ p.created_at ? toDisplayDateTime(p.created_at) : '—' }}</td>
+                <td class="act-col">
+                  <span v-if="canEdit && p.status !== 'CANCELLED'" class="t-actions">
+                    <button class="icon-btn edit" @click="openEdit(p)" :title="'تعديل'">
+                      <i class="pi pi-pencil" />
+                    </button>
+                    <button class="icon-btn cancel" @click="confirmCancel(p)" :title="'إلغاء'">
+                      <i class="pi pi-ban" />
+                    </button>
+                  </span>
+                  <span v-else-if="p.status === 'CANCELLED'" class="muted-sm">—</span>
+                </td>
+              </tr>
+            </tbody>
+          </table>
+        </div>
       </section>
     </template>
 
@@ -380,39 +382,12 @@ onMounted(load)
 .stat-label { font-size: 11.5px; color: #94a3b8; font-weight: 700; text-transform: uppercase; letter-spacing: 0.5px; }
 .stat-value { font-size: 20px; font-weight: 800; color: #0f172a; line-height: 1; }
 
-/* Payments table */
-.data-table { width: 100%; border-collapse: collapse; }
-.data-table th {
-  padding: 10px 12px; text-align: right; font-size: 11.5px; font-weight: 800; color: #64748b;
-  background: #fafbfc; border-bottom: 1px solid #f1f5f9;
-  text-transform: uppercase; letter-spacing: 0.4px;
-}
-.data-table td { padding: 12px; font-size: 13.5px; color: #0f172a; border-bottom: 1px solid #f8fafc; }
-.data-table tr:last-child td { border-bottom: none; }
-.data-table tr.is-cancelled td { text-decoration: line-through; color: #94a3b8; }
-.data-table tr.is-cancelled strong { color: #94a3b8; }
-.actions-col { width: 100px; text-align: end; white-space: nowrap; }
-.muted { color: #94a3b8; }
+/* Payments table — uses global .p-table; keep cancelled-row + small bits local */
+.p-table tbody tr.is-cancelled td { text-decoration: line-through; color: #94a3b8; }
+.p-table tbody tr.is-cancelled strong { color: #94a3b8; }
+.p-table td strong small { font-size: 11px; font-weight: 700; color: #94a3b8; }
 .muted-sm { font-size: 11.5px; color: #94a3b8; }
 .ltr { direction: ltr; text-align: right; }
-.data-table td strong small { font-size: 11px; font-weight: 700; color: #94a3b8; }
-
-.status-badge {
-  display: inline-flex; align-items: center; padding: 4px 12px;
-  border-radius: 999px; font-size: 11.5px; font-weight: 800; border: 1px solid;
-}
-.status-badge.active { background: rgba(16, 185, 129, 0.10); color: #047857; border-color: rgba(16, 185, 129, 0.25); }
-.status-badge.cancelled { background: rgba(239, 68, 68, 0.10); color: #b91c1c; border-color: rgba(239, 68, 68, 0.25); }
-
-.icon-btn {
-  width: 32px; height: 32px; border-radius: 8px;
-  background: #fff; border: 1px solid #e2e8f0; color: #64748b;
-  cursor: pointer; display: inline-flex; align-items: center; justify-content: center;
-  transition: all 0.15s; margin-inline-start: 4px;
-}
-.icon-btn.edit:hover { border-color: #fed7aa; color: #ea580c; }
-.icon-btn.cancel:hover { border-color: #fecaca; color: #ef4444; }
-.icon-btn i { font-size: 13px; }
 
 .empty {
   padding: 40px 20px; text-align: center; color: #94a3b8;

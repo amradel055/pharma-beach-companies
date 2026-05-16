@@ -11,54 +11,52 @@
       </button>
     </div>
 
-    <!-- Type tabs -->
-    <div class="tabs">
-      <button :class="['tab', { active: typeFilter === 'all' }]" @click="typeFilter = 'all'">
-        الكل <span class="tab-count">{{ rows.length }}</span>
-      </button>
-      <button :class="['tab', { active: typeFilter === 'SYSTEM' }]" @click="typeFilter = 'SYSTEM'">
-        أدوار النظام <span class="tab-count">{{ systemRows.length }}</span>
-      </button>
-      <button :class="['tab', { active: typeFilter === 'BUSINESS' }]" @click="typeFilter = 'BUSINESS'">
-        أدوار العمل <span class="tab-count">{{ businessRows.length }}</span>
-      </button>
-    </div>
-
     <section class="bf-section">
       <div v-if="loading" class="empty"><i class="pi pi-spin pi-spinner" /> جاري التحميل...</div>
-      <div v-else-if="!visibleRows.length" class="empty">
+      <div v-else-if="!rows.length" class="empty">
         <i class="pi pi-key" />
-        <p>لا توجد أدوار في هذا القسم</p>
+        <p>لا توجد أدوار</p>
       </div>
-      <table v-else class="data-table">
-        <thead>
-          <tr>
-            <th>الكود</th>
-            <th>الاسم</th>
-            <th>النوع</th>
-            <th class="actions-col"></th>
-          </tr>
-        </thead>
-        <tbody>
-          <tr v-for="row in visibleRows" :key="row.id">
-            <td class="ltr"><strong>{{ row.code }}</strong></td>
-            <td>{{ row.name || '—' }}</td>
-            <td>
-              <span :class="['type-badge', (row.type || 'BUSINESS').toLowerCase()]">
-                <i :class="row.type === 'SYSTEM' ? 'pi pi-lock' : 'pi pi-briefcase'" />
-                {{ row.type === 'SYSTEM' ? 'نظام' : 'عمل' }}
-              </span>
-            </td>
-            <td class="actions-col">
-              <template v-if="row.type === 'BUSINESS'">
-                <button class="icon-btn edit" @click="openEdit(row)"><i class="pi pi-pencil" /></button>
-                <button class="icon-btn delete" @click="confirmDelete(row)"><i class="pi pi-trash" /></button>
-              </template>
-              <span v-else class="muted-sm">للقراءة فقط</span>
-            </td>
-          </tr>
-        </tbody>
-      </table>
+      <div v-else class="table-wrap">
+        <table class="p-table">
+          <thead>
+            <tr>
+              <th>الكود</th>
+              <th>الاسم</th>
+              <th>النوع</th>
+              <th class="act-col"></th>
+            </tr>
+          </thead>
+          <tbody>
+            <tr v-for="row in rows" :key="row.id" class="p-row">
+              <td class="t-ltr"><span class="t-strong">{{ row.code }}</span></td>
+              <td>{{ row.name || '—' }}</td>
+              <td>
+                <span :class="['t-status', statusTone(row.type)]">
+                  <i :class="row.type === 'SYSTEM' ? 'pi pi-lock' : 'pi pi-briefcase'" />
+                  {{ row.type === 'SYSTEM' ? 'نظام' : 'عمل' }}
+                </span>
+              </td>
+              <td class="act-col">
+                <span v-if="row.type === 'BUSINESS'" class="t-actions">
+                  <button class="icon-btn edit" @click="openEdit(row)"><i class="pi pi-pencil" /></button>
+                  <button class="icon-btn delete" @click="confirmDelete(row)"><i class="pi pi-trash" /></button>
+                </span>
+                <span v-else class="muted-sm">للقراءة فقط</span>
+              </td>
+            </tr>
+          </tbody>
+        </table>
+      </div>
+
+      <AppPagination
+        :current-page="currentPage"
+        :last-page="lastPage"
+        :total="total"
+        :range-from="rangeFrom"
+        :range-to="rangeTo"
+        @change="goToPage"
+      />
     </section>
 
     <!-- Create / Edit -->
@@ -76,8 +74,12 @@
           <input v-model="form.code" type="text" class="field-input ltr" required />
         </label>
         <label class="field">
-          <span class="field-label">الاسم</span>
-          <input v-model="form.name" type="text" class="field-input" />
+          <span class="field-label">الاسم بالعربية</span>
+          <input v-model="form.name_ar" type="text" class="field-input" />
+        </label>
+        <label class="field">
+          <span class="field-label">الاسم بالإنجليزية</span>
+          <input v-model="form.name_en" type="text" class="field-input ltr" />
         </label>
         <div class="form-actions">
           <button type="button" class="btn-cancel" @click="formOpen = false">إلغاء</button>
@@ -112,58 +114,80 @@
 </template>
 
 <script setup>
-import { ref, reactive, computed, onMounted } from 'vue'
+import { ref, reactive, onMounted } from 'vue'
 import { useRolesStore } from '@/stores/roles'
 import { useToastStore } from '@/stores/toast'
 import AppModal from '@/components/ui/AppModal.vue'
-
+import AppPagination from '@/components/ui/AppPagination.vue'
 const rolesStore = useRolesStore()
 const toast = useToastStore()
 
 const rows = ref([])
 const loading = ref(true)
-const typeFilter = ref('all')
 
-const systemRows = computed(() => rows.value.filter((r) => r.type === 'SYSTEM'))
-const businessRows = computed(() => rows.value.filter((r) => r.type === 'BUSINESS'))
-const visibleRows = computed(() => {
-  if (typeFilter.value === 'SYSTEM') return systemRows.value
-  if (typeFilter.value === 'BUSINESS') return businessRows.value
-  return rows.value
-})
+// Server pagination (1-based UI; the store sends page-1 on the wire).
+const currentPage = ref(1)
+const lastPage = ref(1)
+const total = ref(0)
+const rangeFrom = ref(0)
+const rangeTo = ref(0)
+const PAGE_SIZE = 10
+
+function statusTone(t) {
+  return { SYSTEM: 'neutral', BUSINESS: 'info' }[t] || 'neutral'
+}
 
 async function load() {
   loading.value = true
-  const r = await rolesStore.listAll()
+  const r = await rolesStore.list({ page: currentPage.value, limit: PAGE_SIZE })
   loading.value = false
-  if (r.ok) rows.value = r.data
-  else toast.error(r.error)
+  if (r.ok) {
+    rows.value = r.data.rows
+    currentPage.value = r.data.page || 1
+    lastPage.value = r.data.lastPage || 1
+    total.value = r.data.total
+    rangeFrom.value = r.data.from
+    rangeTo.value = r.data.to
+  } else {
+    toast.error(r.error)
+  }
+}
+
+function goToPage(p) {
+  if (p < 1 || p > lastPage.value || p === currentPage.value) return
+  currentPage.value = p
+  load()
 }
 
 // Form
 const formOpen = ref(false)
 const editing = ref(null)
 const saving = ref(false)
-const form = reactive({ code: '', name: '' })
+const form = reactive({ code: '', name_ar: '', name_en: '' })
 
 function openCreate() {
   editing.value = null
   form.code = ''
-  form.name = ''
+  form.name_ar = ''
+  form.name_en = ''
   formOpen.value = true
 }
 
 function openEdit(row) {
   editing.value = row
   form.code = row.code || ''
-  form.name = row.name || ''
+  form.name_ar = row.name_ar || ''
+  form.name_en = row.name_en || ''
   formOpen.value = true
 }
 
 async function handleSubmit() {
   if (!form.code) return
   saving.value = true
-  const payload = { code: form.code, name: form.name }
+  const payload = { code: form.code, name_ar: form.name_ar, name_en: form.name_en }
+  // Only business roles are creatable/editable here; system roles are
+  // read-only. Tag new roles so the backend stores them as business.
+  if (!editing.value) payload.is_business_role = true
   const r = editing.value
     ? await rolesStore.update(editing.value.id, payload)
     : await rolesStore.create(payload)
@@ -239,64 +263,12 @@ onMounted(load)
 .btn-danger:hover:not(:disabled) { transform: translateY(-1px); }
 .btn-danger:disabled { opacity: 0.5; cursor: not-allowed; }
 
-.tabs {
-  display: flex; flex-wrap: wrap; gap: 6px;
-  padding: 8px; background: #fff; border: 1px solid #f1f5f9; border-radius: 12px;
-}
-.tab {
-  display: inline-flex; align-items: center; gap: 8px;
-  padding: 8px 14px; border-radius: 8px;
-  background: transparent; border: none;
-  color: #64748b; font-family: inherit; font-size: 13px; font-weight: 700;
-  cursor: pointer; transition: all 0.15s;
-}
-.tab:hover { background: #f1f5f9; color: #475569; }
-.tab.active {
-  background: linear-gradient(135deg, rgba(249, 115, 22, 0.12), rgba(251, 191, 36, 0.12));
-  color: #c2410c;
-}
-.tab-count {
-  padding: 2px 8px; border-radius: 999px;
-  background: #f1f5f9; color: #94a3b8;
-  font-size: 11px; font-weight: 800;
-}
-.tab.active .tab-count { background: #fff; color: #c2410c; }
-
 .bf-section {
   background: #fff; border: 1px solid #f1f5f9; border-radius: 14px;
   padding: 18px 20px; box-shadow: 0 2px 8px rgba(15, 23, 42, 0.04);
 }
 
-.data-table { width: 100%; border-collapse: collapse; }
-.data-table th {
-  padding: 10px 12px; text-align: right; font-size: 11.5px; font-weight: 800; color: #64748b;
-  background: #fafbfc; border-bottom: 1px solid #f1f5f9;
-  text-transform: uppercase; letter-spacing: 0.4px;
-}
-.data-table td { padding: 12px; font-size: 13.5px; color: #0f172a; border-bottom: 1px solid #f8fafc; }
-.data-table tr:last-child td { border-bottom: none; }
-.ltr { direction: ltr; text-align: right; }
-.actions-col { width: 140px; text-align: end; white-space: nowrap; }
 .muted-sm { font-size: 11.5px; color: #94a3b8; }
-
-.type-badge {
-  display: inline-flex; align-items: center; gap: 5px;
-  padding: 4px 12px; border-radius: 999px;
-  font-size: 11.5px; font-weight: 800; border: 1px solid;
-}
-.type-badge i { font-size: 10.5px; }
-.type-badge.system { background: rgba(100, 116, 139, 0.10); color: #475569; border-color: rgba(100, 116, 139, 0.25); }
-.type-badge.business { background: rgba(14, 165, 233, 0.10); color: #0369a1; border-color: rgba(14, 165, 233, 0.25); }
-
-.icon-btn {
-  width: 32px; height: 32px; border-radius: 8px;
-  background: #fff; border: 1px solid #e2e8f0; color: #64748b;
-  cursor: pointer; display: inline-flex; align-items: center; justify-content: center;
-  transition: all 0.15s; margin-inline-start: 4px;
-}
-.icon-btn.edit:hover { border-color: #fed7aa; color: #ea580c; }
-.icon-btn.delete:hover { border-color: #fecaca; color: #ef4444; }
-.icon-btn i { font-size: 13px; }
 
 .empty {
   padding: 40px 20px; text-align: center; color: #94a3b8;

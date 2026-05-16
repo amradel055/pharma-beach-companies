@@ -75,7 +75,7 @@ watch(() => props.modelValue, (val) => {
   backdrop-filter: blur(4px);
   -webkit-backdrop-filter: blur(4px);
   display: flex;
-  align-items: center;
+  align-items: flex-start;
   justify-content: center;
   padding: 20px;
   z-index: 2000;
@@ -92,10 +92,16 @@ watch(() => props.modelValue, (val) => {
     0 20px 60px rgba(0, 0, 0, 0.12),
     0 4px 16px rgba(0, 0, 0, 0.04);
   width: 100%;
-  max-height: calc(100vh - 120px);
+  /* Center when it fits; let the fixed backdrop scroll it when taller.
+     `margin:auto` in a flex container centers without clipping the top
+     on overflow (unlike align-items:center), so tall modals stay usable
+     even though the panel no longer clips/scrolls internally. */
+  margin: auto;
+  max-height: none;
   display: flex;
   flex-direction: column;
-  overflow: hidden;
+  /* visible so AppDropdown menus aren't clipped inside the modal */
+  overflow: visible;
 }
 
 /* Sizes */
@@ -179,23 +185,8 @@ watch(() => props.modelValue, (val) => {
    ═══════════════════════════════════ */
 .modal-body {
   padding: 20px 24px;
-  overflow-y: auto;
+  overflow: visible;
   flex: 1;
-  scrollbar-width: thin;
-  scrollbar-color: rgba(148, 163, 184, 0.15) transparent;
-}
-
-.modal-body::-webkit-scrollbar {
-  width: 3px;
-}
-
-.modal-body::-webkit-scrollbar-track {
-  background: transparent;
-}
-
-.modal-body::-webkit-scrollbar-thumb {
-  background: rgba(148, 163, 184, 0.2);
-  border-radius: 10px;
 }
 
 /* ═══════════════════════════════════
@@ -259,7 +250,7 @@ watch(() => props.modelValue, (val) => {
 
   .modal-panel {
     border-radius: 14px;
-    max-height: calc(100vh - 80px);
+    max-height: none;
   }
 
   .modal-sm, .modal-md, .modal-lg, .modal-xl {

@@ -7,17 +7,19 @@ import DashboardLayout from '@/layouts/DashboardLayout.vue'
 // MUST point to a route the role is actually allowed to access, otherwise
 // the role-guard below will loop back here forever.
 const ROLE_HOME = {
-  [ROLES.SUPER_ADMIN]: 'admin-owner',
-  [ROLES.ADMIN_COMPANY]: 'admin-owner',
-  [ROLES.ADMIN_VILLAGE]: 'admin-village',
+  [ROLES.SUPER_ADMIN]: 'admin-users',
+  [ROLES.ADMIN_COMPANY]: 'admin-users',
+  [ROLES.ADMIN_VILLAGE]: 'admin-village-bookings',
   [ROLES.CUSTOMER_SERVICE_COMPANY]: 'admin-users',
   [ROLES.HEAD_CUSTOMER_SERVICE_VILLAGE]: 'admin-village-bookings',
   [ROLES.CUSTOMER_SERVICE_VILLAGE]: 'admin-village-bookings',
-  [ROLES.BROKER_COMPANY]: 'admin-broker',
-  [ROLES.BROKER_VILLAGE]: 'admin-broker',
-  [ROLES.FINANCIAL_MEMBER]: 'admin-village',
-  [ROLES.OPERATION]: 'admin-operator-dashboard',
-  [ROLES.SECURITY]: 'admin-qr-scanner',
+  // Roles whose dedicated dashboards were removed land on the universally
+  // accessible profile page (admin-profile.meta.roles = [...ADMIN_ROLES]).
+  [ROLES.BROKER_COMPANY]: 'admin-profile',
+  [ROLES.BROKER_VILLAGE]: 'admin-profile',
+  [ROLES.FINANCIAL_MEMBER]: 'admin-profile',
+  [ROLES.OPERATION]: 'admin-profile',
+  [ROLES.SECURITY]: 'admin-profile',
   // CLIENT has no admin home — falls through to login.
 }
 
@@ -119,13 +121,6 @@ const routes = [
         meta: { title: 'تفاصيل الشركة', roles: [ROLES.SUPER_ADMIN, ROLES.ADMIN_COMPANY, ROLES.FINANCIAL_MEMBER] },
       },
 
-      // Chalet management
-      {
-        path: 'chalets',
-        name: 'admin-chalets',
-        component: () => import('@/views/admin/chalets/ChaletListView.vue'),
-        meta: { title: 'الشاليهات', roles: [ROLES.SUPER_ADMIN, ROLES.ADMIN_COMPANY, ROLES.CUSTOMER_SERVICE_COMPANY] },
-      },
       // System lookups (shared CRUD: floors / rooms / bathrooms / areas / finishing / view / AC)
       {
         path: 'settings/lookups',
@@ -159,41 +154,6 @@ const routes = [
         name: 'admin-amenities',
         component: () => import('@/views/admin/settings/AmenitiesView.vue'),
         meta: { title: 'الكماليات', roles: [ROLES.SUPER_ADMIN, ROLES.ADMIN_COMPANY, ROLES.CUSTOMER_SERVICE_COMPANY] },
-      },
-
-      // Approvals — Super Admin only
-      {
-        path: 'approvals',
-        name: 'admin-approvals',
-        component: () => import('@/views/admin/approvals/ApprovalQueueView.vue'),
-        meta: { title: 'طلبات الاعتماد', roles: [ROLES.SUPER_ADMIN] },
-      },
-
-      // Bookings calendar — primary landing for the admin tier
-      {
-        path: 'owner',
-        name: 'admin-owner',
-        component: () => import('@/views/admin/owner/OwnerDashboardView.vue'),
-        meta: { title: 'تقويم الحجوزات', roles: [ROLES.SUPER_ADMIN, ROLES.ADMIN_COMPANY, ROLES.ADMIN_VILLAGE] },
-      },
-
-      // Bookings register
-      {
-        path: 'bookings',
-        name: 'admin-bookings',
-        component: () => import('@/views/admin/bookings/BookingsRegisterView.vue'),
-        meta: { title: 'سجل الحجوزات', roles: [ROLES.SUPER_ADMIN, ROLES.ADMIN_COMPANY, ROLES.ADMIN_VILLAGE] },
-      },
-
-      // Village dashboard (financial reports)
-      {
-        path: 'village',
-        name: 'admin-village',
-        component: () => import('@/views/admin/village/VillageDashboardView.vue'),
-        meta: {
-          title: 'تقارير القرية',
-          roles: [ROLES.SUPER_ADMIN, ROLES.ADMIN_COMPANY, ROLES.ADMIN_VILLAGE, ROLES.FINANCIAL_MEMBER],
-        },
       },
 
       // CS operations
@@ -282,89 +242,6 @@ const routes = [
         },
       },
 
-      // Broker dashboard
-      {
-        path: 'broker',
-        name: 'admin-broker',
-        component: () => import('@/views/admin/broker/BrokerDashboardView.vue'),
-        meta: {
-          title: 'لوحة البروكر',
-          roles: [ROLES.SUPER_ADMIN, ROLES.ADMIN_COMPANY, ROLES.BROKER_COMPANY, ROLES.BROKER_VILLAGE],
-        },
-      },
-
-      // Operators
-      {
-        path: 'operators',
-        name: 'admin-operators',
-        component: () => import('@/views/admin/operator/OperatorListView.vue'),
-        meta: { title: 'المشغلين', roles: [ROLES.SUPER_ADMIN, ROLES.ADMIN_COMPANY, ROLES.ADMIN_VILLAGE] },
-      },
-
-      // Operator dashboard
-      {
-        path: 'operator',
-        name: 'admin-operator-dashboard',
-        component: () => import('@/views/admin/operator/OperatorDashboardView.vue'),
-        meta: { title: 'لوحة المشغل', roles: [ROLES.SUPER_ADMIN, ROLES.OPERATION] },
-      },
-
-      // Security management
-      {
-        path: 'security',
-        name: 'admin-security',
-        component: () => import('@/views/admin/security/SecurityListView.vue'),
-        meta: { title: 'أعضاء الأمن', roles: [ROLES.SUPER_ADMIN, ROLES.ADMIN_COMPANY, ROLES.ADMIN_VILLAGE] },
-      },
-
-      // QR Scanner
-      {
-        path: 'security/scanner',
-        name: 'admin-qr-scanner',
-        component: () => import('@/views/admin/security/QrScannerView.vue'),
-        meta: {
-          title: 'ماسح QR',
-          roles: [ROLES.SUPER_ADMIN, ROLES.SECURITY, ROLES.ADMIN_COMPANY, ROLES.ADMIN_VILLAGE],
-        },
-      },
-
-      // Site Terms — Super Admin only
-      {
-        path: 'settings/site-terms',
-        name: 'admin-site-terms',
-        component: () => import('@/views/admin/settings/SiteTermsView.vue'),
-        meta: { title: 'شروط الموقع', roles: [ROLES.SUPER_ADMIN] },
-      },
-
-      // Village Terms
-      {
-        path: 'settings/village-terms',
-        name: 'admin-village-terms',
-        component: () => import('@/views/admin/settings/VillageTermsView.vue'),
-        meta: { title: 'شروط القرية', roles: [ROLES.SUPER_ADMIN, ROLES.ADMIN_COMPANY, ROLES.ADMIN_VILLAGE] },
-      },
-
-      // Village Daily Report
-      {
-        path: 'village/daily-report',
-        name: 'admin-village-daily-report',
-        component: () => import('@/views/admin/village/VillageDailyReportView.vue'),
-        meta: { title: 'التقرير اليومي', roles: [ROLES.SUPER_ADMIN, ROLES.ADMIN_COMPANY, ROLES.ADMIN_VILLAGE] },
-      },
-
-      // Coupons
-      {
-        path: 'coupons',
-        name: 'admin-coupons',
-        component: () => import('@/views/admin/coupons/CouponListView.vue'),
-        meta: { title: 'كوبونات الخصم', roles: [ROLES.SUPER_ADMIN, ROLES.ADMIN_COMPANY, ROLES.CUSTOMER_SERVICE_COMPANY] },
-      },
-      {
-        path: 'coupons/report',
-        name: 'admin-coupons-report',
-        component: () => import('@/views/admin/coupons/CouponReportView.vue'),
-        meta: { title: 'تقرير الكوبونات', roles: [ROLES.SUPER_ADMIN, ROLES.ADMIN_COMPANY, ROLES.CUSTOMER_SERVICE_COMPANY] },
-      },
     ],
   },
 

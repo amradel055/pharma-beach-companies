@@ -106,48 +106,14 @@
         </table>
       </div>
 
-      <!-- Pagination -->
-      <div v-if="!loading && chalets.length" class="pagination">
-        <div class="pagination-info">
-          عرض {{ rangeFrom }} – {{ rangeTo }} من {{ total }}
-        </div>
-        <div class="pagination-controls">
-          <button
-            class="page-btn nav"
-            :disabled="currentPage === 1"
-            @click="goToPage(currentPage - 1)"
-            aria-label="السابق"
-          >
-            <i class="pi pi-chevron-right" />
-          </button>
-
-          <button v-if="pageWindow[0] > 1" class="page-btn" @click="goToPage(1)">1</button>
-          <span v-if="pageWindow[0] > 2" class="page-ellipsis">…</span>
-
-          <button
-            v-for="p in pageWindow"
-            :key="p"
-            :class="['page-btn', { active: p === currentPage }]"
-            @click="goToPage(p)"
-          >{{ p }}</button>
-
-          <span v-if="pageWindow[pageWindow.length - 1] < lastPage - 1" class="page-ellipsis">…</span>
-          <button
-            v-if="pageWindow[pageWindow.length - 1] < lastPage"
-            class="page-btn"
-            @click="goToPage(lastPage)"
-          >{{ lastPage }}</button>
-
-          <button
-            class="page-btn nav"
-            :disabled="currentPage === lastPage"
-            @click="goToPage(currentPage + 1)"
-            aria-label="التالي"
-          >
-            <i class="pi pi-chevron-left" />
-          </button>
-        </div>
-      </div>
+      <AppPagination
+        :current-page="currentPage"
+        :last-page="lastPage"
+        :total="total"
+        :range-from="rangeFrom"
+        :range-to="rangeTo"
+        @change="goToPage"
+      />
     </section>
   </div>
 </template>
@@ -158,6 +124,7 @@ import { useRouter } from 'vue-router'
 import { useCsBookingsStore } from '@/stores/csBookings'
 import { useToastStore } from '@/stores/toast'
 import AppDropdown from '@/components/ui/AppDropdown.vue'
+import AppPagination from '@/components/ui/AppPagination.vue'
 
 const router = useRouter()
 const csBookings = useCsBookingsStore()
@@ -181,21 +148,6 @@ const total = ref(0)
 const rangeFrom = ref(0)
 const rangeTo = ref(0)
 const PAGE_SIZE = 10
-
-const pageWindow = computed(() => {
-  const last = lastPage.value
-  const cur = currentPage.value
-  const span = 2
-  let start = Math.max(1, cur - span)
-  let end = Math.min(last, cur + span)
-  if (end - start < span * 2) {
-    if (start === 1) end = Math.min(last, start + span * 2)
-    else if (end === last) start = Math.max(1, end - span * 2)
-  }
-  const pages = []
-  for (let i = start; i <= end; i++) pages.push(i)
-  return pages
-})
 
 const companies = ref([])
 const owners = ref([])
@@ -327,144 +279,6 @@ onMounted(async () => {
 .filter-field { display: flex; flex-direction: column; gap: 6px; min-width: 0; }
 .filter-field label { font-size: 11.5px; font-weight: 700; color: #64748b; }
 
-/* ── Card-style table (each row is its own card) ── */
-.table-wrap { overflow-x: auto; }
-.p-table {
-  width: 100%;
-  border-collapse: separate;
-  border-spacing: 0 10px;
-  min-width: 720px;
-}
-.p-table thead th {
-  padding: 4px 18px 8px;
-  text-align: right;
-  font-size: 11.5px;
-  font-weight: 800;
-  color: #94a3b8;
-  text-transform: uppercase;
-  letter-spacing: 0.5px;
-  white-space: nowrap;
-}
-.p-table thead th.act-col { width: 1%; }
-
-.p-row { cursor: pointer; transition: transform 0.15s; }
-.p-table tbody td {
-  padding: 16px 18px;
-  vertical-align: middle;
-  background: #fff;
-  border-top: 1px solid #eef2f6;
-  border-bottom: 1px solid #eef2f6;
-}
-.p-table tbody td:first-child {
-  border-inline-start: 1px solid #eef2f6;
-  border-start-start-radius: 14px;
-  border-end-start-radius: 14px;
-}
-.p-table tbody td:last-child {
-  border-inline-end: 1px solid #eef2f6;
-  border-start-end-radius: 14px;
-  border-end-end-radius: 14px;
-}
-.p-row:hover { transform: translateY(-2px); }
-.p-row:hover td { background: #fffdfa; border-color: #fed7aa; }
-
-.idx-col {
-  width: 1%;
-  white-space: nowrap;
-  color: #94a3b8;
-  font-weight: 800;
-  font-size: 12.5px;
-}
-
-.t-chalet { display: flex; align-items: center; gap: 11px; }
-.t-chalet-avatar {
-  width: 36px; height: 36px;
-  border-radius: 10px;
-  background: linear-gradient(135deg, rgba(249, 115, 22, 0.12), rgba(251, 191, 36, 0.12));
-  color: #ea580c;
-  display: inline-flex; align-items: center; justify-content: center;
-  flex-shrink: 0;
-}
-.t-chalet-avatar i { font-size: 15px; }
-.t-chalet-name { font-size: 14px; font-weight: 800; color: #0f172a; }
-.p-row:hover .t-chalet-name { color: #ea580c; }
-
-.act-col { white-space: nowrap; text-align: end; }
-.t-open {
-  display: inline-flex; align-items: center; gap: 6px;
-  font-size: 12.5px; font-weight: 800;
-  color: #94a3b8;
-  transition: color 0.15s;
-}
-.t-open i { font-size: 12px; transition: transform 0.15s; }
-.p-row:hover .t-open { color: #ea580c; }
-.p-row:hover .t-open i { transform: translateX(-3px); }
-
-/* Loading + empty */
-.loading-inline { padding: 40px 20px; text-align: center; color: #64748b; font-size: 13.5px; }
-.loading-inline i { font-size: 16px; margin-left: 8px; color: #f97316; }
-
-.empty-state {
-  padding: 50px 20px;
-  text-align: center;
-  color: #64748b;
-  display: flex;
-  flex-direction: column;
-  align-items: center;
-  gap: 8px;
-}
-.empty-icon {
-  width: 60px; height: 60px;
-  border-radius: 16px;
-  background: #f1f5f9;
-  color: #cbd5e1;
-  display: inline-flex; align-items: center; justify-content: center;
-  margin-bottom: 6px;
-}
-.empty-icon i { font-size: 24px; }
-.empty-state h3 { font-size: 16px; font-weight: 800; color: #475569; margin: 0; }
-.empty-state p { font-size: 13px; margin: 0; }
-
-/* Pagination */
-.pagination {
-  display: flex;
-  align-items: center;
-  justify-content: space-between;
-  gap: 12px;
-  margin-top: 14px;
-  padding-top: 14px;
-  border-top: 1px solid #f1f5f9;
-  flex-wrap: wrap;
-}
-.pagination-info { font-size: 12.5px; color: #64748b; font-weight: 600; }
-.pagination-controls { display: flex; align-items: center; gap: 4px; }
-.page-btn {
-  min-width: 34px;
-  height: 34px;
-  padding: 0 10px;
-  border-radius: 9px;
-  border: 1px solid #e2e8f0;
-  background: #fff;
-  color: #475569;
-  font-size: 13px;
-  font-weight: 700;
-  font-family: inherit;
-  cursor: pointer;
-  display: inline-flex;
-  align-items: center;
-  justify-content: center;
-  transition: all 0.15s;
-}
-.page-btn:hover:not(:disabled):not(.active) { border-color: #fed7aa; color: #f97316; }
-.page-btn:disabled { opacity: 0.4; cursor: not-allowed; }
-.page-btn.active {
-  background: linear-gradient(135deg, #f97316, #ea580c);
-  border-color: transparent;
-  color: #fff;
-  box-shadow: 0 2px 8px rgba(249, 115, 22, 0.30);
-}
-.page-btn.nav i { font-size: 12px; }
-.page-ellipsis { padding: 0 4px; color: #cbd5e1; font-weight: 700; }
 
 @media (max-width: 900px) {
   .filter-grid { grid-template-columns: 1fr 1fr; }

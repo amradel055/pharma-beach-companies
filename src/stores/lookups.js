@@ -9,14 +9,19 @@ function unwrap(response) {
 // Spec key → URL segment under /v1/lookups/*
 // The bulk /v1/lookups response key is on the LEFT (snake_case plural);
 // the per-category REST path on the RIGHT (kebab-case, sometimes singular).
+//
+// `shape` describes the option schema, which differs per category:
+//   'value' → { value, label_ar, label_en, sort_order, is_active }
+//   'range' → { min_area, max_area, label_ar, label_en, sort_order, is_active }
+//   'code'  → { code, name_ar, name_en, sort_order, is_active }
 export const LOOKUP_CATEGORIES = [
-  { key: 'floors', path: 'floors', label_ar: 'الأدوار', label_en: 'Floors' },
-  { key: 'rooms', path: 'rooms', label_ar: 'الغرف', label_en: 'Rooms' },
-  { key: 'bathrooms', path: 'bathrooms', label_ar: 'الحمامات', label_en: 'Bathrooms' },
-  { key: 'area_ranges', path: 'area-ranges', label_ar: 'المساحات', label_en: 'Area Ranges' },
-  { key: 'finishing_types', path: 'finishing-types', label_ar: 'مستوى التشطيب', label_en: 'Finishing' },
-  { key: 'the_views', path: 'the-view', label_ar: 'الإطلالة', label_en: 'View' },
-  { key: 'ac_counts', path: 'ac-count', label_ar: 'عدد التكييفات', label_en: 'AC Count' },
+  { key: 'floors', path: 'floors', label_ar: 'الأدوار', label_en: 'Floors', shape: 'value' },
+  { key: 'rooms', path: 'rooms', label_ar: 'الغرف', label_en: 'Rooms', shape: 'value' },
+  { key: 'bathrooms', path: 'bathrooms', label_ar: 'الحمامات', label_en: 'Bathrooms', shape: 'value' },
+  { key: 'area_ranges', path: 'area-ranges', label_ar: 'المساحات', label_en: 'Area Ranges', shape: 'range' },
+  { key: 'finishing_types', path: 'finishing-types', label_ar: 'مستوى التشطيب', label_en: 'Finishing', shape: 'code' },
+  { key: 'the_views', path: 'the-view', label_ar: 'الإطلالة', label_en: 'View', shape: 'value' },
+  { key: 'ac_counts', path: 'ac-count', label_ar: 'عدد التكييفات', label_en: 'AC Count', shape: 'value' },
 ]
 
 export const useLookupsStore = defineStore('lookups', () => {
