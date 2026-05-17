@@ -293,7 +293,7 @@ async function onDecode(text) {
   resolve(text)
 }
 
-// The QR encodes a full deep-link URL (…/admin/qr-scan?code=<bookingId>).
+// The QR encodes a full deep-link URL (…/qr-scan?code=<bookingId>).
 // A scan/upload yields that whole string, so pull out the actual booking id
 // (the `code` param) — never send the URL itself to the API.
 function extractCode(raw) {
@@ -358,7 +358,7 @@ async function resetScan() {
 }
 
 onMounted(() => {
-  // Deep link from a scanned permit QR (…/admin/qr-scan?code=<booking_id>):
+  // Deep link from a scanned permit QR (…/qr-scan?code=<booking_id>):
   // resolve it straight away instead of opening the camera.
   const code = route.query.code
   if (code) { resolve(String(code)); return }

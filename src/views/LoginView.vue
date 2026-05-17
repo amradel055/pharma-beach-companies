@@ -155,7 +155,7 @@ async function handleLogin() {
 
   if (result.ok) {
     toast.success('تم تسجيل الدخول بنجاح')
-    const redirect = auth.returnUrl || '/admin'
+    const redirect = auth.returnUrl || '/'
     auth.returnUrl = null
     router.push(redirect)
   } else {

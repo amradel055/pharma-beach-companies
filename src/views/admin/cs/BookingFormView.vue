@@ -1,7 +1,7 @@
 <template>
   <div class="form-page">
     <nav class="page-crumbs" aria-label="مسار التنقل">
-      <RouterLink to="/admin/village-bookings/new" class="crumb">حجز جديد</RouterLink>
+      <RouterLink to="/village-bookings/new" class="crumb">حجز جديد</RouterLink>
       <i class="pi pi-angle-left crumb-sep" />
       <span class="crumb crumb-current" aria-current="page">إتمام الحجز</span>
     </nav>
@@ -9,7 +9,7 @@
     <div v-if="missingParams" class="card error-card">
       <i class="pi pi-exclamation-triangle" />
       <p>بيانات الحجز غير مكتملة. عد للتقويم واختر شاليه ونطاق التاريخ.</p>
-      <RouterLink to="/admin/village-bookings/new" class="btn-primary">العودة للتقويم</RouterLink>
+      <RouterLink to="/village-bookings/new" class="btn-primary">العودة للتقويم</RouterLink>
     </div>
 
     <template v-else>
@@ -20,7 +20,7 @@
       <div v-else-if="!bookingInfo" class="card error-card">
         <i class="pi pi-exclamation-circle" />
         <p>تعذر جلب بيانات الحجز</p>
-        <RouterLink to="/admin/village-bookings/new" class="btn-primary">العودة للتقويم</RouterLink>
+        <RouterLink to="/village-bookings/new" class="btn-primary">العودة للتقويم</RouterLink>
       </div>
 
       <div v-else class="od-grid">
@@ -412,7 +412,7 @@ async function submitBooking(paymentType) {
   if (r.ok) {
     paymentModalOpen.value = false
     toast.success('تم إنشاء الحجز بنجاح')
-    router.push('/admin/village-bookings/new')
+    router.push('/village-bookings/new')
     return
   }
 

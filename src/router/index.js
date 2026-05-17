@@ -66,20 +66,12 @@ const routes = [
     ],
   },
 
-  // Admin dashboard
+  // Dashboard (mounted at the site root — no /admin prefix)
   {
-    path: '/admin',
+    path: '/',
     component: DashboardLayout,
     meta: { requiresAuth: true, roles: [...ADMIN_ROLES] },
     children: [
-      // Default landing for /admin — pick a home that the current role can access.
-      {
-        path: '',
-        redirect: () => {
-          const auth = useAuthStore()
-          return { name: homeRouteFor(auth.user?.role) }
-        },
-      },
       {
         path: 'profile',
         name: 'admin-profile',
@@ -292,7 +284,7 @@ router.beforeEach((to) => {
 
   // Guest-only routes — only bounce away if the user has a VALID admin role.
   // Without this check, a partially-broken session (authenticated but no
-  // recognized role) would ping-pong between /login and /admin forever.
+  // recognized role) would ping-pong between /login and the dashboard forever.
   if (to.meta.guest && auth.isAuthenticated && hasValidAdminRole) {
     const home = homeRouteFor(userRole)
     if (to.name === home) return

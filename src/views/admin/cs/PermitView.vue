@@ -2,9 +2,9 @@
   <div class="permit-page">
     <!-- Breadcrumb + action bar (hidden on print) -->
     <nav class="page-crumbs no-print" aria-label="مسار التنقل">
-      <RouterLink to="/admin/village-bookings" class="crumb">الحجوزات</RouterLink>
+      <RouterLink to="/village-bookings" class="crumb">الحجوزات</RouterLink>
       <i class="pi pi-angle-left crumb-sep" />
-      <RouterLink :to="`/admin/village-bookings/${$route.params.id}`" class="crumb">
+      <RouterLink :to="`/village-bookings/${$route.params.id}`" class="crumb">
         {{ permit?.booking_code || 'الحجز' }}
       </RouterLink>
       <i class="pi pi-angle-left crumb-sep" />
@@ -328,7 +328,7 @@ const bookingId = String(route.params.id || '')
 // security scanner screen) lands straight on this booking's check-in/out flow.
 const scanUrl = computed(() => {
   const base = (import.meta.env.BASE_URL || '/').replace(/\/$/, '')
-  return `${window.location.origin}${base}/admin/qr-scan?code=${bookingId}`
+  return `${window.location.origin}${base}/qr-scan?code=${bookingId}`
 })
 const qrDataUrl = ref('')
 

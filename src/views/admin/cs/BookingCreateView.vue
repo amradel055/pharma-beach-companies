@@ -1,7 +1,7 @@
 <template>
   <div class="booking-page">
     <nav class="page-crumbs" aria-label="مسار التنقل">
-      <RouterLink to="/admin/village-bookings" class="crumb">الحجوزات</RouterLink>
+      <RouterLink to="/village-bookings" class="crumb">الحجوزات</RouterLink>
       <i class="pi pi-angle-left crumb-sep" />
       <span class="crumb crumb-current" aria-current="page">حجز جديد</span>
     </nav>

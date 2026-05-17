@@ -1,7 +1,7 @@
 <template>
   <div class="detail-page">
     <nav class="page-crumbs" aria-label="مسار التنقل">
-      <RouterLink to="/admin/village-chalets" class="crumb">الشاليهات</RouterLink>
+      <RouterLink to="/village-chalets" class="crumb">الشاليهات</RouterLink>
       <i class="pi pi-angle-left crumb-sep" />
       <span class="crumb crumb-current" aria-current="page">
         {{ chalet?.name || 'تفاصيل الشاليه' }}
@@ -15,7 +15,7 @@
     <div v-else-if="!chalet" class="card error-card">
       <i class="pi pi-exclamation-triangle" />
       <p>الشاليه غير موجود</p>
-      <RouterLink to="/admin/village-chalets" class="btn-primary">العودة للقائمة</RouterLink>
+      <RouterLink to="/village-chalets" class="btn-primary">العودة للقائمة</RouterLink>
     </div>
 
     <template v-else>
@@ -273,7 +273,7 @@
               <tr class="row clickable" @click="toggleExpand(row.id)">
                 <td><i :class="['pi', expanded[row.id] ? 'pi-chevron-down' : 'pi-chevron-left']" /></td>
                 <td>
-                  <RouterLink :to="`/admin/village-bookings/${row.id}`" class="row-link" @click.stop>
+                  <RouterLink :to="`/village-bookings/${row.id}`" class="row-link" @click.stop>
                     {{ row.booking_code }}
                   </RouterLink>
                 </td>

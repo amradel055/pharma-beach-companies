@@ -6,7 +6,7 @@
         <button class="nav-burger" aria-label="القائمة" @click="mobileOpen = !mobileOpen">
           <i :class="mobileOpen ? 'pi pi-times' : 'pi pi-bars'" />
         </button>
-        <RouterLink to="/admin" class="nav-logo">
+        <RouterLink to="/" class="nav-logo">
           <img :src="logo" alt="Pharma Beach" />
         </RouterLink>
       </div>
@@ -64,12 +64,7 @@
       <div class="nav-user" ref="userMenuRef">
         <button :class="['user-btn', { open: userMenuOpen }]" @click="userMenuOpen = !userMenuOpen">
           <div class="user-av">
-            {{ userInitial }}
-            <span class="user-av-dot" />
-          </div>
-          <div class="user-meta">
-            <span class="user-label">{{ auth.user?.name }}</span>
-            <span class="user-sub">{{ roleLabel }}</span>
+            <i class="pi pi-user" />
           </div>
           <i class="pi pi-chevron-down user-caret" />
         </button>
@@ -93,7 +88,7 @@
 
             <div class="drop-list">
               <RouterLink
-                to="/admin/profile"
+                to="/profile"
                 class="drop-item"
                 style="--i: 0"
                 @click="userMenuOpen = false"
@@ -180,7 +175,7 @@ const visibleSections = computed(() =>
 )
 
 function isActive(path) {
-  if (path === '/admin') return route.path === '/admin'
+  if (path === '/') return route.path === '/'
   return route.path === path || route.path.startsWith(path + '/')
 }
 function sectionActive(section) {
@@ -447,88 +442,57 @@ onUnmounted(() => document.removeEventListener('click', handleClickOutside))
   justify-self: end;
 }
 
+/* Single primary button — user icon + chevron live inside the orange bg */
 .user-btn {
-  display: flex;
-  align-items: center;
-  gap: 10px;
-  padding: 5px 14px 5px 6px;
-  border-radius: 999px;
-  border: 1px solid rgba(226, 232, 240, 0.9);
-  background: #fff;
-  cursor: pointer;
-  transition: background 0.18s, border-color 0.18s, box-shadow 0.18s;
-}
-.user-btn:hover {
-  background: #f8fafc;
-  border-color: #e2e8f0;
-}
-.user-btn.open {
-  background: #fff;
-  border-color: rgba(249, 115, 22, 0.5);
-}
-
-.user-av {
   position: relative;
-  width: 34px;
-  height: 34px;
-  border-radius: 50%;
+  display: inline-flex;
+  align-items: center;
+  gap: 9px;
+  padding: 9px 15px;
+  border-radius: 10px;
+  border: none;
   background: linear-gradient(135deg, #fb923c, #ea580c);
   color: #fff;
-  display: flex;
+  cursor: pointer;
+  box-shadow: 0 3px 10px rgba(234, 88, 12, 0.32);
+  transition: transform 0.18s ease, box-shadow 0.18s ease, filter 0.18s ease;
+}
+.user-btn:hover {
+  transform: translateY(-1px);
+  box-shadow: 0 6px 16px rgba(234, 88, 12, 0.42);
+  filter: brightness(1.04);
+}
+.user-btn.open {
+  box-shadow: 0 0 0 4px rgba(249, 115, 22, 0.22), 0 4px 12px rgba(234, 88, 12, 0.38);
+}
+.user-btn:active { transform: translateY(0) scale(0.97); }
+.user-btn:focus-visible {
+  outline: 2px solid #ea580c;
+  outline-offset: 2px;
+}
+
+/* Transparent icon wrapper — the button itself is the primary surface */
+.user-av {
+  display: inline-flex;
   align-items: center;
   justify-content: center;
-  font-weight: 800;
-  font-size: 14px;
   flex-shrink: 0;
-  box-shadow: 0 2px 8px rgba(234, 88, 12, 0.3);
-  transition: transform 0.18s ease;
 }
-.user-btn:hover .user-av,
-.user-btn.open .user-av {
-  transform: scale(1.05);
-}
-.user-av-dot {
-  position: absolute;
-  bottom: -1px;
-  inset-inline-start: -1px;
-  width: 9px;
-  height: 9px;
-  border-radius: 50%;
-  background: #22c55e;
-  border: 2px solid #fff;
+.user-av > i {
+  font-size: 18px;
+  color: #fff;
 }
 
-.user-meta {
-  display: flex;
-  flex-direction: column;
-  align-items: flex-start;
-  line-height: 1.25;
-  min-width: 0;
-}
-.user-label {
-  font-size: 13px;
-  font-weight: 700;
-  color: #1e293b;
-  white-space: nowrap;
-  max-width: 150px;
-  overflow: hidden;
-  text-overflow: ellipsis;
-}
-.user-sub {
-  font-size: 11px;
-  font-weight: 500;
-  color: #94a3b8;
-  white-space: nowrap;
-}
-
+/* Chevron — sits next to the icon, both inside the primary button */
 .user-caret {
-  font-size: 10px !important;
-  color: #94a3b8;
+  font-size: 11px !important;
+  color: rgba(255, 255, 255, 0.85);
   transition: transform 0.22s ease, color 0.18s;
 }
+.user-btn:hover .user-caret { color: #fff; }
 .user-btn.open .user-caret {
   transform: rotate(180deg);
-  color: #ea580c;
+  color: #fff;
 }
 
 /* ── Dropdown ── */
@@ -604,15 +568,17 @@ onUnmounted(() => document.removeEventListener('click', handleClickOutside))
   border-bottom: 1px solid #f1f5f9;
 }
 .drop-role {
-  display: inline-flex;
+  display: flex;
   align-items: center;
+  justify-content: center;
   gap: 6px;
+  width: 100%;
   font-size: 11px;
   font-weight: 800;
   color: #ea580c;
   background: rgba(249, 115, 22, 0.1);
-  padding: 5px 11px;
-  border-radius: 999px;
+  padding: 7px 11px;
+  border-radius: 8px;
 }
 .drop-role i { font-size: 11px; }
 

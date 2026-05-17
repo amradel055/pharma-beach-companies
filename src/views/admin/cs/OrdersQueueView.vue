@@ -7,7 +7,7 @@
         <h1 class="page-title">الحجوزات</h1>
         <p class="page-desc">قائمة حجوزات القرية وتصاريحها</p>
       </div>
-      <RouterLink to="/admin/village-bookings/new" class="btn-confirm page-header-action">
+      <RouterLink to="/village-bookings/new" class="btn-confirm page-header-action">
         <i class="pi pi-plus" /> حجز جديد
       </RouterLink>
     </div>
@@ -130,7 +130,7 @@
         <h3>لا توجد نتائج</h3>
         <p v-if="hasActiveFilter || permitFilter !== ''">جرّب تعديل عوامل التصفية</p>
         <p v-else>لا توجد حجوزات حالياً</p>
-        <RouterLink to="/admin/village-bookings/new" class="btn-confirm">
+        <RouterLink to="/village-bookings/new" class="btn-confirm">
           <i class="pi pi-plus" /> إنشاء حجز جديد
         </RouterLink>
       </div>

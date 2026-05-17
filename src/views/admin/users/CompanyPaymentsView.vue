@@ -1,7 +1,7 @@
 <template>
   <div class="company-payments-page">
     <nav class="page-crumbs" aria-label="مسار التنقل">
-      <RouterLink to="/admin/companies" class="crumb">الشركات</RouterLink>
+      <RouterLink to="/companies" class="crumb">الشركات</RouterLink>
       <i class="pi pi-angle-left crumb-sep" />
       <span class="crumb crumb-current" aria-current="page">سندات القبض</span>
     </nav>

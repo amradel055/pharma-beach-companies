@@ -1,7 +1,7 @@
 <template>
   <div class="company-detail-page">
     <nav class="page-crumbs" aria-label="مسار التنقل">
-      <RouterLink to="/admin/companies" class="crumb">الشركات</RouterLink>
+      <RouterLink to="/companies" class="crumb">الشركات</RouterLink>
       <i class="pi pi-angle-left crumb-sep" />
       <span class="crumb crumb-current" aria-current="page">{{ company?.name || 'الشركة' }}</span>
     </nav>
@@ -11,7 +11,7 @@
     <div v-else-if="!company" class="card error-card">
       <i class="pi pi-exclamation-triangle" />
       <p>الشركة غير موجودة</p>
-      <RouterLink to="/admin/companies" class="btn-primary">العودة للقائمة</RouterLink>
+      <RouterLink to="/companies" class="btn-primary">العودة للقائمة</RouterLink>
     </div>
 
     <template v-else>

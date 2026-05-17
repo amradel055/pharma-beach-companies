@@ -1,6 +1,6 @@
 /* ============================================================================
    Shared table + pagination design — canonical source is the
-   /admin/village-bookings (OrdersQueueView) screen. Imported globally in
+   /village-bookings (OrdersQueueView) screen. Imported globally in
    main.js so every list/table page looks and paginates identically.
    Global (un-scoped) on purpose: pages just use these class names and delete
    their local copies.

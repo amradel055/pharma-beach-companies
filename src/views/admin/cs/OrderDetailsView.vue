@@ -1,7 +1,7 @@
 <template>
   <div class="detail-page">
     <nav class="page-crumbs" aria-label="مسار التنقل">
-      <RouterLink to="/admin/village-bookings" class="crumb">الحجوزات</RouterLink>
+      <RouterLink to="/village-bookings" class="crumb">الحجوزات</RouterLink>
       <i class="pi pi-angle-left crumb-sep" />
       <span class="crumb crumb-current" aria-current="page">
         {{ booking?.booking_code || 'تفاصيل الحجز' }}
@@ -15,7 +15,7 @@
     <div v-else-if="!booking" class="card error-card">
       <i class="pi pi-exclamation-triangle" />
       <p>الحجز غير موجود</p>
-      <RouterLink to="/admin/village-bookings" class="btn-primary">العودة للقائمة</RouterLink>
+      <RouterLink to="/village-bookings" class="btn-primary">العودة للقائمة</RouterLink>
     </div>
 
     <template v-else>
@@ -286,7 +286,7 @@
             </button>
             <RouterLink
               v-else-if="canManagePermit && booking.permit_exists"
-              :to="`/admin/village-bookings/${booking.id}/permit`"
+              :to="`/village-bookings/${booking.id}/permit`"
               class="btn-secondary rail-btn"
             >
               <i class="pi pi-print" /> عرض التصريح
