@@ -3,11 +3,10 @@
         <!-- Form card layer (above visual). Brand sits above the card on the backdrop. -->
         <div class="lp-form-side">
             <div class="lp-stack">
-                <div class="lp-brand lp-brand--external">
-                    <img :src="logoUrl" alt="فارما بيتش" class="lp-brand__logo" />
-                    <span class="lp-brand__tag">لوحة تحكم فارما بيتش</span>
-                </div>
                 <div class="lp-form-wrap">
+                    <div class="lp-brand lp-brand--inner">
+                        <img :src="logoUrl" alt="فارما بيتش" class="lp-brand__logo" />
+                    </div>
                     <RouterView v-slot="{ Component }">
                         <Transition name="lp-form-swap" mode="out-in">
                             <component :is="Component" />
