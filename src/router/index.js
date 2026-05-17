@@ -120,6 +120,12 @@ const routes = [
         component: () => import('@/views/admin/users/CompanyDetailView.vue'),
         meta: { title: 'تفاصيل الشركة', roles: [ROLES.SUPER_ADMIN, ROLES.ADMIN_COMPANY, ROLES.FINANCIAL_MEMBER] },
       },
+      {
+        path: 'company-payments',
+        name: 'admin-company-payments',
+        component: () => import('@/views/admin/users/CompanyPaymentsView.vue'),
+        meta: { title: 'سندات القبض', roles: [ROLES.SUPER_ADMIN, ROLES.ADMIN_COMPANY, ROLES.FINANCIAL_MEMBER] },
+      },
 
       // System lookups (shared CRUD: floors / rooms / bathrooms / areas / finishing / view / AC)
       {

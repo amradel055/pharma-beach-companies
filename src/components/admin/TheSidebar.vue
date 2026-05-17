@@ -115,6 +115,13 @@ const allSections = [
       { label: 'إعدادات النظام', to: '/admin/settings/system', icon: 'pi pi-cog' },
     ],
   },
+  {
+    label: 'المالية',
+    permission: 'manage_company_payments',
+    items: [
+      { label: 'سندات القبض', to: '/admin/company-payments', icon: 'pi pi-receipt' },
+    ],
+  },
 ]
 
 const visibleSections = computed(() => {

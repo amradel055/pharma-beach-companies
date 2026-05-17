@@ -136,6 +136,9 @@ export const PERMISSIONS = {
   // Company payments (dotted keys per spec)
   'company_payments.create': [ROLES.SUPER_ADMIN, ROLES.ADMIN_COMPANY, ROLES.FINANCIAL_MEMBER],
   'company_payments.edit': [ROLES.SUPER_ADMIN, ROLES.ADMIN_COMPANY, ROLES.FINANCIAL_MEMBER],
+  // Coarse gate for the standalone سندات القبض page (sidebar section + route).
+  // Matches the company_payments.* holders so the same roles see and reach it.
+  manage_company_payments: [ROLES.SUPER_ADMIN, ROLES.ADMIN_COMPANY, ROLES.FINANCIAL_MEMBER],
 
   // ── CS-Supervisor booking actions (cs-supervisor-endpoints.md) ──
   // Fallback role map; the API also returns these keys in user.permissions.
