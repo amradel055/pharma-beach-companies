@@ -256,10 +256,12 @@ const routes = [
     ],
   },
 
-  // Catch-all — redirect to root (which then routes by auth state)
+  // Catch-all — dedicated 404 page (reachable by anyone, no auth gate)
   {
     path: '/:pathMatch(.*)*',
-    redirect: { name: 'root' },
+    name: 'not-found',
+    component: () => import('@/views/NotFoundView.vue'),
+    meta: { title: 'الصفحة غير موجودة' },
   },
 ]
 
