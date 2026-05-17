@@ -18,6 +18,10 @@
 
         <!-- Full-screen visual backdrop. -->
         <div class="lp-visual">
+            <!-- Cinematic resort photo (slow Ken Burns) + warm color grade -->
+            <div class="lp-photo" aria-hidden="true"></div>
+            <div class="lp-grade" aria-hidden="true"></div>
+
             <div class="lp-mesh">
                 <div class="lp-mesh__blob lp-mesh__blob--a"></div>
                 <div class="lp-mesh__blob lp-mesh__blob--b"></div>
@@ -25,6 +29,9 @@
                 <div class="lp-mesh__blob lp-mesh__blob--d"></div>
                 <div class="lp-mesh__noise"></div>
             </div>
+
+            <!-- Sunset orb -->
+            <div class="lp-sun" aria-hidden="true"></div>
 
             <div class="lp-particles">
                 <span v-for="n in 12" :key="n" class="lp-particle" :style="particleStyle(n)"></span>
