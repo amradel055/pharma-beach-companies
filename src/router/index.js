@@ -93,7 +93,7 @@ const routes = [
         component: () => import('@/views/admin/users/UserListView.vue'),
         meta: {
           title: 'المستخدمين',
-          roles: [ROLES.SUPER_ADMIN, ROLES.ADMIN_COMPANY, ROLES.ADMIN_VILLAGE, ROLES.CUSTOMER_SERVICE_COMPANY, ROLES.HEAD_CUSTOMER_SERVICE_VILLAGE],
+          roles: [ROLES.SUPER_ADMIN, ROLES.ADMIN_COMPANY, ROLES.ADMIN_VILLAGE, ROLES.CUSTOMER_SERVICE_COMPANY],
         },
       },
       {

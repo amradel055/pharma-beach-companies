@@ -78,6 +78,16 @@ function isActive(path) {
 }
 
 const allSections = [
+  // العمليات is intentionally first — always at the start of the sidebar.
+  {
+    label: 'العمليات',
+    permission: 'manage_orders',
+    items: [
+      { label: 'الحجوزات', to: '/admin/village-bookings', icon: 'pi pi-clipboard' },
+      { label: 'الشاليهات', to: '/admin/village-chalets', icon: 'pi pi-home' },
+      { label: 'التصاريح', to: '/admin/permits', icon: 'pi pi-id-card' },
+    ],
+  },
   {
     label: 'إدارة المستخدمين',
     permission: 'manage_users',
@@ -103,15 +113,6 @@ const allSections = [
       { label: 'القيم المرجعية', to: '/admin/settings/lookups', icon: 'pi pi-sliders-h' },
       { label: 'القرى', to: '/admin/villages', icon: 'pi pi-map-marker' },
       { label: 'إعدادات النظام', to: '/admin/settings/system', icon: 'pi pi-cog' },
-    ],
-  },
-  {
-    label: 'العمليات',
-    permission: 'manage_orders',
-    items: [
-      { label: 'الحجوزات', to: '/admin/village-bookings', icon: 'pi pi-clipboard' },
-      { label: 'الشاليهات', to: '/admin/village-chalets', icon: 'pi pi-home' },
-      { label: 'التصاريح', to: '/admin/permits', icon: 'pi pi-id-card' },
     ],
   },
 ]

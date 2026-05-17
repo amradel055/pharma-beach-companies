@@ -74,7 +74,10 @@ const ANY_CS = [
 
 export const PERMISSIONS = {
   // Account management
-  manage_users: [ROLES.SUPER_ADMIN, ROLES.ADMIN_COMPANY, ROLES.ADMIN_VILLAGE, ROLES.CUSTOMER_SERVICE_COMPANY, ROLES.HEAD_CUSTOMER_SERVICE_VILLAGE],
+  // HEAD_CUSTOMER_SERVICE_VILLAGE intentionally excluded — the CS-supervisor
+  // village flow does not manage users (hides the إدارة المستخدمين sidebar
+  // section + blocks the admin-users route for that role).
+  manage_users: [ROLES.SUPER_ADMIN, ROLES.ADMIN_COMPANY, ROLES.ADMIN_VILLAGE, ROLES.CUSTOMER_SERVICE_COMPANY],
 
   // Chalet management
   manage_chalets: [ROLES.SUPER_ADMIN, ROLES.ADMIN_COMPANY, ROLES.CUSTOMER_SERVICE_COMPANY],

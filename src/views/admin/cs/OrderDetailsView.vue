@@ -19,120 +19,65 @@
     </div>
 
     <template v-else>
-      <!-- Sticky hero bar — compact, not a data card -->
-      <section class="sticky-hero">
-        <div class="hero-avatar"><i class="pi pi-home" /></div>
-        <div class="hero-id">
-          <div class="hero-title-row">
-            <h3 class="hero-name">{{ booking.chalet?.name || '—' }}</h3>
-            <span class="hero-created">· أُنشئ {{ toDisplayDateTime(booking.created_at) }}</span>
-          </div>
-          <div class="hero-tags">
-            <span class="booking-code">{{ booking.booking_code }}</span>
-            <span v-if="booking.chalet?.chalet_number" class="chip neutral">
-              <i class="pi pi-hashtag" /> رقم {{ booking.chalet.chalet_number }}
-            </span>
-            <span :class="['chip', 'status', booking.status?.toLowerCase()]">
-              <i class="pi pi-circle-fill tiny" />
-              {{ statusLabel(booking.status) }}
-            </span>
-            <span v-if="booking.payment_type" :class="['chip', 'pay', booking.payment_type?.toLowerCase()]">
-              <i class="pi pi-credit-card" /> {{ paymentLabel(booking.payment_type) }}
-            </span>
-            <span :class="['chip', 'permit', booking.permit_exists ? 'ok' : 'warn']">
-              <i :class="booking.permit_exists ? 'pi pi-shield' : 'pi pi-clock'" />
-              {{ booking.permit_exists ? 'التصريح مؤكد' : 'التصريح قيد الانتظار' }}
-            </span>
-            <span v-if="booking.check_in_confirmed" class="chip ok">
-              <i class="pi pi-sign-in" /> دخول مؤكد
-            </span>
-            <span v-if="booking.check_out_confirmed" class="chip ok">
-              <i class="pi pi-sign-out" /> خروج مؤكد
-            </span>
-          </div>
-        </div>
-        <div class="page-header-actions">
-          <button
-            v-if="canManagePermit && !booking.permit_exists"
-            class="btn-confirm"
-            :disabled="confirmingPermit"
-            @click="handleConfirmPermit"
-          >
-            <i v-if="confirmingPermit" class="pi pi-spin pi-spinner" />
-            <i v-else class="pi pi-check" />
-            تأكيد التصريح
-          </button>
-          <RouterLink
-            v-else-if="canManagePermit && booking.permit_exists"
-            :to="`/admin/village-bookings/${booking.id}/permit`"
-            class="btn-secondary"
-          >
-            <i class="pi pi-print" /> عرض التصريح
-          </RouterLink>
-        </div>
-      </section>
+      <div class="od-grid">
+        <!-- ── Main column ── -->
+        <div class="od-main">
+          <!-- Header card — same width as the main-column cards -->
+          <header class="od-hero">
+            <div class="od-hero-avatar"><i class="pi pi-home" /></div>
+            <div class="od-hero-body">
+              <div class="od-hero-row">
+                <h1 class="od-hero-name">{{ booking.chalet?.name || '—' }}</h1>
+                <span class="booking-code">{{ booking.booking_code }}</span>
+              </div>
+              <div class="od-hero-chips">
+                <span v-if="booking.chalet?.chalet_number" class="chip neutral">
+                  <i class="pi pi-hashtag" /> رقم {{ booking.chalet.chalet_number }}
+                </span>
+                <span :class="['chip', 'status', booking.status?.toLowerCase()]">
+                  <i class="pi pi-circle-fill tiny" /> {{ statusLabel(booking.status) }}
+                </span>
+                <span v-if="booking.payment_type" :class="['chip', 'pay', booking.payment_type?.toLowerCase()]">
+                  <i class="pi pi-credit-card" /> {{ paymentLabel(booking.payment_type) }}
+                </span>
+                <span :class="['chip', 'permit', booking.permit_exists ? 'ok' : 'warn']">
+                  <i :class="booking.permit_exists ? 'pi pi-shield' : 'pi pi-clock'" />
+                  {{ booking.permit_exists ? 'التصريح مؤكد' : 'التصريح قيد الانتظار' }}
+                </span>
+                <span v-if="booking.check_in_confirmed" class="chip ok">
+                  <i class="pi pi-sign-in" /> دخول مؤكد
+                </span>
+                <span v-if="booking.check_out_confirmed" class="chip ok">
+                  <i class="pi pi-sign-out" /> خروج مؤكد
+                </span>
+              </div>
+              <p class="od-hero-meta">
+                <i class="pi pi-clock" /> أُنشئ {{ toDisplayDateTime(booking.created_at) }}
+              </p>
+            </div>
+          </header>
 
-      <!-- Supervisor actions -->
-      <section v-if="hasAnySupervisorAction" class="bf-section">
-        <div class="bf-section-head">
-          <h4 class="bf-section-title"><i class="pi pi-bolt" /> إجراءات المشرف</h4>
-        </div>
-        <div class="sup-actions">
-          <button v-if="canEditGuestsCars" class="sup-btn" @click="openEdit">
-            <i class="pi pi-user-edit" /> تعديل الضيوف والسيارات
-          </button>
-          <button v-if="canExtend" class="sup-btn" @click="openExtend">
-            <i class="pi pi-calendar-plus" /> تمديد الحجز
-          </button>
-          <button v-if="canTransfer" class="sup-btn" @click="openTransfer">
-            <i class="pi pi-arrow-right-arrow-left" /> نقل الحجز
-          </button>
-          <button v-if="canTransferExtend" class="sup-btn" @click="openTransferExt">
-            <i class="pi pi-sync" /> نقل وتمديد
-          </button>
-          <button v-if="canCancel" class="sup-btn danger" @click="cancelOpen = true">
-            <i class="pi pi-times-circle" /> إلغاء الحجز
-          </button>
-        </div>
-      </section>
-
-      <!-- Stay + headline money -->
-      <section class="bf-section stay-card">
-        <div class="bf-section-head">
-          <h4 class="bf-section-title"><i class="pi pi-calendar" /> الإقامة</h4>
-        </div>
-
-        <div class="stay-band">
-          <div class="stay-date">
-            <span class="stay-date-label"><i class="pi pi-sign-in" /> الدخول</span>
-            <strong class="stay-date-value">{{ toDisplayDate(booking.check_in) }}</strong>
-          </div>
-          <div class="stay-mid">
-            <span class="stay-nights">
-              <i class="pi pi-moon" /> {{ booking.nights }} {{ booking.nights === 1 ? 'ليلة' : 'ليالٍ' }}
-            </span>
-          </div>
-          <div class="stay-date">
-            <span class="stay-date-label"><i class="pi pi-sign-out" /> الخروج</span>
-            <strong class="stay-date-value">{{ toDisplayDate(booking.check_out) }}</strong>
-          </div>
-        </div>
-
-        <div class="money-row">
-          <div class="money-card total">
-            <span class="money-label">الإجمالي</span>
-            <span class="money-value">{{ fmt(booking.total) }} <small>ج.م</small></span>
-          </div>
-          <div class="money-card paid">
-            <span class="money-label">المدفوع</span>
-            <span class="money-value">{{ fmt(booking.deposit) }} <small>ج.م</small></span>
-          </div>
-          <div class="money-card" :class="Number(booking.remaining_amount) === 0 ? 'done' : 'remaining'">
-            <span class="money-label">المتبقي</span>
-            <span class="money-value">{{ fmt(booking.remaining_amount) }} <small>ج.م</small></span>
-          </div>
-        </div>
-      </section>
+          <!-- Stay -->
+          <section class="bf-section stay-card">
+            <div class="bf-section-head">
+              <h4 class="bf-section-title"><i class="pi pi-calendar" /> الإقامة</h4>
+            </div>
+            <div class="stay-band">
+              <div class="stay-date">
+                <span class="stay-date-label"><i class="pi pi-sign-in" /> الدخول</span>
+                <strong class="stay-date-value">{{ toDisplayDate(booking.check_in) }}</strong>
+              </div>
+              <div class="stay-mid">
+                <span class="stay-nights">
+                  <i class="pi pi-moon" /> {{ booking.nights }} {{ booking.nights === 1 ? 'ليلة' : 'ليالٍ' }}
+                </span>
+              </div>
+              <div class="stay-date">
+                <span class="stay-date-label"><i class="pi pi-sign-out" /> الخروج</span>
+                <strong class="stay-date-value">{{ toDisplayDate(booking.check_out) }}</strong>
+              </div>
+            </div>
+          </section>
 
       <!-- Cost breakdown -->
       <section class="bf-section">
@@ -273,6 +218,101 @@
           </tbody>
         </table>
       </section>
+
+      <!-- Additional receipts (edit / extend / transfer fees) -->
+      <section v-if="additionalReceipts.length" class="bf-section">
+        <div class="bf-section-head">
+          <h4 class="bf-section-title">
+            <i class="pi pi-receipt" /> السندات الإضافية
+            <span class="bf-counter">{{ additionalReceipts.length }}</span>
+          </h4>
+        </div>
+        <table class="list-table">
+          <thead>
+            <tr>
+              <th>النوع</th>
+              <th>المبلغ</th>
+              <th>طريقة الدفع</th>
+              <th>ملاحظات</th>
+              <th>التاريخ</th>
+            </tr>
+          </thead>
+          <tbody>
+            <tr v-for="(r, i) in additionalReceipts" :key="r.id || i">
+              <td><span class="chip neutral">{{ receiptTypeLabel(r.type) }}</span></td>
+              <td>{{ fmt(r.amount) }} ج.م</td>
+              <td>{{ paymentLabel(r.payment_type || r.method) }}</td>
+              <td>{{ r.notes || '—' }}</td>
+              <td>{{ toDisplayDateTime(r.created_at || r.issued_at) }}</td>
+            </tr>
+          </tbody>
+        </table>
+          </section>
+        </div><!-- /.od-main -->
+
+        <!-- ── Sticky action rail ── -->
+        <aside class="od-aside">
+          <div class="od-rail">
+            <div v-if="isCancelled" class="cancel-banner">
+              <i class="pi pi-times-circle" />
+              <span>
+                هذا الحجز ملغى
+                <template v-if="booking.cancelled_at"> · تم الإلغاء في {{ toDisplayDateTime(booking.cancelled_at) }}</template>
+              </span>
+            </div>
+
+            <div class="rail-card rail-money">
+              <span class="rail-money-label">الإجمالي</span>
+              <span class="rail-money-total">{{ fmt(booking.total) }} <small>ج.م</small></span>
+              <div class="rail-money-split">
+                <div class="rms paid">
+                  <span>المدفوع</span><strong>{{ fmt(booking.deposit) }} ج.م</strong>
+                </div>
+                <div class="rms" :class="Number(booking.remaining_amount) === 0 ? 'done' : 'rem'">
+                  <span>المتبقي</span><strong>{{ fmt(booking.remaining_amount) }} ج.م</strong>
+                </div>
+              </div>
+            </div>
+
+            <button
+              v-if="canManagePermit && !booking.permit_exists"
+              class="btn-confirm rail-btn"
+              :disabled="confirmingPermit"
+              @click="handleConfirmPermit"
+            >
+              <i v-if="confirmingPermit" class="pi pi-spin pi-spinner" />
+              <i v-else class="pi pi-check" />
+              تأكيد التصريح
+            </button>
+            <RouterLink
+              v-else-if="canManagePermit && booking.permit_exists"
+              :to="`/admin/village-bookings/${booking.id}/permit`"
+              class="btn-secondary rail-btn"
+            >
+              <i class="pi pi-print" /> عرض التصريح
+            </RouterLink>
+
+            <div v-if="hasAnySupervisorAction" class="rail-card rail-actions">
+              <span class="rail-label"><i class="pi pi-bolt" /> إجراءات المشرف</span>
+              <button v-if="canEditGuestsCars" class="sup-btn" @click="openEdit">
+                <i class="pi pi-user-edit" /> تعديل الضيوف والسيارات
+              </button>
+              <button v-if="canExtend" class="sup-btn" @click="openExtend">
+                <i class="pi pi-calendar-plus" /> تمديد الحجز
+              </button>
+              <button v-if="canTransfer" class="sup-btn" @click="openTransfer">
+                <i class="pi pi-arrow-right-arrow-left" /> نقل الحجز
+              </button>
+              <button v-if="canTransferExtend" class="sup-btn" @click="openTransferExt">
+                <i class="pi pi-sync" /> نقل وتمديد
+              </button>
+              <button v-if="canCancel" class="sup-btn danger" @click="cancelOpen = true">
+                <i class="pi pi-times-circle" /> إلغاء الحجز
+              </button>
+            </div>
+          </div>
+        </aside>
+      </div><!-- /.od-grid -->
     </template>
 
     <!-- ── Supervisor action modals ── -->
@@ -331,6 +371,14 @@
           <span class="sup-label">طريقة الدفع</span>
           <AppDropdown v-model="extendForm.payment_type" :options="PAYMENT_OPTIONS" />
         </label>
+        <p class="sup-hint"><i class="pi pi-info-circle" /> تُحتسب رسوم القرية على الأيام الإضافية فقط.</p>
+        <div v-if="balanceChoice.open && balanceChoice.action === 'extend'" class="sup-balance">
+          <p>الرصيد غير كافٍ، اختر طريقة الدفع:</p>
+          <div class="sup-balance-btns">
+            <button type="button" class="sup-balance-btn" :disabled="acting" @click="pickBalance('CASH')">نقدي</button>
+            <button type="button" class="sup-balance-btn" :disabled="acting" @click="pickBalance('BANK')">تحويل بنكي</button>
+          </div>
+        </div>
         <div class="sup-modal-actions">
           <button class="sup-cancel" @click="extendOpen = false">إلغاء</button>
           <button class="sup-submit" :disabled="acting" @click="submitExtend">
@@ -350,6 +398,14 @@
           <span class="sup-label">طريقة الدفع</span>
           <AppDropdown v-model="transferForm.payment_type" :options="PAYMENT_OPTIONS" />
         </label>
+        <p class="sup-hint"><i class="pi pi-info-circle" /> النقل إلى شاليه أكبر يضيف فرق رسوم القرية على الأيام المتبقية.</p>
+        <div v-if="balanceChoice.open && balanceChoice.action === 'transfer'" class="sup-balance">
+          <p>الرصيد غير كافٍ، اختر طريقة الدفع:</p>
+          <div class="sup-balance-btns">
+            <button type="button" class="sup-balance-btn" :disabled="acting" @click="pickBalance('CASH')">نقدي</button>
+            <button type="button" class="sup-balance-btn" :disabled="acting" @click="pickBalance('BANK')">تحويل بنكي</button>
+          </div>
+        </div>
         <div class="sup-modal-actions">
           <button class="sup-cancel" @click="transferOpen = false">إلغاء</button>
           <button class="sup-submit" :disabled="acting" @click="submitTransfer">
@@ -373,6 +429,17 @@
           <span class="sup-label">طريقة الدفع</span>
           <AppDropdown v-model="transferExtForm.payment_type" :options="PAYMENT_OPTIONS" />
         </label>
+        <p class="sup-hint">
+          <i class="pi pi-info-circle" />
+          تُحتسب رسوم القرية على الأيام الإضافية، ويُضاف فرق رسوم القرية عند النقل إلى شاليه أكبر.
+        </p>
+        <div v-if="balanceChoice.open && balanceChoice.action === 'transferExt'" class="sup-balance">
+          <p>الرصيد غير كافٍ، اختر طريقة الدفع:</p>
+          <div class="sup-balance-btns">
+            <button type="button" class="sup-balance-btn" :disabled="acting" @click="pickBalance('CASH')">نقدي</button>
+            <button type="button" class="sup-balance-btn" :disabled="acting" @click="pickBalance('BANK')">تحويل بنكي</button>
+          </div>
+        </div>
         <div class="sup-modal-actions">
           <button class="sup-cancel" @click="transferExtOpen = false">إلغاء</button>
           <button class="sup-submit" :disabled="acting" @click="submitTransferExt">
@@ -399,7 +466,7 @@
 <script setup>
 import { ref, reactive, computed, onMounted } from 'vue'
 import { useRoute } from 'vue-router'
-import { useCsBookingsStore } from '@/stores/csBookings'
+import { useCsBookingsStore, REASON_CODES } from '@/stores/csBookings'
 import { useToastStore } from '@/stores/toast'
 import { usePermissions } from '@/composables/usePermissions'
 import { ROLES } from '@/constants/roles'
@@ -430,6 +497,19 @@ const PAYMENT_OPTIONS = [
 ]
 const notCancelled = computed(() => booking.value && booking.value.status !== 'CANCELLED')
 const notCheckedIn = computed(() => booking.value && !booking.value.check_in_confirmed)
+const isCancelled = computed(() =>
+  booking.value && (booking.value.status === 'CANCELLED' || !!booking.value.cancelled_at))
+
+// Financial side-records produced by edit-increase / extend / transfer.
+const additionalReceipts = computed(() => booking.value?.additional_receipts || [])
+function receiptTypeLabel(t) {
+  return {
+    EDIT_DATA: 'تعديل بيانات',
+    EXTENSION: 'تمديد',
+    TRANSFER: 'نقل',
+    TRANSFER_AND_EXTENSION: 'نقل وتمديد',
+  }[t] || t || '—'
+}
 
 const canEditGuestsCars = computed(() =>
   hasPermission('bookings.edit-guests-cars') && notCancelled.value && notCheckedIn.value)
@@ -494,9 +574,11 @@ function removeGuest(i) { editForm.guests.splice(i, 1) }
 function addCar() { editForm.cars.push({ plate_number: '' }) }
 function removeCar(i) { editForm.cars.splice(i, 1) }
 
-function openExtend() { extendForm.additional_days = 1; extendForm.payment_type = 'CASH'; extendOpen.value = true }
-function openTransfer() { transferForm.new_chalet_id = ''; transferForm.payment_type = 'CASH'; transferOpen.value = true }
+function _resetBalance() { balanceChoice.open = false; balanceChoice.action = null }
+function openExtend() { _resetBalance(); extendForm.additional_days = 1; extendForm.payment_type = 'CASH'; extendOpen.value = true }
+function openTransfer() { _resetBalance(); transferForm.new_chalet_id = ''; transferForm.payment_type = 'CASH'; transferOpen.value = true }
 function openTransferExt() {
+  _resetBalance()
   transferExtForm.new_chalet_id = ''
   transferExtForm.additional_days = 1
   transferExtForm.payment_type = 'CASH'
@@ -514,6 +596,44 @@ async function _runAction(promise, successMsg) {
   }
   toast.error(r.error)
   return false
+}
+
+// Inline cash/bank fallback for company bookings without enough balance.
+const balanceChoice = reactive({ open: false, action: null })
+
+function _receiptAmount(data) {
+  return data?.receipt?.amount ?? data?.additional_receipt?.amount ?? null
+}
+
+// Like _runAction, but on a 422 INSUFFICIENT_BALANCE it opens the inline
+// cash/bank chooser for `action` instead of toasting, and on success appends
+// the charged amount when the response carries it.
+async function _runSup(promise, successMsg, action, close) {
+  acting.value = true
+  const r = await promise
+  acting.value = false
+  if (r.ok) {
+    balanceChoice.open = false
+    balanceChoice.action = null
+    const amt = _receiptAmount(r.data)
+    toast.success(amt != null ? `${successMsg} — تم تحصيل ${fmt(amt)} ج.م` : successMsg)
+    await load()
+    close()
+    return
+  }
+  if (r.reason === REASON_CODES.INSUFFICIENT_BALANCE) {
+    balanceChoice.open = true
+    balanceChoice.action = action
+    return
+  }
+  toast.error(r.error)
+}
+
+function pickBalance(method) {
+  const a = balanceChoice.action
+  if (a === 'extend') { extendForm.payment_type = method; submitExtend() }
+  else if (a === 'transfer') { transferForm.payment_type = method; submitTransfer() }
+  else if (a === 'transferExt') { transferExtForm.payment_type = method; submitTransferExt() }
 }
 
 async function submitEdit() {
@@ -541,16 +661,18 @@ async function submitEdit() {
 async function submitExtend() {
   if (Number(extendForm.additional_days) < 1) { toast.error('أدخل عدد أيام صحيح'); return }
   const payload = { additional_days: Number(extendForm.additional_days), payment_type: extendForm.payment_type }
-  if (await _runAction(csBookings.extendBooking(booking.value.id, payload), 'تم تمديد الحجز بنجاح')) {
-    extendOpen.value = false
-  }
+  await _runSup(
+    csBookings.extendBooking(booking.value.id, payload),
+    'تم تمديد الحجز بنجاح', 'extend', () => { extendOpen.value = false },
+  )
 }
 async function submitTransfer() {
   if (!transferForm.new_chalet_id) { toast.error('اختر الشاليه الجديد'); return }
   const payload = { new_chalet_id: transferForm.new_chalet_id, payment_type: transferForm.payment_type }
-  if (await _runAction(csBookings.transferBooking(booking.value.id, payload), 'تم نقل الحجز بنجاح')) {
-    transferOpen.value = false
-  }
+  await _runSup(
+    csBookings.transferBooking(booking.value.id, payload),
+    'تم نقل الحجز بنجاح', 'transfer', () => { transferOpen.value = false },
+  )
 }
 async function submitTransferExt() {
   if (!transferExtForm.new_chalet_id) { toast.error('اختر الشاليه الجديد'); return }
@@ -560,9 +682,10 @@ async function submitTransferExt() {
     additional_days: Number(transferExtForm.additional_days),
     payment_type: transferExtForm.payment_type,
   }
-  if (await _runAction(csBookings.transferAndExtend(booking.value.id, payload), 'تم نقل وتمديد الحجز بنجاح')) {
-    transferExtOpen.value = false
-  }
+  await _runSup(
+    csBookings.transferAndExtend(booking.value.id, payload),
+    'تم نقل وتمديد الحجز بنجاح', 'transferExt', () => { transferExtOpen.value = false },
+  )
 }
 async function submitCancel() {
   if (await _runAction(csBookings.cancelBooking(booking.value.id), 'تم إلغاء الحجز بنجاح')) {
@@ -1039,6 +1162,179 @@ onMounted(async () => {
 .sup-submit.danger { background: linear-gradient(135deg, #ef4444, #dc2626); border-color: #dc2626; box-shadow: 0 2px 8px rgba(239, 68, 68, 0.30); }
 .sup-confirm { font-size: 14px; color: #475569; margin: 0 0 16px; line-height: 1.7; }
 .sup-confirm strong { color: #0f172a; direction: ltr; }
+
+/* Cancelled-booking notice (matches the cancelled status palette) */
+.cancel-banner {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  padding: 12px 16px;
+  border-radius: 12px;
+  background: rgba(239, 68, 68, 0.10);
+  border: 1px solid rgba(239, 68, 68, 0.22);
+  color: #b91c1c;
+  font-size: 13.5px;
+  font-weight: 700;
+}
+.cancel-banner i { font-size: 16px; }
+
+/* Modal financial-rule hint */
+.sup-hint {
+  display: flex;
+  align-items: flex-start;
+  gap: 6px;
+  margin: 0;
+  font-size: 12px;
+  color: #94a3b8;
+  font-weight: 600;
+  line-height: 1.6;
+}
+.sup-hint i { font-size: 12px; color: #cbd5e1; margin-top: 2px; flex-shrink: 0; }
+
+/* Inline insufficient-balance cash/bank chooser */
+.sup-balance {
+  padding: 12px 14px;
+  border-radius: 10px;
+  background: rgba(234, 179, 8, 0.10);
+  border: 1px solid rgba(234, 179, 8, 0.28);
+}
+.sup-balance p { margin: 0 0 10px; font-size: 13px; font-weight: 700; color: #b45309; }
+.sup-balance-btns { display: flex; gap: 8px; }
+.sup-balance-btn {
+  flex: 1;
+  padding: 9px 12px;
+  border-radius: 9px;
+  border: 1px solid #e2e8f0;
+  background: #fff;
+  color: #475569;
+  font-family: inherit;
+  font-size: 13px;
+  font-weight: 800;
+  cursor: pointer;
+  transition: all 0.15s;
+}
+.sup-balance-btn:hover:not(:disabled) { border-color: #f59e0b; color: #b45309; background: #fffbeb; }
+.sup-balance-btn:disabled { opacity: 0.6; cursor: not-allowed; }
+
+/* ════════════════════════════════════════════════
+   Modern redesign — gradient hero + 2-col + sticky rail
+   ════════════════════════════════════════════════ */
+/* Calm light card — same family as the page's other cards (white, hairline
+   border, soft shadow). Orange survives only as the avatar accent + a thin
+   start edge. No saturated fill → not glaring. */
+.od-hero {
+  position: relative;
+  display: flex;
+  align-items: center;
+  gap: 16px;
+  padding: 18px 20px;
+  border-radius: 16px;
+  background: #fff;
+  box-shadow: 0 2px 8px rgba(15, 23, 42, 0.04);
+}
+.od-hero-glow { display: none; }
+.od-hero-avatar {
+  width: 54px; height: 54px;
+  border-radius: 14px;
+  background: linear-gradient(135deg, rgba(249, 115, 22, 0.12), rgba(251, 191, 36, 0.12));
+  color: #ea580c;
+  display: inline-flex; align-items: center; justify-content: center;
+  flex-shrink: 0;
+}
+.od-hero-avatar i { font-size: 22px; color: #ea580c; }
+.od-hero-body { display: flex; flex-direction: column; gap: 9px; min-width: 0; flex: 1; }
+.od-hero-row { display: flex; align-items: center; flex-wrap: wrap; gap: 10px; }
+.od-hero-name { font-size: 20px; font-weight: 800; margin: 0; line-height: 1.2; color: #0f172a; }
+.od-hero-chips { display: flex; flex-wrap: wrap; gap: 6px; }
+.od-hero-meta {
+  display: inline-flex; align-items: center; gap: 6px;
+  margin: 0; font-size: 12px; font-weight: 600;
+  color: #94a3b8;
+}
+.od-hero-meta i { font-size: 11px; }
+
+/* Two-column grid: scrolling main + sticky action rail */
+.od-grid {
+  display: grid;
+  grid-template-columns: minmax(0, 1fr) 340px;
+  gap: 16px;
+  /* No `align-items: start` on purpose: the rail column must stretch to the
+     full row height so the sticky rail has room to stay pinned while the
+     main column scrolls (otherwise its short cell scrolls away with it). */
+}
+.od-main { display: flex; flex-direction: column; gap: 16px; min-width: 0; }
+
+/* The sticky bit — pins under the topbar while the main column scrolls */
+.od-rail {
+  position: sticky;
+  top: 80px;
+  display: flex;
+  flex-direction: column;
+  gap: 12px;
+}
+.rail-card {
+  background: #fff;
+  border: 1px solid #f1f5f9;
+  border-radius: 14px;
+  padding: 16px;
+  box-shadow: 0 2px 8px rgba(15, 23, 42, 0.04);
+}
+
+/* Money summary */
+.rail-money {
+  display: flex;
+  flex-direction: column;
+  gap: 4px;
+  background: linear-gradient(135deg, rgba(249, 115, 22, 0.10), rgba(251, 191, 36, 0.10));
+  border-color: rgba(249, 115, 22, 0.22);
+}
+.rail-money-label {
+  font-size: 11px; font-weight: 800; color: #c2410c;
+  text-transform: uppercase; letter-spacing: 0.6px;
+}
+.rail-money-total {
+  font-size: 28px; font-weight: 900; color: #ea580c; line-height: 1.1;
+}
+.rail-money-total small { font-size: 12px; font-weight: 800; color: #c2410c; }
+.rail-money-split { display: flex; gap: 8px; margin-top: 10px; }
+.rms {
+  flex: 1;
+  display: flex; flex-direction: column; gap: 3px;
+  padding: 9px 11px;
+  border-radius: 10px;
+  background: rgba(255, 255, 255, 0.65);
+  border: 1px solid #f1f5f9;
+}
+.rms span { font-size: 10.5px; font-weight: 800; color: #94a3b8; text-transform: uppercase; letter-spacing: 0.4px; }
+.rms strong { font-size: 14px; font-weight: 900; color: #0f172a; }
+.rms.paid strong { color: #0284c7; }
+.rms.rem strong { color: #b91c1c; }
+.rms.done strong { color: #059669; }
+
+/* Full-width rail buttons */
+.rail-btn { width: 100%; justify-content: center; }
+
+/* Supervisor actions as a vertical stack inside the rail */
+.rail-actions { display: flex; flex-direction: column; gap: 8px; }
+.rail-label {
+  display: inline-flex; align-items: center; gap: 7px;
+  font-size: 12.5px; font-weight: 800; color: #0f172a;
+  margin-bottom: 2px;
+}
+.rail-label i { color: #f97316; font-size: 12px; }
+.rail-actions .sup-btn { width: 100%; justify-content: flex-start; }
+
+/* Stack on narrower screens; rail floats to the top, not sticky */
+@media (max-width: 980px) {
+  .od-grid { grid-template-columns: 1fr; }
+  .od-aside { order: -1; }
+  .od-rail { position: static; }
+  .rail-money-total { font-size: 24px; }
+}
+@media (max-width: 560px) {
+  .od-hero { flex-direction: column; align-items: flex-start; text-align: start; }
+  .od-hero-name { font-size: 18px; }
+}
 
 @media (max-width: 640px) {
   .sup-row { grid-template-columns: 1fr 1fr; }

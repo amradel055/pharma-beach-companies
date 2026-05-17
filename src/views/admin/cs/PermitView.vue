@@ -44,9 +44,17 @@
             <p class="doc-sub">Security Permit · القرية</p>
           </div>
         </div>
-        <div class="doc-stamp">
-          <span class="stamp-label">رقم التصريح</span>
-          <span class="stamp-num ltr">#{{ permit.permit_number }}</span>
+        <div class="doc-head-end">
+          <span
+            v-if="permit.status"
+            :class="['chip', 'st-' + String(permit.status).toLowerCase()]"
+          >
+            <i class="pi pi-circle-fill" /> {{ permitStatusLabel(permit.status) }}
+          </span>
+          <div class="doc-stamp">
+            <span class="stamp-label">رقم التصريح</span>
+            <span class="stamp-num ltr">#{{ permit.permit_number }}</span>
+          </div>
         </div>
       </header>
 
@@ -67,6 +75,12 @@
         <div class="meta-cell">
           <span class="meta-label"><i class="pi pi-user" /> المُؤكِّد</span>
           <span class="meta-value ltr">{{ permit.confirmed_by || '—' }}</span>
+        </div>
+        <div v-if="permit.original_permit_number || permit.original_permit_id" class="meta-cell">
+          <span class="meta-label"><i class="pi pi-link" /> تصريح مرتبط</span>
+          <span class="meta-value ltr">
+            {{ permit.original_permit_number ? '#' + permit.original_permit_number : '#' + permit.original_permit_id }}
+          </span>
         </div>
       </div>
 
@@ -189,6 +203,28 @@
               <span class="cost-value">− {{ fmt(permit.financial.discount_amount) }} ج.م</span>
             </div>
           </div>
+
+          <div v-if="additionalReceipts.length" class="receipts-block">
+            <h3 class="receipts-title"><i class="pi pi-receipt" /> السندات الإضافية</h3>
+            <table class="p-table">
+              <thead>
+                <tr>
+                  <th>النوع</th>
+                  <th>المبلغ</th>
+                  <th>طريقة الدفع</th>
+                  <th>التاريخ</th>
+                </tr>
+              </thead>
+              <tbody>
+                <tr v-for="(r, i) in additionalReceipts" :key="r.id || i" class="p-row">
+                  <td><span class="t-strong">{{ receiptTypeLabel(r.type) }}</span></td>
+                  <td>{{ fmt(r.amount) }} ج.م</td>
+                  <td>{{ paymentLabel(r.payment_type || r.method) }}</td>
+                  <td class="ltr">{{ toDisplayDateTime(r.created_at || r.issued_at) }}</td>
+                </tr>
+              </tbody>
+            </table>
+          </div>
         </section>
       </div>
 
@@ -250,7 +286,7 @@
 </template>
 
 <script setup>
-import { ref, onMounted } from 'vue'
+import { ref, computed, onMounted } from 'vue'
 import { useRoute } from 'vue-router'
 import { useCsBookingsStore } from '@/stores/csBookings'
 import { useToastStore } from '@/stores/toast'
@@ -280,6 +316,23 @@ function paymentLabel(p) {
 }
 
 function fmt(n) { return Number(n || 0).toLocaleString('ar-EG') }
+
+function permitStatusLabel(s) {
+  return { ACTIVE: 'ساري', EXPIRED: 'منتهي', CANCELLED: 'ملغى' }[s] || s
+}
+function receiptTypeLabel(t) {
+  return {
+    EDIT_DATA: 'تعديل بيانات',
+    EXTENSION: 'تمديد',
+    TRANSFER: 'نقل',
+    TRANSFER_AND_EXTENSION: 'نقل وتمديد',
+  }[t] || t || '—'
+}
+
+// Tolerant: receipts may sit on the permit or under its financial block.
+const additionalReceipts = computed(() =>
+  permit.value?.additional_receipts || permit.value?.financial?.additional_receipts || [],
+)
 
 function handlePrint() { window.print() }
 
@@ -597,6 +650,20 @@ onMounted(load)
 .chip.pay.cash { background: rgba(16, 185, 129, 0.12); color: #047857; border-color: rgba(16, 185, 129, 0.25); }
 .chip.pay.bank { background: rgba(14, 165, 233, 0.12); color: #0369a1; border-color: rgba(14, 165, 233, 0.25); }
 .chip.pay.withdraw_balance { background: rgba(139, 92, 246, 0.12); color: #6d28d9; border-color: rgba(139, 92, 246, 0.25); }
+.chip.st-active { background: rgba(16, 185, 129, 0.12); color: #047857; border-color: rgba(16, 185, 129, 0.25); }
+.chip.st-expired { background: rgba(100, 116, 139, 0.12); color: #475569; border-color: rgba(100, 116, 139, 0.25); }
+.chip.st-cancelled { background: rgba(239, 68, 68, 0.12); color: #b91c1c; border-color: rgba(239, 68, 68, 0.25); }
+
+/* Header right cluster: status chip + permit-number stamp */
+.doc-head-end { display: flex; align-items: center; gap: 14px; flex-wrap: wrap; }
+
+/* Additional receipts block under the financial summary */
+.receipts-block { margin-top: 16px; }
+.receipts-title {
+  display: inline-flex; align-items: center; gap: 8px;
+  font-size: 13px; font-weight: 800; color: #0f172a; margin: 0 0 8px;
+}
+.receipts-title i { color: #f97316; font-size: 12px; }
 
 .cost-lines { display: flex; flex-direction: column; }
 .cost-line {

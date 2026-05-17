@@ -6,26 +6,6 @@
       <span class="crumb crumb-current" aria-current="page">إتمام الحجز</span>
     </nav>
 
-    <div class="sticky-hero">
-      <div class="hero-avatar"><i class="pi pi-calendar-plus" /></div>
-      <div class="hero-id">
-        <h1 class="hero-name">إتمام الحجز</h1>
-        <p class="hero-created">راجع البيانات وأكد عملية الحجز</p>
-      </div>
-      <div class="page-header-actions">
-        <button
-          v-if="bookingInfo"
-          class="btn-confirm"
-          :disabled="!canSubmit || submitting"
-          @click="submitBooking()"
-        >
-          <i v-if="submitting" class="pi pi-spin pi-spinner" />
-          <i v-else class="pi pi-check" />
-          تأكيد الحجز
-        </button>
-      </div>
-    </div>
-
     <div v-if="missingParams" class="card error-card">
       <i class="pi pi-exclamation-triangle" />
       <p>بيانات الحجز غير مكتملة. عد للتقويم واختر شاليه ونطاق التاريخ.</p>
@@ -43,74 +23,70 @@
         <RouterLink to="/admin/village-bookings/new" class="btn-primary">العودة للتقويم</RouterLink>
       </div>
 
-      <div v-else class="bf-form">
-        <div v-if="submitError" class="bf-submit-error">
-          <i class="pi pi-exclamation-triangle" /> {{ submitError }}
-        </div>
-
-        <!-- Trip summary hero -->
-        <section class="trip-hero">
-          <div class="bf-section-head">
-            <h4 class="bf-section-title"><i class="pi pi-home" /> الإقامة والشاليه</h4>
+      <div v-else class="od-grid">
+        <div class="od-main">
+          <div v-if="submitError" class="bf-submit-error">
+            <i class="pi pi-exclamation-triangle" /> {{ submitError }}
           </div>
-          <div class="trip-hero-body">
-            <div class="trip-hero-main">
-              <div class="trip-hero-id">
-                <h3 class="trip-hero-name">{{ bookingInfo.name || '—' }}</h3>
-                <div class="trip-tags">
-                  <span class="trip-tag trip-tag-new">
-                    <i class="pi pi-sparkles" /> كود الحجز: جديد
-                  </span>
-                  <span class="trip-nights">
-                    <i class="pi pi-moon" /> {{ bookingInfo.nights }} {{ bookingInfo.nights === 1 ? 'ليلة' : 'ليالٍ' }}
-                  </span>
-                  <span v-if="auth.user?.name" class="trip-tag">
-                    <i class="pi pi-user-plus" /> بواسطة {{ auth.user.name }}
-                  </span>
-                  <span v-if="bookingInfo.village" class="trip-tag">
-                    <i class="pi pi-map-marker" /> {{ bookingInfo.village }}
-                  </span>
-                  <span v-if="bookingInfo.chalet_number" class="trip-tag">
-                    <i class="pi pi-hashtag" /> {{ bookingInfo.chalet_number }}
-                  </span>
-                  <span v-if="bookingInfo.floor" class="trip-tag">
-                    <i class="pi pi-building" /> {{ bookingInfo.floor }}
-                  </span>
-                  <span v-if="bookingInfo.area" class="trip-tag">
-                    <i class="pi pi-arrows-alt" /> {{ bookingInfo.area }}
-                  </span>
-                  <span v-if="bookingInfo.owner" class="trip-tag">
-                    <i class="pi pi-user" /> {{ bookingInfo.owner }}
-                  </span>
-                  <span class="trip-tag">
-                    <i class="pi pi-users" /> أقصى {{ maxGuestsTotal }} ضيف
-                  </span>
-                </div>
-              </div>
 
-              <div class="trip-dates">
-                <div class="trip-date">
-                  <span class="trip-date-label"><i class="pi pi-sign-in" /> الدخول</span>
-                  <strong class="trip-date-value">{{ toDisplayDate(checkIn) }}</strong>
-                </div>
-                <div class="trip-date-mid">
-                  <i class="pi pi-arrow-left trip-date-arrow" aria-hidden="true" />
-                </div>
-                <div class="trip-date">
-                  <span class="trip-date-label"><i class="pi pi-sign-out" /> الخروج</span>
-                  <strong class="trip-date-value">{{ toDisplayDate(checkOut) }}</strong>
-                </div>
+          <!-- Header card (same pattern as the booking-details page) -->
+          <header class="od-hero">
+            <div class="od-hero-avatar"><i class="pi pi-home" /></div>
+            <div class="od-hero-body">
+              <div class="od-hero-row">
+                <h1 class="od-hero-name">{{ bookingInfo.name || '—' }}</h1>
+                <span class="booking-code">حجز جديد</span>
+              </div>
+              <div class="od-hero-chips">
+                <span class="trip-nights">
+                  <i class="pi pi-moon" /> {{ bookingInfo.nights }} {{ bookingInfo.nights === 1 ? 'ليلة' : 'ليالٍ' }}
+                </span>
+                <span v-if="bookingInfo.village" class="trip-tag">
+                  <i class="pi pi-map-marker" /> {{ bookingInfo.village }}
+                </span>
+                <span v-if="bookingInfo.chalet_number" class="trip-tag">
+                  <i class="pi pi-hashtag" /> {{ bookingInfo.chalet_number }}
+                </span>
+                <span v-if="bookingInfo.floor" class="trip-tag">
+                  <i class="pi pi-building" /> {{ bookingInfo.floor }}
+                </span>
+                <span v-if="bookingInfo.area" class="trip-tag">
+                  <i class="pi pi-arrows-alt" /> {{ bookingInfo.area }}
+                </span>
+                <span v-if="bookingInfo.owner" class="trip-tag">
+                  <i class="pi pi-user" /> {{ bookingInfo.owner }}
+                </span>
+                <span class="trip-tag">
+                  <i class="pi pi-users" /> أقصى {{ maxGuestsTotal }} ضيف
+                </span>
+              </div>
+              <p class="od-hero-meta">
+                <i class="pi pi-clock" />
+                <span v-if="auth.user?.name">بواسطة {{ auth.user.name }} · </span>
+                {{ toDisplayDate(checkIn) }} → {{ toDisplayDate(checkOut) }}
+              </p>
+            </div>
+          </header>
+
+          <!-- Stay -->
+          <section class="bf-section">
+            <div class="bf-section-head">
+              <h4 class="bf-section-title"><i class="pi pi-calendar" /> الإقامة</h4>
+            </div>
+            <div class="trip-dates">
+              <div class="trip-date">
+                <span class="trip-date-label"><i class="pi pi-sign-in" /> الدخول</span>
+                <strong class="trip-date-value">{{ toDisplayDate(checkIn) }}</strong>
+              </div>
+              <div class="trip-date-mid">
+                <i class="pi pi-arrow-left trip-date-arrow" aria-hidden="true" />
+              </div>
+              <div class="trip-date">
+                <span class="trip-date-label"><i class="pi pi-sign-out" /> الخروج</span>
+                <strong class="trip-date-value">{{ toDisplayDate(checkOut) }}</strong>
               </div>
             </div>
-
-            <div class="trip-hero-total">
-              <span class="trip-hero-total-label">الإجمالي</span>
-              <span class="trip-hero-total-value">
-                {{ fmtNum(financial.total) }}<small>ج.م</small>
-              </span>
-            </div>
-          </div>
-        </section>
+          </section>
 
         <!-- Guests card — always visible, add/delete from card header & rows -->
         <section class="bf-section">
@@ -175,10 +151,8 @@
           </div>
         </section>
 
-        <!-- Summary row — cost breakdown + payment type side by side -->
-        <div class="bf-summary-row">
           <!-- Cost breakdown -->
-          <section class="cost-card">
+          <section class="bf-section">
             <div class="bf-section-head">
               <h4 class="bf-section-title"><i class="pi pi-calculator" /> تفاصيل التكلفة</h4>
             </div>
@@ -222,56 +196,72 @@
               </div>
             </div>
           </section>
+        </div><!-- /.od-main -->
 
-          <!-- Payment type — optional; omit to let backend auto-pick (WITHDRAW_BALANCE
-               if the company balance covers the total, otherwise 422 →
-               INSUFFICIENT_BALANCE_SELECT_CASH_OR_BANK → modal). -->
-          <section class="bf-section">
-            <div class="bf-section-head">
-              <h4 class="bf-section-title"><i class="pi pi-credit-card" /> طريقة الدفع</h4>
-              <button
-                v-if="selectedPaymentType"
-                type="button"
-                class="bf-add-btn"
-                @click="selectedPaymentType = ''"
-              >
-                <i class="pi pi-refresh" /> تلقائي
-              </button>
+        <!-- ── Sticky action rail ── -->
+        <aside class="od-aside">
+          <div class="od-rail">
+            <div class="rail-card rail-money">
+              <span class="rail-money-label">الإجمالي</span>
+              <span class="rail-money-total">{{ fmtNum(financial.total) }} <small>ج.م</small></span>
             </div>
-            <p class="bf-payment-hint">
-              <i class="pi pi-info-circle" />
-              اتركها بدون اختيار للاختيار التلقائي حسب رصيد الشركة.
-            </p>
-            <div class="bf-pay-options">
-              <button
-                type="button"
-                :class="['bf-pay-option', { active: selectedPaymentType === 'WITHDRAW_BALANCE' }]"
-                @click="selectedPaymentType = 'WITHDRAW_BALANCE'"
-              >
-                <i class="pi pi-wallet" />
-                <span class="bf-pay-label">خصم من الرصيد</span>
-              </button>
-              <button
-                type="button"
-                :class="['bf-pay-option', { active: selectedPaymentType === 'CASH' }]"
-                @click="selectedPaymentType = 'CASH'"
-              >
-                <i class="pi pi-money-bill" />
-                <span class="bf-pay-label">نقدي</span>
-              </button>
-              <button
-                type="button"
-                :class="['bf-pay-option', { active: selectedPaymentType === 'BANK' }]"
-                @click="selectedPaymentType = 'BANK'"
-              >
-                <i class="pi pi-building" />
-                <span class="bf-pay-label">تحويل بنكي</span>
-              </button>
-            </div>
-          </section>
-        </div>
 
-      </div>
+            <button
+              class="btn-confirm rail-btn"
+              :disabled="!canSubmit || submitting"
+              @click="submitBooking()"
+            >
+              <i v-if="submitting" class="pi pi-spin pi-spinner" />
+              <i v-else class="pi pi-check" />
+              تأكيد الحجز
+            </button>
+
+            <div class="rail-card rail-pay">
+              <div class="rail-pay-head">
+                <span class="rail-label"><i class="pi pi-credit-card" /> طريقة الدفع</span>
+                <button
+                  v-if="selectedPaymentType"
+                  type="button"
+                  class="bf-add-btn"
+                  @click="selectedPaymentType = ''"
+                >
+                  <i class="pi pi-refresh" /> تلقائي
+                </button>
+              </div>
+              <p class="bf-payment-hint">
+                <i class="pi pi-info-circle" />
+                اتركها بدون اختيار للاختيار التلقائي حسب رصيد الشركة.
+              </p>
+              <div class="bf-pay-options">
+                <button
+                  type="button"
+                  :class="['bf-pay-option', { active: selectedPaymentType === 'WITHDRAW_BALANCE' }]"
+                  @click="selectedPaymentType = 'WITHDRAW_BALANCE'"
+                >
+                  <i class="pi pi-wallet" />
+                  <span class="bf-pay-label">خصم من الرصيد</span>
+                </button>
+                <button
+                  type="button"
+                  :class="['bf-pay-option', { active: selectedPaymentType === 'CASH' }]"
+                  @click="selectedPaymentType = 'CASH'"
+                >
+                  <i class="pi pi-money-bill" />
+                  <span class="bf-pay-label">نقدي</span>
+                </button>
+                <button
+                  type="button"
+                  :class="['bf-pay-option', { active: selectedPaymentType === 'BANK' }]"
+                  @click="selectedPaymentType = 'BANK'"
+                >
+                  <i class="pi pi-building" />
+                  <span class="bf-pay-label">تحويل بنكي</span>
+                </button>
+              </div>
+            </div>
+          </div>
+        </aside>
+      </div><!-- /.od-grid -->
     </template>
 
     <!-- Payment choice modal -->
@@ -944,9 +934,107 @@ onMounted(async () => {
 .pay-btn i { font-size: 24px; }
 
 @media (max-width: 720px) {
-  .trip-hero-body { grid-template-columns: 1fr; }
-  .trip-hero-total { width: 100%; min-width: 0; flex-direction: row; justify-content: space-between; gap: 12px; padding: 14px 18px; }
-  .trip-hero-total-value { font-size: 22px; }
   .bf-input-row-guest { grid-template-columns: 1fr 1fr 32px; }
+}
+
+/* ════════════════════════════════════════════════
+   Nested-page pattern — header card + 2-col + sticky rail
+   (mirrors the booking-details page)
+   ════════════════════════════════════════════════ */
+.od-grid {
+  display: grid;
+  grid-template-columns: minmax(0, 1fr) 340px;
+  gap: 16px;
+}
+.od-main { display: flex; flex-direction: column; gap: 16px; min-width: 0; }
+
+/* Calm light header card — no border, soft shadow, orange only as accent */
+.od-hero {
+  position: relative;
+  display: flex;
+  align-items: center;
+  gap: 16px;
+  padding: 18px 20px;
+  border-radius: 16px;
+  background: #fff;
+  box-shadow: 0 2px 8px rgba(15, 23, 42, 0.04);
+}
+.od-hero-avatar {
+  width: 54px; height: 54px;
+  border-radius: 14px;
+  background: linear-gradient(135deg, rgba(249, 115, 22, 0.12), rgba(251, 191, 36, 0.12));
+  color: #ea580c;
+  display: inline-flex; align-items: center; justify-content: center;
+  flex-shrink: 0;
+}
+.od-hero-avatar i { font-size: 22px; color: #ea580c; }
+.od-hero-body { display: flex; flex-direction: column; gap: 9px; min-width: 0; flex: 1; }
+.od-hero-row { display: flex; align-items: center; flex-wrap: wrap; gap: 10px; }
+.od-hero-name { font-size: 20px; font-weight: 800; margin: 0; line-height: 1.2; color: #0f172a; }
+.booking-code {
+  display: inline-flex; align-items: center;
+  padding: 3px 11px;
+  border-radius: 999px;
+  background: rgba(16, 185, 129, 0.12);
+  border: 1px solid rgba(16, 185, 129, 0.28);
+  color: #059669;
+  font-size: 11.5px; font-weight: 800;
+}
+.od-hero-chips { display: flex; flex-wrap: wrap; gap: 6px; }
+.od-hero-meta {
+  display: inline-flex; align-items: center; gap: 6px;
+  margin: 0; font-size: 12px; font-weight: 600;
+  color: #94a3b8;
+}
+.od-hero-meta i { font-size: 11px; }
+
+/* Sticky action rail */
+.od-rail {
+  position: sticky;
+  top: 80px;
+  display: flex;
+  flex-direction: column;
+  gap: 12px;
+}
+.rail-card {
+  background: #fff;
+  border: 1px solid #f1f5f9;
+  border-radius: 14px;
+  padding: 16px;
+  box-shadow: 0 2px 8px rgba(15, 23, 42, 0.04);
+}
+.rail-money {
+  display: flex; flex-direction: column; gap: 4px;
+  background: linear-gradient(135deg, rgba(249, 115, 22, 0.10), rgba(251, 191, 36, 0.10));
+  border-color: rgba(249, 115, 22, 0.22);
+}
+.rail-money-label {
+  font-size: 11px; font-weight: 800; color: #c2410c;
+  text-transform: uppercase; letter-spacing: 0.6px;
+}
+.rail-money-total { font-size: 28px; font-weight: 900; color: #ea580c; line-height: 1.1; }
+.rail-money-total small { font-size: 12px; font-weight: 800; color: #c2410c; }
+
+.rail-btn { width: 100%; justify-content: center; }
+
+.rail-pay-head {
+  display: flex; align-items: center; justify-content: space-between;
+  gap: 10px; margin-bottom: 10px;
+}
+.rail-label {
+  display: inline-flex; align-items: center; gap: 7px;
+  font-size: 12.5px; font-weight: 800; color: #0f172a;
+}
+.rail-label i { color: #f97316; font-size: 12px; }
+.rail-pay .bf-payment-hint { margin-bottom: 10px; }
+
+@media (max-width: 980px) {
+  .od-grid { grid-template-columns: 1fr; }
+  .od-aside { order: -1; }
+  .od-rail { position: static; }
+}
+@media (max-width: 560px) {
+  .od-hero { flex-direction: column; align-items: flex-start; text-align: start; }
+  .od-hero-name { font-size: 18px; }
 }
 </style>
