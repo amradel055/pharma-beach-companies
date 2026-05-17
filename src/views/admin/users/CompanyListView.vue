@@ -241,7 +241,7 @@ async function handleSubmit() {
     : await companiesStore.create(payload)
   saving.value = false
   if (r.ok) {
-    toast.success(editing.value ? 'تم التحديث' : 'تمت الإضافة')
+    editing.value ? toast.updated('الشركة') : toast.created('الشركة')
     formOpen.value = false
     await load()
   } else {
@@ -262,7 +262,7 @@ async function handleDelete() {
   const r = await companiesStore.remove(pendingDelete.value.id)
   deleting.value = false
   if (r.ok) {
-    toast.success('تم الحذف')
+    toast.deleted('الشركة')
     deleteOpen.value = false
     pendingDelete.value = null
     await load()

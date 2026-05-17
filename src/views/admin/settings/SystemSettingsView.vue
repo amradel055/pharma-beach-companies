@@ -136,7 +136,7 @@ async function save(row) {
   const r = await settings.update(row.key, draft.value)
   savingKey.value = null
   if (r.ok) {
-    toast.success('تم التحديث')
+    toast.saved('الإعداد')
     const idx = rows.value.findIndex((x) => x.key === row.key)
     if (idx !== -1) {
       rows.value[idx] = {

@@ -173,7 +173,7 @@ async function handleSubmit() {
     : await groupsStore.create(payload)
   saving.value = false
   if (r.ok) {
-    toast.success(editing.value ? 'تم التحديث' : 'تمت الإضافة')
+    editing.value ? toast.updated('المجموعة') : toast.created('المجموعة')
     formOpen.value = false
     await load()
   } else {
@@ -197,7 +197,7 @@ async function handleDelete() {
   const r = await groupsStore.remove(pendingDelete.value.id)
   deleting.value = false
   if (r.ok) {
-    toast.success('تم الحذف')
+    toast.deleted('المجموعة')
     deleteOpen.value = false
     pendingDelete.value = null
     await load()

@@ -193,7 +193,7 @@ async function handleSubmit() {
     : await rolesStore.create(payload)
   saving.value = false
   if (r.ok) {
-    toast.success(editing.value ? 'تم التحديث' : 'تمت الإضافة')
+    editing.value ? toast.updated('الدور') : toast.created('الدور')
     formOpen.value = false
     await load()
   } else {
@@ -214,7 +214,7 @@ async function handleDelete() {
   const r = await rolesStore.remove(pendingDelete.value.id)
   deleting.value = false
   if (r.ok) {
-    toast.success('تم الحذف')
+    toast.deleted('الدور')
     deleteOpen.value = false
     pendingDelete.value = null
     await load()

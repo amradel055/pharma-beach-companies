@@ -301,7 +301,7 @@ async function handleSubmit() {
     : await lookups.create(activeKey.value, payload)
   saving.value = false
   if (r.ok) {
-    toast.success(editing.value ? 'تم التحديث' : 'تمت الإضافة')
+    editing.value ? toast.updated('العنصر') : toast.created('العنصر')
     formOpen.value = false
     await reloadCurrent()
   } else {
@@ -343,7 +343,7 @@ async function handleDelete() {
   const r = await lookups.remove(activeKey.value, pendingDelete.value.id)
   deleting.value = false
   if (r.ok) {
-    toast.success('تم الحذف')
+    toast.deleted('العنصر')
     deleteOpen.value = false
     pendingDelete.value = null
     await reloadCurrent()

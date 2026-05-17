@@ -282,7 +282,7 @@ async function handleSubmit() {
     : await villagesStore.create(payload)
   saving.value = false
   if (r.ok) {
-    toast.success(editing.value ? 'تم التحديث' : 'تمت الإضافة')
+    editing.value ? toast.updated('القرية') : toast.created('القرية')
     formOpen.value = false
     await load()
   } else {
@@ -303,7 +303,7 @@ async function handleDelete() {
   const r = await villagesStore.remove(pendingDelete.value.id)
   deleting.value = false
   if (r.ok) {
-    toast.success('تم الحذف')
+    toast.deleted('القرية')
     deleteOpen.value = false
     pendingDelete.value = null
     await load()
@@ -387,7 +387,7 @@ async function handleTierSubmit() {
     : await villagesStore.createTier(village.id, payload)
   tierSaving.value = false
   if (r.ok) {
-    toast.success(tierEditing.value ? 'تم التحديث' : 'تمت الإضافة')
+    tierEditing.value ? toast.updated('الفئة') : toast.created('الفئة')
     tierFormOpen.value = false
     await reloadTiers(village.id)
   } else {
@@ -412,7 +412,7 @@ async function handleTierDelete() {
   const r = await villagesStore.removeTier(p.village.id, p.tier.id)
   tierDeleting.value = false
   if (r.ok) {
-    toast.success('تم الحذف')
+    toast.deleted('الفئة')
     tierDeleteOpen.value = false
     await reloadTiers(p.village.id)
     pendingTierDelete.value = null

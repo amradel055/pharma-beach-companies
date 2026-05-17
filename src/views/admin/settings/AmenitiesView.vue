@@ -209,7 +209,7 @@ async function handleSubmit() {
     : await amenities.create(payload)
   saving.value = false
   if (r.ok) {
-    toast.success(editing.value ? 'تم التحديث' : 'تمت الإضافة')
+    editing.value ? toast.updated('الكمالية') : toast.created('الكمالية')
     formOpen.value = false
     await load()
   } else {
@@ -230,7 +230,7 @@ async function handleDelete() {
   const r = await amenities.remove(pendingDelete.value.id)
   deleting.value = false
   if (r.ok) {
-    toast.success('تم الحذف')
+    toast.deleted('الكمالية')
     deleteOpen.value = false
     pendingDelete.value = null
     await load()

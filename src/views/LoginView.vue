@@ -5,14 +5,6 @@
 
     <div class="lp-line"></div>
 
-    <!-- Error message -->
-    <Transition name="fade-msg">
-      <div v-if="errorMsg" class="lp-error lp-anim-r" style="--d:0.18s">
-        <i class="pi pi-exclamation-circle" />
-        {{ errorMsg }}
-      </div>
-    </Transition>
-
     <form class="lp-form" @submit.prevent="handleLogin" novalidate>
       <!-- Identifier (email or phone) -->
       <div class="lp-field lp-anim-r" style="--d:0.2s">
@@ -113,8 +105,23 @@ const form = reactive({
 const touched = reactive({ identifier: false, password: false })
 const showPass = ref(false)
 const loading = ref(false)
-const errorMsg = ref('')
 const shaking = ref(false)
+
+// Map backend auth codes to friendly Arabic. If the backend already sent an
+// Arabic message, show it as-is; an English code falls back to a generic line.
+const AUTH_ERROR_AR = {
+  INVALID_CREDENTIALS: 'بيانات الدخول غير صحيحة',
+  INVALID_EMAIL_OR_PASSWORD: 'بيانات الدخول غير صحيحة',
+  USER_NOT_FOUND: 'الحساب غير موجود',
+  ACCOUNT_SUSPENDED: 'تم إيقاف هذا الحساب',
+  ACCOUNT_PERMANENT_SUSPENDED: 'تم إيقاف هذا الحساب نهائياً',
+  TOO_MANY_ATTEMPTS: 'محاولات كثيرة، حاول لاحقاً',
+}
+function authErrorMessage(err) {
+  if (!err) return 'تعذر تسجيل الدخول'
+  if (AUTH_ERROR_AR[err]) return AUTH_ERROR_AR[err]
+  return /[؀-ۿ]/.test(err) ? err : 'بيانات الدخول غير صحيحة'
+}
 const capsLockOn = ref(false)
 
 const emailRegex = /^[^\s@]+@[^\s@]+\.[^\s@]+$/
@@ -142,7 +149,6 @@ function triggerShake() {
 async function handleLogin() {
   if (!isFormValid.value) return
   loading.value = true
-  errorMsg.value = ''
 
   const result = await auth.login(form.identifier, form.password)
   loading.value = false
@@ -153,7 +159,7 @@ async function handleLogin() {
     auth.returnUrl = null
     router.push(redirect)
   } else {
-    errorMsg.value = result.error
+    toast.error(authErrorMessage(result.error))
     triggerShake()
   }
 }

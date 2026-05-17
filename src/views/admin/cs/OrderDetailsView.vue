@@ -534,21 +534,21 @@ async function submitEdit() {
     cars: editForm.cars.filter((c) => c.plate_number.trim()).map((c) => ({ plate_number: c.plate_number.trim() })),
     payment_type: editForm.payment_type,
   }
-  if (await _runAction(csBookings.editGuestsCars(booking.value.id, payload), 'تم تحديث البيانات')) {
+  if (await _runAction(csBookings.editGuestsCars(booking.value.id, payload), 'تم تحديث بيانات الضيوف والسيارات بنجاح')) {
     editOpen.value = false
   }
 }
 async function submitExtend() {
   if (Number(extendForm.additional_days) < 1) { toast.error('أدخل عدد أيام صحيح'); return }
   const payload = { additional_days: Number(extendForm.additional_days), payment_type: extendForm.payment_type }
-  if (await _runAction(csBookings.extendBooking(booking.value.id, payload), 'تم تمديد الحجز')) {
+  if (await _runAction(csBookings.extendBooking(booking.value.id, payload), 'تم تمديد الحجز بنجاح')) {
     extendOpen.value = false
   }
 }
 async function submitTransfer() {
   if (!transferForm.new_chalet_id) { toast.error('اختر الشاليه الجديد'); return }
   const payload = { new_chalet_id: transferForm.new_chalet_id, payment_type: transferForm.payment_type }
-  if (await _runAction(csBookings.transferBooking(booking.value.id, payload), 'تم نقل الحجز')) {
+  if (await _runAction(csBookings.transferBooking(booking.value.id, payload), 'تم نقل الحجز بنجاح')) {
     transferOpen.value = false
   }
 }
@@ -560,12 +560,12 @@ async function submitTransferExt() {
     additional_days: Number(transferExtForm.additional_days),
     payment_type: transferExtForm.payment_type,
   }
-  if (await _runAction(csBookings.transferAndExtend(booking.value.id, payload), 'تم نقل وتمديد الحجز')) {
+  if (await _runAction(csBookings.transferAndExtend(booking.value.id, payload), 'تم نقل وتمديد الحجز بنجاح')) {
     transferExtOpen.value = false
   }
 }
 async function submitCancel() {
-  if (await _runAction(csBookings.cancelBooking(booking.value.id), 'تم إلغاء الحجز')) {
+  if (await _runAction(csBookings.cancelBooking(booking.value.id), 'تم إلغاء الحجز بنجاح')) {
     cancelOpen.value = false
   }
 }
@@ -589,7 +589,7 @@ async function handleConfirmPermit() {
   const r = await csBookings.confirmPermit(booking.value.id)
   confirmingPermit.value = false
   if (r.ok) {
-    toast.success('تم تأكيد التصريح')
+    toast.success('تم تأكيد التصريح بنجاح')
     if (r.data && typeof r.data === 'object') {
       booking.value = { ...booking.value, ...r.data, permit_exists: true }
     } else {

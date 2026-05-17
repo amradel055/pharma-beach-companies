@@ -1,4 +1,5 @@
 import axios from 'axios'
+import { useToastStore } from '@/stores/toast'
 
 const ACCESS_TOKEN_KEY = 'pb_access_token'
 const REFRESH_TOKEN_KEY = 'pb_refresh_token'
@@ -137,6 +138,27 @@ async function recoverAndRetry(config) {
   return api(config)
 }
 
+// Public, centralized error toast. Every failed request surfaces an error
+// toast automatically — callers no longer need their own toast.error(...)
+// (the toast store de-dupes, so existing manual ones won't double up).
+//
+// Skipped on purpose for:
+//   • request cancellations (not real failures)
+//   • auth failures / auth endpoints (handled by refresh-or-logout; a
+//     "INVALID_TOKEN" toast mid-redirect is just noise)
+//   • requests that opt out via `config.suppressErrorToast = true`
+function notifyApiError(error, isAuthFail) {
+  if (axios.isCancel?.(error)) return
+  const config = error?.config || {}
+  if (config.suppressErrorToast) return
+  if (isAuthFail || isAuthEndpoint(config.url)) return
+  try {
+    useToastStore().error(getErrorMessage(error))
+  } catch {
+    // Pinia not ready (shouldn't happen post-mount) — fail silently.
+  }
+}
+
 api.interceptors.response.use(
   async (response) => {
     if (bodyIsAuthFail(response.data) && !isAuthEndpoint(response.config?.url)) {
@@ -152,6 +174,7 @@ api.interceptors.response.use(
       const retried = await recoverAndRetry(error.config)
       if (retried) return retried
     }
+    notifyApiError(error, isFail)
     return Promise.reject(error)
   },
 )

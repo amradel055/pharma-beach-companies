@@ -381,7 +381,7 @@ async function handleConfirmPermit(row) {
   const r = await csBookings.confirmPermit(row.id)
   confirmingId.value = ''
   if (r.ok) {
-    toast.success('تم تأكيد التصريح')
+    toast.success('تم تأكيد التصريح بنجاح')
     const idx = rows.value.findIndex((x) => x.id === row.id)
     if (idx !== -1) rows.value[idx] = { ...rows.value[idx], permit_exists: true }
   } else {

@@ -244,7 +244,7 @@ async function handleSubmit() {
     : await paymentsStore.create(payload)
   saving.value = false
   if (r.ok) {
-    toast.success(editing.value ? 'تم تحديث السند' : 'تمت إضافة السند')
+    editing.value ? toast.updated('السند') : toast.created('السند')
     formOpen.value = false
     await load()
   } else {
@@ -265,7 +265,7 @@ async function handleCancel() {
   const r = await paymentsStore.cancel(pendingCancel.value.id)
   cancelling.value = false
   if (r.ok) {
-    toast.success('تم إلغاء السند')
+    toast.success('تم إلغاء السند بنجاح')
     cancelOpen.value = false
     pendingCancel.value = null
     await load()

@@ -349,7 +349,7 @@ async function handleCreate() {
   const r = await membersStore.create(payload)
   createSaving.value = false
   if (r.ok) {
-    toast.success('تمت إضافة العضو')
+    toast.created('العضو')
     createOpen.value = false
     await load()
   } else {
@@ -410,7 +410,7 @@ async function handleEdit() {
   const r = await membersStore.update(editTarget.value.id, payload)
   editSaving.value = false
   if (r.ok) {
-    toast.success('تم التحديث')
+    toast.updated('العضو')
     editOpen.value = false
     await load()
   } else {
@@ -431,7 +431,7 @@ async function handleDelete() {
   const r = await membersStore.remove(pendingDelete.value.id)
   deleting.value = false
   if (r.ok) {
-    toast.success('تم حذف العضو')
+    toast.deleted('العضو')
     deleteOpen.value = false
     pendingDelete.value = null
     await load()
