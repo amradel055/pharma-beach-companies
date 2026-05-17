@@ -56,6 +56,7 @@ import TheNavbar from '@/components/admin/TheNavbar.vue'
 
 .dashboard-page {
   padding: 22px 0 32px;
+  perspective: 1400px;
 }
 
 .dashboard-container {
@@ -68,17 +69,25 @@ import TheNavbar from '@/components/admin/TheNavbar.vue'
    PAGE TRANSITION
    ═══════════════════════════════════ */
 .page-enter-active {
-  transition: all 0.25s ease;
+  transition: opacity 0.32s ease, transform 0.42s cubic-bezier(0.22, 1, 0.36, 1);
 }
 .page-leave-active {
-  transition: all 0.15s ease;
+  transition: opacity 0.18s ease, transform 0.22s ease;
 }
 .page-enter-from {
   opacity: 0;
-  transform: translateY(8px);
+  transform: translateY(16px) rotateX(5deg);
+  transform-origin: top center;
 }
 .page-leave-to {
   opacity: 0;
+  transform: translateY(-6px) scale(0.992);
+}
+@media (prefers-reduced-motion: reduce) {
+  .page-enter-from,
+  .page-leave-to { transform: none; }
+  .page-enter-active,
+  .page-leave-active { transition: opacity 0.2s ease; }
 }
 
 @media (max-width: 640px) {

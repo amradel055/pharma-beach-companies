@@ -1,5 +1,5 @@
 <template>
-  <div class="stat-card" :style="{ '--accent': color }">
+  <div v-tilt="5" class="stat-card mo-rise" :style="{ '--accent': color }">
     <div class="stat-top">
       <div class="stat-icon">
         <i :class="icon" />
@@ -45,12 +45,12 @@ const barWidth = computed(() => Math.min(100, props.barPercent) + '%')
   border: 1px solid #f1f5f9;
   border-radius: 14px;
   padding: 20px;
-  transition: all 0.15s;
+  /* transform handled by the global .mo-tilt (v-tilt) layer */
+  transition: border-color 0.15s ease, box-shadow 0.15s ease;
 }
 
 .stat-card:hover {
   border-color: #e2e8f0;
-  box-shadow: 0 2px 12px rgba(0, 0, 0, 0.03);
 }
 
 .stat-top {

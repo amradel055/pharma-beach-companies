@@ -1,0 +1,94 @@
+/* ───────────────────────────────────────────────────────────
+   Global motion layer
+   - Opt-in entrance utilities (.mo-rise / .mo-stagger)
+   - 3D tilt base used by the v-tilt directive (.mo-tilt)
+   - One safe universal effect: subtle button press depth
+   - Honours prefers-reduced-motion
+   Keep selectors low-specificity so component styles win.
+   ─────────────────────────────────────────────────────────── */
+
+@keyframes mo-rise {
+  from { opacity: 0; transform: translateY(14px); }
+  to   { opacity: 1; transform: translateY(0); }
+}
+
+/* Entrance — add .mo-rise to any element */
+.mo-rise {
+  animation: mo-rise 0.5s cubic-bezier(0.22, 1, 0.36, 1) both;
+}
+
+/* Staggered children — add .mo-stagger on the wrapper */
+.mo-stagger > * {
+  animation: mo-rise 0.5s cubic-bezier(0.22, 1, 0.36, 1) both;
+}
+.mo-stagger > *:nth-child(1)  { animation-delay: 0.03s; }
+.mo-stagger > *:nth-child(2)  { animation-delay: 0.07s; }
+.mo-stagger > *:nth-child(3)  { animation-delay: 0.11s; }
+.mo-stagger > *:nth-child(4)  { animation-delay: 0.15s; }
+.mo-stagger > *:nth-child(5)  { animation-delay: 0.19s; }
+.mo-stagger > *:nth-child(6)  { animation-delay: 0.23s; }
+.mo-stagger > *:nth-child(7)  { animation-delay: 0.27s; }
+.mo-stagger > *:nth-child(8)  { animation-delay: 0.31s; }
+.mo-stagger > *:nth-child(9)  { animation-delay: 0.35s; }
+.mo-stagger > *:nth-child(10) { animation-delay: 0.39s; }
+.mo-stagger > *:nth-child(n+11) { animation-delay: 0.42s; }
+
+/* ── Page headers — automatic entrance on every view ──
+   Targets the shared .page-header pattern (icon / title / desc /
+   actions). Applies to inner parts only, so it composes with a
+   container that already animates (e.g. .ops-rise) without clashing. */
+@keyframes mo-ph-icon {
+  from { opacity: 0; transform: scale(0.55) rotate(-10deg); }
+  to   { opacity: 1; transform: none; }
+}
+@keyframes mo-ph-text {
+  from { opacity: 0; transform: translateX(14px); }
+  to   { opacity: 1; transform: none; }
+}
+.page-header .page-icon {
+  animation: mo-ph-icon 0.55s cubic-bezier(0.34, 1.56, 0.64, 1) both;
+  animation-delay: 0.06s;
+}
+.page-header .page-title {
+  animation: mo-ph-text 0.5s cubic-bezier(0.22, 1, 0.36, 1) both;
+  animation-delay: 0.12s;
+}
+.page-header .page-desc {
+  animation: mo-ph-text 0.5s cubic-bezier(0.22, 1, 0.36, 1) both;
+  animation-delay: 0.18s;
+}
+.page-header .page-header-actions,
+.page-header .page-header-action {
+  animation: mo-rise 0.5s cubic-bezier(0.22, 1, 0.36, 1) both;
+  animation-delay: 0.24s;
+}
+
+/* 3D tilt base — the v-tilt directive sets the live transform */
+.mo-tilt {
+  transform-style: preserve-3d;
+  transition: transform 0.3s cubic-bezier(0.22, 1, 0.36, 1), box-shadow 0.3s ease;
+  will-change: transform;
+}
+.mo-tilt:hover {
+  box-shadow: 0 18px 40px rgba(15, 23, 42, 0.13);
+}
+
+/* Universal, subtle button press. !important so it wins over a
+   component's hover transform only while actively pressed. */
+button:not(:disabled):not(.no-press):active,
+[role="button"]:not(.no-press):active {
+  transform: translateY(1px) scale(0.985) !important;
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .mo-rise,
+  .mo-stagger > *,
+  .page-header .page-icon,
+  .page-header .page-title,
+  .page-header .page-desc,
+  .page-header .page-header-actions,
+  .page-header .page-header-action { animation: none !important; }
+  .mo-tilt { transition: none !important; transform: none !important; }
+  button:not(:disabled):active,
+  [role="button"]:active { transform: none !important; }
+}

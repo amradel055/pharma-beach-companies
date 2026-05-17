@@ -12,6 +12,37 @@
         <h1 class="page-title">حجز جديد</h1>
         <p class="page-desc">اختر الشاليه ثم نطاق التاريخ على التقويم لبدء حجز قرية</p>
       </div>
+
+      <div class="page-header-actions">
+        <Transition name="hdr-sel">
+          <div v-if="selectionInfo" class="hdr-selection">
+            <div class="hdr-sel-icon"><i class="pi pi-calendar-plus" /></div>
+            <div class="hdr-sel-text">
+              <strong>{{ selectedChaletName || 'تم اختيار الشاليه' }}</strong>
+              <span class="hdr-sel-meta">
+                {{ toDisplayDate(selectionInfo.startDate) }}
+                <i class="pi pi-arrow-left" />
+                {{ toDisplayDate(selectionInfo.endDate) }}
+                <span class="hdr-dot">·</span>
+                {{ selectionInfo.nights }} {{ selectionInfo.nights === 1 ? 'ليلة' : 'ليالٍ' }}
+              </span>
+            </div>
+            <button class="hdr-clear" aria-label="إلغاء الاختيار" @click="clearSelection">
+              <i class="pi pi-times" />
+            </button>
+          </div>
+        </Transition>
+
+        <button
+          class="hdr-continue"
+          :disabled="!selectionInfo"
+          :title="selectionInfo ? 'متابعة الحجز' : 'اختر شاليه ونطاق تاريخ أولاً'"
+          @click="continueBooking"
+        >
+          <span>متابعة الحجز</span>
+          <i class="pi pi-arrow-left" />
+        </button>
+      </div>
     </div>
 
     <!-- Calendar card -->
@@ -180,34 +211,6 @@
 
     </div>
 
-    <!-- Floating selection bar — appears once a date range is picked.
-         "متابعة" navigates to the form page; the calendar stays interactive
-         so the user can re-pick a range before clicking continue. -->
-    <Teleport to="body">
-      <Transition name="sel-bar">
-        <div v-if="selectionInfo" class="sel-bar">
-          <div class="sel-info">
-            <div class="sel-icon"><i class="pi pi-calendar-plus" /></div>
-            <div class="sel-text">
-              <strong class="sel-chalet">{{ selectedChaletName || 'تم اختيار الشاليه' }}</strong>
-              <span class="sel-meta">
-                {{ toDisplayDate(selectionInfo.startDate) }}
-                <i class="pi pi-arrow-left" />
-                {{ toDisplayDate(selectionInfo.endDate) }}
-                <span class="sel-dot">·</span>
-                {{ selectionInfo.nights }} {{ selectionInfo.nights === 1 ? 'ليلة' : 'ليالٍ' }}
-              </span>
-            </div>
-          </div>
-          <div class="sel-actions">
-            <button class="sel-cancel" @click="clearSelection">إلغاء</button>
-            <button class="sel-continue" @click="continueBooking">
-              <i class="pi pi-arrow-left" /> متابعة الحجز
-            </button>
-          </div>
-        </div>
-      </Transition>
-    </Teleport>
   </div>
 </template>
 
@@ -876,76 +879,99 @@ onMounted(async () => {
 .bk-bar.bar-c4 { background: #ede9fe; border-color: #c4b5fd; color: #5b21b6; }
 .bk-bar.is-partial { border-style: dashed; }
 
-/* Floating selection bar — appears at bottom-center once a range is picked */
-.sel-bar {
-  position: fixed;
-  bottom: 24px;
-  left: 50%;
-  transform: translateX(-50%);
+/* Header actions — always-visible "متابعة" + live selection summary */
+.page-header-actions {
   display: flex;
   align-items: center;
-  gap: 24px;
-  padding: 12px 18px;
-  background: #fff;
-  border: 1px solid #e2e8f0;
-  border-radius: 14px;
-  box-shadow: 0 12px 32px -8px rgba(15, 23, 42, 0.2), 0 4px 12px -4px rgba(15, 23, 42, 0.08);
-  z-index: 100;
-  max-width: calc(100vw - 32px);
-  font-family: inherit;
-}
-.sel-info { display: flex; align-items: center; gap: 12px; min-width: 0; }
-.sel-icon {
-  width: 38px; height: 38px;
-  border-radius: 10px;
-  background: linear-gradient(135deg, rgba(249, 115, 22, 0.12), rgba(251, 191, 36, 0.12));
-  color: #f97316;
-  display: flex; align-items: center; justify-content: center;
+  gap: 12px;
   flex-shrink: 0;
 }
-.sel-icon i { font-size: 16px; }
-.sel-text { display: flex; flex-direction: column; gap: 2px; min-width: 0; }
-.sel-chalet { font-size: 14px; font-weight: 800; color: #0f172a; }
-.sel-meta { font-size: 12px; color: #64748b; font-weight: 500; display: flex; align-items: center; gap: 6px; }
-.sel-meta i { font-size: 10px; color: #94a3b8; }
-.sel-dot { color: #cbd5e1; }
-.sel-actions { display: flex; gap: 8px; align-items: center; flex-shrink: 0; }
-.sel-cancel {
-  padding: 9px 16px;
-  border-radius: 9px;
-  background: #fff;
-  border: 1px solid #e2e8f0;
-  color: #64748b;
-  font-family: inherit;
-  font-size: 13px;
-  font-weight: 700;
-  cursor: pointer;
+
+.hdr-selection {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  padding: 7px 10px;
+  background: linear-gradient(135deg, rgba(249, 115, 22, 0.08), rgba(251, 191, 36, 0.07));
+  border: 1px solid rgba(249, 115, 22, 0.2);
+  border-radius: 12px;
+  min-width: 0;
 }
-.sel-cancel:hover { background: #f8fafc; border-color: #cbd5e1; }
-.sel-continue {
-  padding: 9px 18px;
-  border-radius: 9px;
+.hdr-sel-icon {
+  width: 36px; height: 36px;
+  border-radius: 10px;
+  background: #fff;
+  color: #ea580c;
+  display: flex; align-items: center; justify-content: center;
+  flex-shrink: 0;
+  box-shadow: 0 1px 3px rgba(15, 23, 42, 0.08);
+}
+.hdr-sel-icon i { font-size: 15px; }
+.hdr-sel-text { display: flex; flex-direction: column; gap: 1px; min-width: 0; }
+.hdr-sel-text strong {
+  font-size: 13px; font-weight: 800; color: #0f172a;
+  white-space: nowrap; overflow: hidden; text-overflow: ellipsis; max-width: 220px;
+}
+.hdr-sel-meta {
+  font-size: 11.5px; color: #64748b; font-weight: 600;
+  display: flex; align-items: center; gap: 5px; white-space: nowrap;
+}
+.hdr-sel-meta i { font-size: 9px; color: #f97316; }
+.hdr-dot { color: #cbd5e1; }
+.hdr-clear {
+  width: 26px; height: 26px;
+  border-radius: 8px;
+  border: none;
+  background: rgba(15, 23, 42, 0.05);
+  color: #64748b;
+  cursor: pointer;
+  display: flex; align-items: center; justify-content: center;
+  flex-shrink: 0;
+  transition: background 0.15s, color 0.15s;
+}
+.hdr-clear:hover { background: rgba(239, 68, 68, 0.12); color: #ef4444; }
+.hdr-clear i { font-size: 11px; }
+
+.hdr-continue {
+  display: inline-flex;
+  align-items: center;
+  gap: 8px;
+  padding: 12px 24px;
+  border-radius: 12px;
   background: linear-gradient(135deg, #f97316, #ea580c);
   border: 1px solid #ea580c;
   color: #fff;
   font-family: inherit;
-  font-size: 13px;
-  font-weight: 700;
+  font-size: 13.5px;
+  font-weight: 800;
   cursor: pointer;
-  display: inline-flex;
-  align-items: center;
-  gap: 6px;
-  box-shadow: 0 2px 10px rgba(249, 115, 22, 0.35);
+  white-space: nowrap;
+  flex-shrink: 0;
+  box-shadow: 0 4px 14px rgba(249, 115, 22, 0.32);
+  transition: transform 0.18s ease, box-shadow 0.18s ease, background 0.18s ease;
 }
-.sel-continue:hover { transform: translateY(-1px); box-shadow: 0 6px 18px rgba(249, 115, 22, 0.45); }
-.sel-continue i { font-size: 11px; }
+.hdr-continue i { font-size: 12px; transition: transform 0.18s ease; }
+.hdr-continue:hover:not(:disabled) {
+  transform: translateY(-2px);
+  box-shadow: 0 8px 22px rgba(249, 115, 22, 0.42);
+}
+.hdr-continue:hover:not(:disabled) i { transform: translateX(-4px); }
+.hdr-continue:disabled {
+  background: #f1f5f9;
+  border-color: #e2e8f0;
+  color: #94a3b8;
+  cursor: not-allowed;
+  box-shadow: none;
+}
 
-.sel-bar-enter-active, .sel-bar-leave-active {
-  transition: transform 0.28s cubic-bezier(0.16, 1, 0.3, 1), opacity 0.28s;
-}
-.sel-bar-enter-from, .sel-bar-leave-to {
-  transform: translate(-50%, 30px);
-  opacity: 0;
+/* Selection chip transition */
+.hdr-sel-enter-active { transition: opacity 0.28s ease, transform 0.28s cubic-bezier(0.22, 1, 0.36, 1); }
+.hdr-sel-leave-active { transition: opacity 0.18s ease, transform 0.18s ease; }
+.hdr-sel-enter-from, .hdr-sel-leave-to { opacity: 0; transform: translateX(16px) scale(0.95); }
+
+@media (prefers-reduced-motion: reduce) {
+  .hdr-continue, .hdr-continue i,
+  .hdr-sel-enter-active, .hdr-sel-leave-active { transition: none; }
 }
 
 /* Legend (header) */
@@ -957,7 +983,9 @@ onMounted(async () => {
   .bk-grid { font-size: 10.5px; }
   .bk-nav-title { font-size: 13.5px; }
   .bk-bar-guest { font-size: 9.5px; }
-  .sel-bar { flex-direction: column; align-items: stretch; gap: 12px; }
-  .sel-actions { justify-content: space-between; }
+  .page-header { flex-wrap: wrap; }
+  .page-header-actions { width: 100%; justify-content: space-between; }
+  .hdr-selection { flex: 1; min-width: 0; }
+  .hdr-sel-text strong { max-width: 140px; }
 }
 </style>

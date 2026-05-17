@@ -87,6 +87,7 @@ onUnmounted(() => document.removeEventListener('click', handleClickOutside))
 <style scoped>
 .app-dropdown {
   position: relative;
+  perspective: 1000px;
 }
 
 .dd-trigger {
@@ -227,22 +228,31 @@ onUnmounted(() => document.removeEventListener('click', handleClickOutside))
   text-align: center;
 }
 
-/* Transition */
+/* Transition — subtle 3D pop from the trigger edge */
+.dd-list {
+  transform-origin: top right;
+}
+
 .dd-enter-active {
-  transition: all 0.2s cubic-bezier(0.4, 0, 0.2, 1);
+  transition: transform 0.22s cubic-bezier(0.22, 1, 0.36, 1), opacity 0.2s ease;
 }
 
 .dd-leave-active {
-  transition: all 0.15s ease;
+  transition: transform 0.15s ease, opacity 0.15s ease;
 }
 
 .dd-enter-from {
   opacity: 0;
-  transform: translateY(-6px);
+  transform: translateY(-8px) scale(0.96) rotateX(-12deg);
 }
 
 .dd-leave-to {
   opacity: 0;
-  transform: translateY(-4px);
+  transform: translateY(-4px) scale(0.98);
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .dd-enter-from,
+  .dd-leave-to { transform: none; }
 }
 </style>

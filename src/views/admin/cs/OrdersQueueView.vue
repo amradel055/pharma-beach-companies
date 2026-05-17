@@ -13,13 +13,13 @@
     </div>
 
     <!-- Stats row — from GET /v1/bookings/stats, filtered same as the table -->
-    <div class="stats-row">
+    <div class="stats-row mo-stagger">
       <div class="stat-card">
         <div class="stat-icon orange"><i class="pi pi-bookmark" /></div>
         <div class="stat-body">
           <span class="stat-label">إجمالي الحجوزات</span>
           <span v-if="statsLoading" class="stat-skeleton" />
-          <strong v-else class="stat-value">{{ stats.total_bookings }}</strong>
+          <strong v-else class="stat-value">{{ animStats.total_bookings }}</strong>
         </div>
       </div>
       <div class="stat-card">
@@ -27,7 +27,7 @@
         <div class="stat-body">
           <span class="stat-label">قيد الانتظار</span>
           <span v-if="statsLoading" class="stat-skeleton" />
-          <strong v-else class="stat-value">{{ stats.pending }}</strong>
+          <strong v-else class="stat-value">{{ animStats.pending }}</strong>
         </div>
       </div>
       <div class="stat-card">
@@ -35,7 +35,7 @@
         <div class="stat-body">
           <span class="stat-label">تصاريح مؤكدة</span>
           <span v-if="statsLoading" class="stat-skeleton" />
-          <strong v-else class="stat-value">{{ stats.confirmed_permits }}</strong>
+          <strong v-else class="stat-value">{{ animStats.confirmed_permits }}</strong>
         </div>
       </div>
       <div class="stat-card">
@@ -43,7 +43,7 @@
         <div class="stat-body">
           <span class="stat-label">إجمالي الليالي</span>
           <span v-if="statsLoading" class="stat-skeleton" />
-          <strong v-else class="stat-value">{{ stats.total_nights }}</strong>
+          <strong v-else class="stat-value">{{ animStats.total_nights }}</strong>
         </div>
       </div>
     </div>
@@ -151,7 +151,6 @@
               v-for="row in rows"
               :key="row.id"
               class="p-row"
-              @click="openBooking(row.id)"
             >
               <td>
                 <span class="t-code">{{ row.booking_code }}</span>
@@ -175,37 +174,44 @@
                 </div>
               </td>
               <td>
-                <span :class="['t-status', row.permit_exists ? 'ok' : 'pending']">
+                <span :class="['t-status', 'status-anim', row.permit_exists ? 'ok' : 'pending']">
                   <i :class="row.permit_exists ? 'pi pi-check-circle' : 'pi pi-clock'" />
                   {{ row.permit_exists ? 'تصريح مؤكد' : 'قيد الانتظار' }}
                 </span>
               </td>
-              <td class="act-col" @click.stop>
-                <RouterLink
-                  v-if="row.permit_exists && canViewPermit"
-                  :to="{ name: 'admin-village-booking-permit', params: { id: row.id } }"
-                  class="t-btn view"
-                >
-                  <i class="pi pi-print" /> عرض التصريح
-                </RouterLink>
-                <button
-                  v-else-if="!row.permit_exists && canConfirmPermit"
-                  type="button"
-                  class="t-btn confirm"
-                  :disabled="confirmingId === row.id"
-                  @click="handleConfirmPermit(row)"
-                >
-                  <i v-if="confirmingId === row.id" class="pi pi-spin pi-spinner" />
-                  <i v-else class="pi pi-check" />
-                  تأكيد التصريح
-                </button>
-                <RouterLink
-                  v-else
-                  :to="{ name: 'admin-village-booking-details', params: { id: row.id } }"
-                  class="t-btn ghost"
-                >
-                  فتح <i class="pi pi-chevron-left" />
-                </RouterLink>
+              <td class="act-col">
+                <div class="row-actions">
+                  <RouterLink
+                    v-if="row.permit_exists && canViewPermit"
+                    :to="{ name: 'admin-village-booking-permit', params: { id: row.id } }"
+                    class="act-btn permit"
+                    title="عرض التصريح"
+                    aria-label="عرض التصريح"
+                  >
+                    <i class="pi pi-print" />
+                  </RouterLink>
+                  <button
+                    v-else-if="!row.permit_exists && canConfirmPermit"
+                    type="button"
+                    class="act-btn confirm"
+                    :disabled="confirmingId === row.id"
+                    title="تأكيد التصريح"
+                    aria-label="تأكيد التصريح"
+                    @click="handleConfirmPermit(row)"
+                  >
+                    <i v-if="confirmingId === row.id" class="pi pi-spin pi-spinner" />
+                    <i v-else class="pi pi-check" />
+                  </button>
+
+                  <RouterLink
+                    :to="{ name: 'admin-village-booking-details', params: { id: row.id } }"
+                    class="act-btn view"
+                    title="عرض التفاصيل"
+                    aria-label="عرض التفاصيل"
+                  >
+                    <i class="pi pi-eye" />
+                  </RouterLink>
+                </div>
               </td>
             </tr>
           </tbody>
@@ -225,8 +231,7 @@
 </template>
 
 <script setup>
-import { ref, reactive, computed, onMounted } from 'vue'
-import { useRouter } from 'vue-router'
+import { ref, reactive, computed, watch, onMounted, onBeforeUnmount } from 'vue'
 import { useCsBookingsStore } from '@/stores/csBookings'
 import { useToastStore } from '@/stores/toast'
 import { usePermissions } from '@/composables/usePermissions'
@@ -236,7 +241,6 @@ import AppDropdown from '@/components/ui/AppDropdown.vue'
 import DateRangePicker from '@/components/ui/DateRangePicker.vue'
 import AppPagination from '@/components/ui/AppPagination.vue'
 
-const router = useRouter()
 const csBookings = useCsBookingsStore()
 const toast = useToastStore()
 const { hasRole } = usePermissions()
@@ -286,6 +290,27 @@ const activeFilterCount = computed(() => Object.values(filters).filter((v) => !!
 // Stats come from GET /v1/bookings/stats with the same filters as the table.
 const statsLoading = ref(false)
 const stats = ref({ total_bookings: 0, pending: 0, confirmed_permits: 0, total_nights: 0 })
+
+// Count-up: animate the displayed numbers toward the real stats.
+const animStats = reactive({ total_bookings: 0, pending: 0, confirmed_permits: 0, total_nights: 0 })
+let statsRaf = null
+function tweenStats(target) {
+  cancelAnimationFrame(statsRaf)
+  const start = { ...animStats }
+  const t0 = performance.now()
+  const dur = 650
+  const step = (now) => {
+    const p = Math.min(1, (now - t0) / dur)
+    const e = 1 - Math.pow(1 - p, 3) // easeOutCubic
+    for (const k of Object.keys(target)) {
+      animStats[k] = Math.round(start[k] + ((target[k] || 0) - start[k]) * e)
+    }
+    if (p < 1) statsRaf = requestAnimationFrame(step)
+  }
+  statsRaf = requestAnimationFrame(step)
+}
+watch(stats, (s) => tweenStats(s), { deep: true })
+onBeforeUnmount(() => cancelAnimationFrame(statsRaf))
 
 const companies = ref([])
 const owners = ref([])
@@ -375,10 +400,6 @@ function clearFilters() {
   loadStats()
 }
 
-function openBooking(id) {
-  router.push({ name: 'admin-village-booking-details', params: { id } })
-}
-
 // Inline permit confirmation — same call as the booking-detail screen, so
 // users don't have to open every row to confirm.
 async function handleConfirmPermit(row) {
@@ -456,6 +477,8 @@ onMounted(async () => {
   100% { background-position: 0 0; }
 }
 .stat-card {
+  position: relative;
+  overflow: hidden;
   display: flex;
   align-items: center;
   gap: 14px;
@@ -464,14 +487,75 @@ onMounted(async () => {
   border: 1px solid #f1f5f9;
   border-radius: 14px;
   box-shadow: 0 1px 3px rgba(15, 23, 42, 0.04);
+  transition: transform 0.28s cubic-bezier(0.22, 1, 0.36, 1),
+    box-shadow 0.28s ease, border-color 0.28s ease;
+}
+.stat-card:hover {
+  transform: translateY(-5px);
+  box-shadow: 0 16px 30px rgba(15, 23, 42, 0.11);
+  border-color: #e2e8f0;
+}
+/* Sheen that sweeps across on hover */
+.stat-card::before {
+  content: '';
+  position: absolute;
+  top: 0;
+  bottom: 0;
+  width: 45%;
+  background: linear-gradient(105deg, transparent, rgba(255, 255, 255, 0.55), transparent);
+  transform: skewX(-18deg) translateX(-260%);
+  pointer-events: none;
+  z-index: 2;
+}
+.stat-card:hover::before {
+  transition: transform 0.7s ease;
+  transform: skewX(-18deg) translateX(380%);
 }
 .stat-icon {
+  position: relative;
   width: 44px; height: 44px;
   border-radius: 12px;
   display: inline-flex; align-items: center; justify-content: center;
   flex-shrink: 0;
+  transition: transform 0.3s cubic-bezier(0.34, 1.56, 0.64, 1);
 }
-.stat-icon i { font-size: 17px; }
+/* Soft pulsing glow halo — always running, gentle */
+.stat-icon::after {
+  content: '';
+  position: absolute;
+  inset: -6px;
+  z-index: 0;
+  border-radius: 50%;
+  background: radial-gradient(closest-side, currentColor, transparent 72%);
+  opacity: 0;
+  animation: statGlow 3s ease-in-out infinite;
+}
+@keyframes statGlow {
+  0%, 100% { opacity: 0; transform: scale(0.85); }
+  50% { opacity: 0.3; transform: scale(1.05); }
+}
+.stat-card:hover .stat-icon { transform: scale(1.1) rotate(-4deg); }
+.stat-icon i {
+  position: relative;
+  z-index: 1;
+  font-size: 17px;
+  display: inline-block;
+  animation: statFloat 3.6s ease-in-out infinite;
+}
+@keyframes statFloat {
+  0%, 100% { transform: translateY(0) scale(1); }
+  50% { transform: translateY(-2.5px) scale(1.07); }
+}
+.stat-value {
+  font-variant-numeric: tabular-nums;
+}
+/* Phase-offset each card's loop so the row breathes, not pulses in sync */
+.stats-row .stat-card:nth-child(2) .stat-icon::after,
+.stats-row .stat-card:nth-child(2) .stat-icon i { animation-delay: 0.45s; }
+.stats-row .stat-card:nth-child(3) .stat-icon::after,
+.stats-row .stat-card:nth-child(3) .stat-icon i { animation-delay: 0.9s; }
+.stats-row .stat-card:nth-child(4) .stat-icon::after,
+.stats-row .stat-card:nth-child(4) .stat-icon i { animation-delay: 1.35s; }
 .stat-icon.orange { background: linear-gradient(135deg, rgba(249, 115, 22, 0.14), rgba(251, 191, 36, 0.14)); color: #ea580c; }
 .stat-icon.green { background: linear-gradient(135deg, rgba(16, 185, 129, 0.14), rgba(52, 211, 153, 0.14)); color: #059669; }
 .stat-icon.amber { background: linear-gradient(135deg, rgba(234, 179, 8, 0.14), rgba(251, 191, 36, 0.14)); color: #b45309; }
@@ -535,8 +619,104 @@ onMounted(async () => {
 .filter-field label { font-size: 11.5px; font-weight: 700; color: #64748b; }
 .filter-field-range { min-width: 220px; }
 
+/* ── Row actions ── */
+/* Rows are no longer click-to-open — navigation is via the عرض button only. */
+.p-row { cursor: default; }
+.row-actions {
+  display: flex;
+  align-items: center;
+  justify-content: flex-end;
+  gap: 8px;
+  flex-wrap: nowrap;
+}
+.row-actions > * {
+  flex-shrink: 0;
+}
+
+/* Icon-only action buttons */
+.act-btn {
+  width: 40px;
+  height: 40px;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  border-radius: 11px;
+  border: 1px solid #e2e8f0;
+  background: #fff;
+  color: #64748b;
+  cursor: pointer;
+  text-decoration: none;
+  transition: transform 0.16s ease, box-shadow 0.16s ease,
+    background 0.16s ease, border-color 0.16s ease, color 0.16s ease;
+}
+.act-btn i { font-size: 19px; line-height: 1; }
+.act-btn:hover {
+  transform: translateY(-2px);
+  box-shadow: 0 6px 16px rgba(15, 23, 42, 0.1);
+}
+.act-btn:active { transform: translateY(0); }
+.act-btn:disabled {
+  opacity: 0.55;
+  cursor: not-allowed;
+  transform: none;
+  box-shadow: none;
+}
+
+/* Variants */
+.act-btn.view:hover {
+  background: #f1f5f9;
+  border-color: #cbd5e1;
+  color: #0f172a;
+}
+.act-btn.permit {
+  color: #ea580c;
+  border-color: rgba(249, 115, 22, 0.32);
+  background: rgba(249, 115, 22, 0.06);
+}
+.act-btn.permit:hover {
+  background: rgba(249, 115, 22, 0.14);
+  border-color: #f97316;
+}
+.act-btn.confirm {
+  color: #059669;
+  border-color: rgba(16, 185, 129, 0.32);
+  background: rgba(16, 185, 129, 0.07);
+}
+.act-btn.confirm:hover {
+  background: rgba(16, 185, 129, 0.15);
+  border-color: #10b981;
+}
+
+/* ── Animated status badge ── */
+.status-anim {
+  animation: statusPop 0.4s cubic-bezier(0.34, 1.56, 0.64, 1) both;
+}
+@keyframes statusPop {
+  from { opacity: 0; transform: scale(0.7); }
+  to { opacity: 1; transform: scale(1); }
+}
+/* Pending permits gently pulse to draw attention; confirmed stays calm. */
+.status-anim.pending i {
+  animation: statusPulse 1.8s ease-in-out infinite;
+  transform-origin: center;
+}
+@keyframes statusPulse {
+  0%, 100% { transform: scale(1); opacity: 1; }
+  50% { transform: scale(1.18); opacity: 0.65; }
+}
+
 @media (max-width: 900px) {
   .stats-row { grid-template-columns: 1fr 1fr; }
   .filter-grid { grid-template-columns: 1fr 1fr; }
+}
+@media (prefers-reduced-motion: reduce) {
+  .status-anim,
+  .status-anim.pending i,
+  .stat-icon::after,
+  .stat-icon i { animation: none; }
+  .stat-icon::after,
+  .stat-card::before { display: none; }
+  .stat-card,
+  .stat-icon { transition: none; }
 }
 </style>

@@ -80,6 +80,7 @@ watch(() => props.modelValue, (val) => {
   padding: 20px;
   z-index: 2000;
   overflow-y: auto;
+  perspective: 1400px;
 }
 
 /* ═══════════════════════════════════
@@ -221,21 +222,28 @@ watch(() => props.modelValue, (val) => {
 }
 
 .modal-enter-from .modal-panel {
-  transform: translateY(16px) scale(0.97);
+  transform: translateY(22px) scale(0.95) rotateX(8deg);
+  transform-origin: top center;
   opacity: 0;
 }
 
 .modal-leave-to .modal-panel {
-  transform: translateY(8px) scale(0.98);
+  transform: translateY(8px) scale(0.98) rotateX(4deg);
+  transform-origin: top center;
   opacity: 0;
 }
 
 .modal-enter-active .modal-panel {
-  transition: all 0.25s cubic-bezier(0.4, 0, 0.2, 1);
+  transition: transform 0.34s cubic-bezier(0.22, 1, 0.36, 1), opacity 0.28s ease;
 }
 
 .modal-leave-active .modal-panel {
-  transition: all 0.2s ease;
+  transition: transform 0.2s ease, opacity 0.2s ease;
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .modal-enter-from .modal-panel,
+  .modal-leave-to .modal-panel { transform: none; }
 }
 
 /* ═══════════════════════════════════

@@ -62,37 +62,56 @@
 
       <!-- User (RTL end) -->
       <div class="nav-user" ref="userMenuRef">
-        <button class="user-btn" @click="userMenuOpen = !userMenuOpen">
-          <div class="user-av">{{ userInitial }}</div>
+        <button :class="['user-btn', { open: userMenuOpen }]" @click="userMenuOpen = !userMenuOpen">
+          <div class="user-av">
+            {{ userInitial }}
+            <span class="user-av-dot" />
+          </div>
           <div class="user-meta">
             <span class="user-label">{{ auth.user?.name }}</span>
             <span class="user-sub">{{ roleLabel }}</span>
           </div>
-          <i :class="['pi', userMenuOpen ? 'pi-chevron-up' : 'pi-chevron-down']" class="user-caret" />
+          <i class="pi pi-chevron-down user-caret" />
         </button>
 
-        <Transition name="dd">
+        <Transition name="usr">
           <div v-if="userMenuOpen" class="drop-menu">
             <div class="drop-head">
-              <div class="drop-av">{{ userInitial }}</div>
+              <div class="drop-av">
+                {{ userInitial }}
+                <span class="drop-av-dot" />
+              </div>
               <div class="drop-info">
                 <span class="drop-name">{{ auth.user?.name }}</span>
                 <span class="drop-email">{{ auth.user?.email }}</span>
-                <span class="drop-role">{{ roleLabel }}</span>
               </div>
             </div>
-            <div class="drop-sep" />
-            <div class="drop-section">
-              <RouterLink to="/admin/profile" class="drop-item" @click="userMenuOpen = false">
-                <i class="pi pi-user" />
-                الملف الشخصي
-              </RouterLink>
+
+            <div class="drop-role-row">
+              <span class="drop-role"><i class="pi pi-id-card" /> {{ roleLabel }}</span>
             </div>
-            <div class="drop-sep" />
-            <div class="drop-section">
-              <button class="drop-item drop-danger" @click="handleLogout">
-                <i class="pi pi-sign-out" />
-                تسجيل الخروج
+
+            <div class="drop-list">
+              <RouterLink
+                to="/admin/profile"
+                class="drop-item"
+                style="--i: 0"
+                @click="userMenuOpen = false"
+              >
+                <span class="drop-ic"><i class="pi pi-user" /></span>
+                <span class="drop-tx">
+                  <b>الملف الشخصي</b>
+                  <small>إدارة بيانات حسابك</small>
+                </span>
+                <i class="pi pi-angle-left drop-chev" />
+              </RouterLink>
+              <button class="drop-item danger" style="--i: 1" @click="handleLogout">
+                <span class="drop-ic"><i class="pi pi-sign-out" /></span>
+                <span class="drop-tx">
+                  <b>تسجيل الخروج</b>
+                  <small>إنهاء الجلسة الحالية</small>
+                </span>
+                <i class="pi pi-angle-left drop-chev" />
               </button>
             </div>
           </div>
@@ -211,7 +230,25 @@ onUnmounted(() => document.removeEventListener('click', handleClickOutside))
   background: rgba(255, 255, 255, 0.85);
   backdrop-filter: saturate(180%) blur(20px);
   -webkit-backdrop-filter: saturate(180%) blur(20px);
-  border-bottom: 1px solid rgba(226, 232, 240, 0.7);
+}
+/* Centred accent line — colour lives in the middle and fades out toward
+   both edges. Keeps the continuous flow, masked so the ends disappear. */
+.navbar::after {
+  content: '';
+  position: absolute;
+  left: 0;
+  right: 0;
+  bottom: -1px;
+  height: 2px;
+  background: linear-gradient(90deg, #f97316, #fbbf24, #fb923c, #f97316);
+  background-size: 300% 100%;
+  opacity: 0.7;
+  -webkit-mask: linear-gradient(90deg, transparent 0%, #000 44%, #000 56%, transparent 100%);
+  mask: linear-gradient(90deg, transparent 0%, #000 44%, #000 56%, transparent 100%);
+  animation: navFlow 7s linear infinite;
+}
+@keyframes navFlow {
+  to { background-position: 300% 0; }
 }
 
 /* 3-track grid → nav is perfectly centred regardless of brand / user width */
@@ -237,14 +274,37 @@ onUnmounted(() => document.removeEventListener('click', handleClickOutside))
 }
 
 .nav-logo {
+  position: relative;
   display: flex;
   align-items: center;
+  overflow: hidden;
 }
 .nav-logo img {
   height: 32px;
   width: auto;
   object-fit: contain;
   display: block;
+  animation: logoBreathe 4.5s ease-in-out infinite;
+}
+/* Periodic glint sweeping across the logo */
+.nav-logo::after {
+  content: '';
+  position: absolute;
+  top: 0;
+  bottom: 0;
+  width: 45%;
+  background: linear-gradient(105deg, transparent, rgba(255, 255, 255, 0.6), transparent);
+  transform: skewX(-18deg);
+  pointer-events: none;
+  animation: logoSheen 5.5s ease-in-out infinite;
+}
+@keyframes logoBreathe {
+  0%, 100% { transform: scale(1); }
+  50% { transform: scale(1.045); }
+}
+@keyframes logoSheen {
+  0% { inset-inline-start: -60%; }
+  22%, 100% { inset-inline-start: 130%; }
 }
 
 .nav-burger {
@@ -391,30 +451,51 @@ onUnmounted(() => document.removeEventListener('click', handleClickOutside))
   display: flex;
   align-items: center;
   gap: 10px;
-  padding: 5px 14px 5px 7px;
-  border-radius: 14px;
+  padding: 5px 14px 5px 6px;
+  border-radius: 999px;
   border: 1px solid rgba(226, 232, 240, 0.9);
   background: #fff;
   cursor: pointer;
-  transition: background 0.15s, border-color 0.15s, box-shadow 0.15s;
+  transition: background 0.18s, border-color 0.18s, box-shadow 0.18s;
 }
 .user-btn:hover {
   background: #f8fafc;
-  box-shadow: 0 2px 8px rgba(15, 23, 42, 0.05);
+  border-color: #e2e8f0;
+}
+.user-btn.open {
+  background: #fff;
+  border-color: rgba(249, 115, 22, 0.5);
 }
 
 .user-av {
+  position: relative;
   width: 34px;
   height: 34px;
-  border-radius: 10px;
-  background: linear-gradient(135deg, #f97316, #ea580c);
+  border-radius: 50%;
+  background: linear-gradient(135deg, #fb923c, #ea580c);
   color: #fff;
   display: flex;
   align-items: center;
   justify-content: center;
-  font-weight: 700;
+  font-weight: 800;
   font-size: 14px;
   flex-shrink: 0;
+  box-shadow: 0 2px 8px rgba(234, 88, 12, 0.3);
+  transition: transform 0.18s ease;
+}
+.user-btn:hover .user-av,
+.user-btn.open .user-av {
+  transform: scale(1.05);
+}
+.user-av-dot {
+  position: absolute;
+  bottom: -1px;
+  inset-inline-start: -1px;
+  width: 9px;
+  height: 9px;
+  border-radius: 50%;
+  background: #22c55e;
+  border: 2px solid #fff;
 }
 
 .user-meta {
@@ -443,50 +524,73 @@ onUnmounted(() => document.removeEventListener('click', handleClickOutside))
 .user-caret {
   font-size: 10px !important;
   color: #94a3b8;
+  transition: transform 0.22s ease, color 0.18s;
+}
+.user-btn.open .user-caret {
+  transform: rotate(180deg);
+  color: #ea580c;
 }
 
+/* ── Dropdown ── */
 .drop-menu {
   position: absolute;
   top: calc(100% + 12px);
   left: 0;
-  min-width: 256px;
+  width: min(272px, calc(100vw - 24px));
   background: #fff;
-  border-radius: 16px;
-  box-shadow: 0 16px 40px rgba(15, 23, 42, 0.12), 0 2px 6px rgba(15, 23, 42, 0.04);
+  border-radius: 18px;
+  box-shadow: 0 8px 24px rgba(15, 23, 42, 0.1), 0 1px 3px rgba(15, 23, 42, 0.05);
   border: 1px solid rgba(226, 232, 240, 0.7);
   overflow: hidden;
   z-index: 1001;
+  transform-origin: top left;
 }
 
 .drop-head {
   display: flex;
   align-items: center;
   gap: 12px;
-  padding: 16px;
+  padding: 18px 16px 14px;
+  background: linear-gradient(135deg, rgba(249, 115, 22, 0.12), rgba(251, 191, 36, 0.10));
 }
 .drop-av {
-  width: 42px;
-  height: 42px;
-  border-radius: 12px;
-  background: linear-gradient(135deg, #f97316, #ea580c);
+  position: relative;
+  width: 46px;
+  height: 46px;
+  border-radius: 50%;
+  background: linear-gradient(135deg, #fb923c, #ea580c);
   color: #fff;
   display: flex;
   align-items: center;
   justify-content: center;
-  font-weight: 700;
-  font-size: 16px;
+  font-weight: 800;
+  font-size: 17px;
   flex-shrink: 0;
+  box-shadow: 0 4px 12px rgba(234, 88, 12, 0.35), 0 0 0 4px rgba(255, 255, 255, 0.65);
+}
+.drop-av-dot {
+  position: absolute;
+  bottom: 0;
+  inset-inline-start: 0;
+  width: 11px;
+  height: 11px;
+  border-radius: 50%;
+  background: #22c55e;
+  border: 2.5px solid #fff;
 }
 .drop-info {
   display: flex;
   flex-direction: column;
-  gap: 1px;
+  gap: 2px;
   min-width: 0;
 }
 .drop-name {
-  font-size: 14px;
-  font-weight: 600;
+  font-size: 14.5px;
+  font-weight: 800;
   color: #0f172a;
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
 }
 .drop-email {
   font-size: 12px;
@@ -494,55 +598,116 @@ onUnmounted(() => document.removeEventListener('click', handleClickOutside))
   overflow: hidden;
   text-overflow: ellipsis;
 }
+
+.drop-role-row {
+  padding: 12px 16px;
+  border-bottom: 1px solid #f1f5f9;
+}
 .drop-role {
-  font-size: 10.5px;
-  font-weight: 600;
-  color: #f97316;
-  background: rgba(249, 115, 22, 0.08);
-  padding: 2px 8px;
-  border-radius: 6px;
-  width: fit-content;
-  margin-top: 3px;
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  font-size: 11px;
+  font-weight: 800;
+  color: #ea580c;
+  background: rgba(249, 115, 22, 0.1);
+  padding: 5px 11px;
+  border-radius: 999px;
 }
-.drop-sep {
-  height: 1px;
-  background: #f1f5f9;
-  margin: 4px 14px;
-}
-.drop-section {
-  padding: 4px 6px;
+.drop-role i { font-size: 11px; }
+
+.drop-list {
+  padding: 8px;
+  display: flex;
+  flex-direction: column;
+  gap: 2px;
 }
 .drop-item {
   display: flex;
   align-items: center;
-  gap: 10px;
-  padding: 9px 12px;
+  gap: 12px;
+  padding: 10px;
   width: 100%;
   background: none;
   border: none;
-  border-radius: 8px;
-  color: #475569;
-  font-size: 13px;
-  font-weight: 500;
+  border-radius: 12px;
+  color: #334155;
   cursor: pointer;
   text-decoration: none;
   font-family: inherit;
-  transition: background 0.15s, color 0.15s;
+  text-align: start;
+  transition: background 0.16s;
+  /* staggered reveal */
+  opacity: 0;
+  animation: dropItemIn 0.32s cubic-bezier(0.22, 1, 0.36, 1) forwards;
+  animation-delay: calc(var(--i, 0) * 60ms + 70ms);
 }
-.drop-item:hover {
-  background: #f8fafc;
-  color: #1e293b;
+@keyframes dropItemIn {
+  from { opacity: 0; transform: translateY(7px); }
+  to { opacity: 1; transform: translateY(0); }
 }
-.drop-danger {
+.drop-ic {
+  width: 36px;
+  height: 36px;
+  border-radius: 10px;
+  background: #f1f5f9;
+  color: #64748b;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  flex-shrink: 0;
+  transition: background 0.16s, color 0.16s;
+}
+.drop-ic i { font-size: 16px; }
+.drop-tx {
+  display: flex;
+  flex-direction: column;
+  gap: 1px;
+  min-width: 0;
+  flex: 1;
+}
+.drop-tx b { font-size: 13px; font-weight: 700; }
+.drop-tx small { font-size: 11px; color: #94a3b8; font-weight: 500; }
+.drop-chev {
+  font-size: 13px !important;
+  color: #cbd5e1;
+  transition: transform 0.18s ease, color 0.16s;
+}
+.drop-item:hover { background: #f8fafc; }
+.drop-item:hover .drop-ic {
+  background: rgba(249, 115, 22, 0.12);
+  color: #ea580c;
+}
+.drop-item:hover .drop-chev {
+  color: #94a3b8;
+  transform: translateX(-3px);
+}
+.drop-item.danger b { color: #dc2626; }
+.drop-item.danger:hover { background: rgba(254, 242, 242, 0.85); }
+.drop-item.danger:hover .drop-ic {
+  background: rgba(239, 68, 68, 0.12);
   color: #ef4444;
 }
-.drop-danger:hover {
-  background: rgba(254, 242, 242, 0.8);
-}
-.drop-item i {
-  font-size: 15px;
-  width: 18px;
-  text-align: center;
+.drop-item.danger:hover .drop-chev { color: #f87171; }
+
+/* User menu transition */
+.usr-enter-active { transition: opacity 0.22s ease, transform 0.26s cubic-bezier(0.22, 1, 0.36, 1); }
+.usr-leave-active { transition: opacity 0.15s ease, transform 0.15s ease; }
+.usr-enter-from { opacity: 0; transform: translateY(-8px) scale(0.96); }
+.usr-leave-to { opacity: 0; transform: translateY(-6px) scale(0.97); }
+
+@media (prefers-reduced-motion: reduce) {
+  .drop-item { opacity: 1; animation: none; }
+  .navbar::after,
+  .nav-logo img,
+  .nav-logo::after { animation: none; }
+  .nav-logo::after { display: none; }
+  .usr-enter-active,
+  .usr-leave-active,
+  .user-caret,
+  .user-av,
+  .drop-chev,
+  .drop-ic { transition: none; }
 }
 
 /* ═══════════════════════════════════
@@ -625,10 +790,6 @@ onUnmounted(() => document.removeEventListener('click', handleClickOutside))
 .nav-dd-panel.dd-enter-from,
 .nav-dd-panel.dd-leave-to {
   transform: translateX(50%) translateY(-6px) scale(0.98);
-}
-.drop-menu.dd-enter-from,
-.drop-menu.dd-leave-to {
-  transform: translateY(-6px) scale(0.98);
 }
 
 .sheet-enter-active,
