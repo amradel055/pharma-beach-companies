@@ -199,30 +199,32 @@
           <span class="doc-counter">{{ permit.guests?.length || 0 }}</span>
         </h2>
         <div v-if="!permit.guests?.length" class="empty-mini">لا يوجد ضيوف مسجلين</div>
-        <table v-else class="data-table">
-          <thead>
-            <tr>
-              <th class="num-col">#</th>
-              <th>الاسم</th>
-              <th>الرقم القومي</th>
-              <th>الصفة</th>
-              <th>النوع</th>
-            </tr>
-          </thead>
-          <tbody>
-            <tr v-for="(g, i) in permit.guests" :key="i">
-              <td class="num-col">{{ i + 1 }}</td>
-              <td><strong>{{ g.name }}</strong></td>
-              <td class="ltr">{{ g.identity_number || '—' }}</td>
-              <td>{{ g.role || '—' }}</td>
-              <td>
-                <span :class="['type-pill', g.type?.toLowerCase()]">
-                  {{ g.type === 'ADULT' ? 'بالغ' : g.type === 'CHILD' ? 'طفل' : g.type }}
-                </span>
-              </td>
-            </tr>
-          </tbody>
-        </table>
+        <div v-else class="table-wrap">
+          <table class="p-table">
+            <thead>
+              <tr>
+                <th class="num-col">#</th>
+                <th>الاسم</th>
+                <th>الرقم القومي</th>
+                <th>الصفة</th>
+                <th>النوع</th>
+              </tr>
+            </thead>
+            <tbody>
+              <tr v-for="(g, i) in permit.guests" :key="i" class="p-row">
+                <td class="num-col">{{ i + 1 }}</td>
+                <td><span class="t-strong">{{ g.name }}</span></td>
+                <td class="t-ltr">{{ g.identity_number || '—' }}</td>
+                <td>{{ g.role || '—' }}</td>
+                <td>
+                  <span :class="['type-pill', g.type?.toLowerCase()]">
+                    {{ g.type === 'ADULT' ? 'بالغ' : g.type === 'CHILD' ? 'طفل' : g.type }}
+                  </span>
+                </td>
+              </tr>
+            </tbody>
+          </table>
+        </div>
       </section>
 
       <!-- Cars -->
@@ -513,8 +515,6 @@ onMounted(load)
   font-weight: 800;
   color: #0f172a;
   margin: 0 0 14px;
-  padding-bottom: 10px;
-  border-bottom: 1px solid #f1f5f9;
 }
 .doc-section-title i { color: #f97316; font-size: 14px; }
 .doc-counter {
@@ -617,27 +617,7 @@ onMounted(load)
 .cost-line.discount .cost-label,
 .cost-line.discount .cost-value { color: #047857; }
 
-/* Data tables */
-.data-table { width: 100%; border-collapse: collapse; border-radius: 10px; overflow: hidden; }
-.data-table th {
-  padding: 10px 12px;
-  text-align: right;
-  font-size: 11px;
-  font-weight: 800;
-  color: #64748b;
-  background: #fafbfc;
-  border-bottom: 1px solid #f1f5f9;
-  text-transform: uppercase;
-  letter-spacing: 0.4px;
-}
-.data-table td {
-  padding: 10px 12px;
-  font-size: 13px;
-  color: #0f172a;
-  border-bottom: 1px solid #f8fafc;
-}
-.data-table tr:last-child td { border-bottom: none; }
-.data-table td strong { font-weight: 800; }
+/* Guest table index column (used inside the shared .p-table) */
 .num-col { width: 40px; text-align: center !important; color: #94a3b8; font-weight: 700; }
 
 .type-pill {

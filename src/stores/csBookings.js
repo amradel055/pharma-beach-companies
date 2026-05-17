@@ -91,11 +91,11 @@ export const useCsBookingsStore = defineStore('csBookings', () => {
   // Caller passes `page` as 1-based (UI-friendly); we subtract 1 on the wire.
   // We also tolerate the legacy `{ content: [...], total }` shape so older
   // callers don't break.
-  async function listAvailableChaletsDetail({ page = 1, limit = 10, company_id, owner_id, group_id, delegator_id } = {}) {
+  async function listAvailableChaletsDetail({ page = 1, limit = 10, company_id, owner_id, group_id, delegator_id, check_in, check_out } = {}) {
     try {
       const apiPage = Math.max(0, Number(page) - 1)
       const res = await api.get('/v1/chalets/available-detail', {
-        params: cleanParams({ page: apiPage, limit, company_id, owner_id, group_id, delegator_id }),
+        params: cleanParams({ page: apiPage, limit, company_id, owner_id, group_id, delegator_id, check_in, check_out }),
       })
       const payload = unwrap(res)
 

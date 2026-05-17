@@ -338,6 +338,9 @@ async function loadChalets() {
     company_id: filters.company_id,
     owner_id: filters.owner_id,
     group_id: filters.group_id,
+    // Availability depends on the visible month — send its date range.
+    check_in: currentMonthApiRange.value.date_from,
+    check_out: currentMonthApiRange.value.date_to,
   })
   chaletsLoading.value = false
   if (r.ok) {
@@ -388,11 +391,14 @@ async function refreshChaletBookings(chaletId) {
   }
 }
 
-// Clear the in-progress selection when navigating months — day numbers
-// belong to a different month now. No refetch needed: the detail endpoint
-// returns every booking regardless of date, and the bar/booked-day computed
-// properties already clamp to the visible month.
-watch(() => `${calMonth.value}|${calYear.value}`, clearSelection)
+// Navigating months: clear the in-progress selection (day numbers belong to
+// a different month now) and refetch — availability is date-dependent, so a
+// new month means a new /chalets/available-detail query for that range.
+watch(() => `${calMonth.value}|${calYear.value}`, () => {
+  clearSelection()
+  chaletPage.value = 1
+  loadChalets()
+})
 
 // ──────────────────────────────────────────────────────────────────────────
 // Booking bars + occupied-day map (mirrors OwnerDashboardView)

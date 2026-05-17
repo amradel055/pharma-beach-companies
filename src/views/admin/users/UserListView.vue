@@ -115,14 +115,14 @@
           <AppDropdown v-model="createForm.account_status" :options="statusOptions" />
         </div>
         <div class="field span-2">
-          <span class="field-label">الأدوار <span class="req">*</span></span>
-          <AppMultiSelect
-            v-model="createForm.role_ids"
+          <span class="field-label">الدور <span class="req">*</span></span>
+          <AppDropdown
+            v-model="createForm.role_id"
             :options="roleOptions"
-            placeholder="اختر دوراً أو أكثر"
+            placeholder="اختر دوراً"
             empty-text="لا توجد أدوار"
           />
-          <small v-if="!createForm.role_ids.length" class="hint-error">اختر دوراً واحداً على الأقل</small>
+          <small v-if="!createForm.role_id" class="hint-error">اختر دوراً</small>
         </div>
         <div class="form-actions span-2">
           <button type="button" class="btn-cancel" @click="createOpen = false">إلغاء</button>
@@ -173,14 +173,14 @@
           <AppDropdown v-model="editForm.account_status" :options="statusOptions" />
         </div>
         <div class="field span-2">
-          <span class="field-label">الأدوار <span class="req">*</span></span>
-          <AppMultiSelect
-            v-model="editForm.role_ids"
+          <span class="field-label">الدور <span class="req">*</span></span>
+          <AppDropdown
+            v-model="editForm.role_id"
             :options="roleOptions"
-            placeholder="اختر دوراً أو أكثر"
+            placeholder="اختر دوراً"
             empty-text="لا توجد أدوار"
           />
-          <small v-if="!editForm.role_ids.length" class="hint-error">اختر دوراً واحداً على الأقل</small>
+          <small v-if="!editForm.role_id" class="hint-error">اختر دوراً</small>
         </div>
         <div class="form-actions span-2">
           <button type="button" class="btn-cancel" @click="editOpen = false">إلغاء</button>
@@ -222,7 +222,6 @@ import { useRolesStore } from '@/stores/roles'
 import { useToastStore } from '@/stores/toast'
 import AppModal from '@/components/ui/AppModal.vue'
 import AppDropdown from '@/components/ui/AppDropdown.vue'
-import AppMultiSelect from '@/components/ui/AppMultiSelect.vue'
 import AppPagination from '@/components/ui/AppPagination.vue'
 
 const membersStore = useAdminMembersStore()
@@ -313,10 +312,10 @@ const createOpen = ref(false)
 const createSaving = ref(false)
 const createForm = reactive({
   user_name: '', email: '', phone_number: '', password: '',
-  account_status: 'ACTIVE', role_ids: [],
+  account_status: 'ACTIVE', role_id: '',
 })
 const canCreate = computed(() =>
-  createForm.user_name && createForm.email && createForm.phone_number && createForm.password && createForm.role_ids.length
+  createForm.user_name && createForm.email && createForm.phone_number && createForm.password && createForm.role_id
 )
 
 function resetCreate() {
@@ -325,7 +324,7 @@ function resetCreate() {
   createForm.phone_number = ''
   createForm.password = ''
   createForm.account_status = 'ACTIVE'
-  createForm.role_ids = []
+  createForm.role_id = ''
 }
 
 function openCreate() {
@@ -344,7 +343,7 @@ async function handleCreate() {
     phone_number: createForm.phone_number,
     password: createForm.password,
     account_status: createForm.account_status,
-    role_ids: createForm.role_ids,
+    role_ids: [createForm.role_id],
   }
   const r = await membersStore.create(payload)
   createSaving.value = false
@@ -357,18 +356,18 @@ async function handleCreate() {
   }
 }
 
-// Edit form — mirrors the create form's elements (same fields + the
-// multi-select roles control). Password is optional here (blank = keep).
+// Edit form — mirrors the create form's elements. A member has a single
+// role; password is optional here (blank = keep current password).
 const editOpen = ref(false)
 const editSaving = ref(false)
 const editTarget = ref(null)
 const editForm = reactive({
   user_name: '', email: '', phone_number: '', password: '',
-  account_status: 'ACTIVE', role_ids: [],
+  account_status: 'ACTIVE', role_id: '',
 })
 
 const canEdit = computed(() =>
-  editForm.user_name && editForm.email && editForm.phone_number && editForm.role_ids.length,
+  editForm.user_name && editForm.email && editForm.phone_number && editForm.role_id,
 )
 
 async function openEdit(row) {
@@ -378,22 +377,23 @@ async function openEdit(row) {
   editForm.phone_number = row.phone_number || ''
   editForm.password = ''
   editForm.account_status = row.account_status || 'ACTIVE'
-  editForm.role_ids = []
+  editForm.role_id = ''
   editOpen.value = true
-  // List rows carry role codes (no UUID); resolve real role ids from the
-  // roles lookup by matching code/name. Load the lookup lazily here.
+  // List rows carry role codes (no UUID); resolve the real role id from the
+  // roles lookup by matching the first role's code/name. Load it lazily.
   await ensureRoles()
-  const rowRoles = row.roles || []
-  const codes = rowRoles.map((r) => String(r.code || r.name || '').toUpperCase())
-  const resolved = allRoles.value
-    .filter((x) =>
-      codes.includes(String(x.code || '').toUpperCase()) ||
-      codes.includes(String(x.name || '').toUpperCase()),
+  const first = (row.roles || [])[0]
+  if (first?.id) {
+    editForm.role_id = first.id
+  } else {
+    const code = String(first?.code || first?.name || '').toUpperCase()
+    const match = allRoles.value.find(
+      (x) =>
+        String(x.code || '').toUpperCase() === code ||
+        String(x.name || '').toUpperCase() === code,
     )
-    .map((x) => x.id)
-  // Keep any ids that already came through in object form.
-  for (const r of rowRoles) if (r.id && !resolved.includes(r.id)) resolved.push(r.id)
-  editForm.role_ids = resolved
+    editForm.role_id = match?.id || ''
+  }
 }
 
 async function handleEdit() {
@@ -404,7 +404,7 @@ async function handleEdit() {
     email: editForm.email,
     phone_number: editForm.phone_number,
     account_status: editForm.account_status,
-    role_ids: editForm.role_ids,
+    role_id: editForm.role_id,
   }
   if (editForm.password) payload.password = editForm.password
   const r = await membersStore.update(editTarget.value.id, payload)

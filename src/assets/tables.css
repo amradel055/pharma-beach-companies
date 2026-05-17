@@ -65,6 +65,61 @@
   display: inline-block;
 }
 .p-row.clickable:hover .t-code { color: #ea580c; }
+
+/* Chalet cell — name + small code underneath */
+.t-chalet { display: flex; flex-direction: column; gap: 3px; min-width: 0; }
+.t-chalet-name { font-weight: 800; color: #0f172a; font-size: 13.5px; }
+.t-chalet-code {
+  font-size: 11px;
+  font-weight: 700;
+  color: #94a3b8;
+  direction: ltr;
+  text-align: start;
+}
+
+/* Stay cell — date range + nights badge on a single row */
+.t-stay {
+  display: flex;
+  flex-direction: row;
+  align-items: center;
+  gap: 10px;
+  min-width: 0;
+  flex-wrap: wrap;
+}
+.t-dates {
+  display: inline-flex;
+  align-items: center;
+  gap: 8px;
+  font-size: 13px;
+  font-weight: 700;
+  color: #0f172a;
+  white-space: nowrap;
+}
+.t-dates i {
+  font-size: 11px;
+  color: #f97316;
+  background: rgba(249, 115, 22, 0.10);
+  width: 20px;
+  height: 20px;
+  border-radius: 6px;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  flex-shrink: 0;
+}
+.t-nights {
+  display: inline-flex;
+  align-items: center;
+  gap: 5px;
+  padding: 3px 10px;
+  border-radius: 999px;
+  background: rgba(249, 115, 22, 0.10);
+  color: #c2410c;
+  font-size: 11px;
+  font-weight: 800;
+  white-space: nowrap;
+}
+.t-nights i { font-size: 10px; }
 .t-muted { color: #94a3b8; }
 .t-ltr { direction: ltr; text-align: right; }
 .t-dash { color: #cbd5e1; font-weight: 700; }
@@ -91,6 +146,52 @@
 .icon-btn.save { border-color: rgba(16, 185, 129, 0.40); color: #059669; }
 .icon-btn.save:hover { background: rgba(16, 185, 129, 0.10); }
 .icon-btn i { font-size: 13px; }
+
+/* Row action pill buttons (labelled) — works for <button> and <RouterLink>.
+   Variants: .confirm (primary green), .view (secondary outline),
+   .ghost (subtle link). */
+.t-btn {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  padding: 8px 14px;
+  border-radius: 9px;
+  border: 1px solid #e2e8f0;
+  background: #fff;
+  color: #475569;
+  font-family: inherit;
+  font-size: 12.5px;
+  font-weight: 700;
+  cursor: pointer;
+  text-decoration: none;
+  white-space: nowrap;
+  transition: all 0.15s;
+}
+.t-btn i { font-size: 12px; }
+.t-btn:disabled { opacity: 0.55; cursor: not-allowed; }
+
+.t-btn.confirm {
+  background: linear-gradient(135deg, #10b981, #059669);
+  border-color: #059669;
+  color: #fff;
+  box-shadow: 0 2px 8px rgba(16, 185, 129, 0.30);
+}
+.t-btn.confirm:hover:not(:disabled) {
+  transform: translateY(-1px);
+  box-shadow: 0 5px 14px rgba(16, 185, 129, 0.40);
+}
+
+.t-btn.view:hover { border-color: #fed7aa; color: #ea580c; background: #fff7ed; }
+
+.t-btn.ghost {
+  background: transparent;
+  border-color: transparent;
+  color: #64748b;
+  padding-inline: 8px;
+}
+.t-btn.ghost:hover { color: #f97316; }
+.t-btn.ghost i { transition: transform 0.15s; }
+.t-btn.ghost:hover i { transform: translateX(-3px); }
 
 /* Status pill (green / amber / grey / red) */
 .t-status {

@@ -114,7 +114,7 @@
       <div class="bf-section-head">
         <h4 class="bf-section-title">
           <i class="pi pi-id-card" /> النتائج
-          <span class="bf-counter">{{ visibleRows.length }}</span>
+          <span class="bf-counter">{{ total }}</span>
         </h4>
       </div>
 
