@@ -5,13 +5,48 @@
       <div class="page-icon"><i class="pi pi-list" /></div>
       <div class="page-header-text">
         <h1 class="page-title">الحجوزات</h1>
-        <p class="page-desc">قائمة حجوزات القرية</p>
+        <p class="page-desc">قائمة حجوزات القرية وتصاريحها</p>
       </div>
       <RouterLink to="/admin/village-bookings/new" class="btn-confirm page-header-action">
         <i class="pi pi-plus" /> حجز جديد
       </RouterLink>
     </div>
 
+    <!-- Stats row — from GET /v1/bookings/stats, filtered same as the table -->
+    <div class="stats-row">
+      <div class="stat-card">
+        <div class="stat-icon orange"><i class="pi pi-bookmark" /></div>
+        <div class="stat-body">
+          <span class="stat-label">إجمالي الحجوزات</span>
+          <span v-if="statsLoading" class="stat-skeleton" />
+          <strong v-else class="stat-value">{{ stats.total_bookings }}</strong>
+        </div>
+      </div>
+      <div class="stat-card">
+        <div class="stat-icon amber"><i class="pi pi-clock" /></div>
+        <div class="stat-body">
+          <span class="stat-label">قيد الانتظار</span>
+          <span v-if="statsLoading" class="stat-skeleton" />
+          <strong v-else class="stat-value">{{ stats.pending }}</strong>
+        </div>
+      </div>
+      <div class="stat-card">
+        <div class="stat-icon green"><i class="pi pi-check-circle" /></div>
+        <div class="stat-body">
+          <span class="stat-label">تصاريح مؤكدة</span>
+          <span v-if="statsLoading" class="stat-skeleton" />
+          <strong v-else class="stat-value">{{ stats.confirmed_permits }}</strong>
+        </div>
+      </div>
+      <div class="stat-card">
+        <div class="stat-icon blue"><i class="pi pi-moon" /></div>
+        <div class="stat-body">
+          <span class="stat-label">إجمالي الليالي</span>
+          <span v-if="statsLoading" class="stat-skeleton" />
+          <strong v-else class="stat-value">{{ stats.total_nights }}</strong>
+        </div>
+      </div>
+    </div>
 
     <!-- Filter section -->
     <section class="bf-section">
@@ -55,6 +90,17 @@
             @change="onFilterChange"
           />
         </div>
+
+        <!-- Permit-status filter — sent to the API as ?permit_filter= -->
+        <div class="filter-field">
+          <label>حالة التصريح</label>
+          <AppDropdown
+            v-model="permitFilter"
+            :options="permitOptions"
+            @change="onFilterChange"
+          />
+        </div>
+
         <div class="filter-field filter-field-range">
           <label>الفترة</label>
           <DateRangePicker
@@ -71,7 +117,7 @@
       <div class="bf-section-head">
         <h4 class="bf-section-title">
           <i class="pi pi-clipboard" /> النتائج
-          <span class="bf-counter">{{ filteredRows.length }}</span>
+          <span class="bf-counter">{{ total }}</span>
         </h4>
       </div>
 
@@ -79,10 +125,10 @@
         <i class="pi pi-spin pi-spinner" /> جاري التحميل...
       </div>
 
-      <div v-else-if="!filteredRows.length" class="empty-state">
+      <div v-else-if="!rows.length" class="empty-state">
         <div class="empty-icon"><i class="pi pi-search" /></div>
         <h3>لا توجد نتائج</h3>
-        <p v-if="hasActiveFilter">جرّب تعديل عوامل التصفية</p>
+        <p v-if="hasActiveFilter || permitFilter !== ''">جرّب تعديل عوامل التصفية</p>
         <p v-else>لا توجد حجوزات حالياً</p>
         <RouterLink to="/admin/village-bookings/new" class="btn-confirm">
           <i class="pi pi-plus" /> إنشاء حجز جديد
@@ -102,7 +148,7 @@
           </thead>
           <tbody>
             <tr
-              v-for="row in filteredRows"
+              v-for="row in rows"
               :key="row.id"
               class="p-row"
               @click="openBooking(row.id)"
@@ -134,8 +180,32 @@
                   {{ row.permit_exists ? 'تصريح مؤكد' : 'قيد الانتظار' }}
                 </span>
               </td>
-              <td class="act-col">
-                <i class="pi pi-chevron-left t-chev" />
+              <td class="act-col" @click.stop>
+                <RouterLink
+                  v-if="row.permit_exists && canViewPermit"
+                  :to="{ name: 'admin-village-booking-permit', params: { id: row.id } }"
+                  class="t-btn view"
+                >
+                  <i class="pi pi-print" /> عرض التصريح
+                </RouterLink>
+                <button
+                  v-else-if="!row.permit_exists && canConfirmPermit"
+                  type="button"
+                  class="t-btn confirm"
+                  :disabled="confirmingId === row.id"
+                  @click="handleConfirmPermit(row)"
+                >
+                  <i v-if="confirmingId === row.id" class="pi pi-spin pi-spinner" />
+                  <i v-else class="pi pi-check" />
+                  تأكيد التصريح
+                </button>
+                <RouterLink
+                  v-else
+                  :to="{ name: 'admin-village-booking-details', params: { id: row.id } }"
+                  class="t-btn ghost"
+                >
+                  فتح <i class="pi pi-chevron-left" />
+                </RouterLink>
               </td>
             </tr>
           </tbody>
@@ -159,6 +229,8 @@ import { ref, reactive, computed, onMounted } from 'vue'
 import { useRouter } from 'vue-router'
 import { useCsBookingsStore } from '@/stores/csBookings'
 import { useToastStore } from '@/stores/toast'
+import { usePermissions } from '@/composables/usePermissions'
+import { ROLES } from '@/constants/roles'
 import { toDisplayDate } from '@/utils/date'
 import AppDropdown from '@/components/ui/AppDropdown.vue'
 import DateRangePicker from '@/components/ui/DateRangePicker.vue'
@@ -167,9 +239,21 @@ import AppPagination from '@/components/ui/AppPagination.vue'
 const router = useRouter()
 const csBookings = useCsBookingsStore()
 const toast = useToastStore()
+const { hasRole } = usePermissions()
+
+// Permit actions are gated to CS_VILLAGE / HEAD_CS_VILLAGE / FINANCIAL_MEMBER
+// (same gate as the PermitView route). Other roles just see "فتح".
+const canConfirmPermit = computed(() =>
+  hasRole(ROLES.CUSTOMER_SERVICE_VILLAGE) ||
+  hasRole(ROLES.HEAD_CUSTOMER_SERVICE_VILLAGE) ||
+  hasRole(ROLES.FINANCIAL_MEMBER),
+)
+const canViewPermit = canConfirmPermit
 
 const loading = ref(true)
-const filteredRows = ref([])
+const rows = ref([])
+const confirmingId = ref('')
+
 const filters = reactive({
   company_id: '',
   owner_id: '',
@@ -178,10 +262,17 @@ const filters = reactive({
   check_out: '',
 })
 
-// Pagination — 1-indexed end-to-end. The Laravel paginator returns
-// current_page/last_page as 1-based numbers and accepts `page` as 1-based,
-// so we just mirror those values. `lastPage` is the TOTAL number of pages
-// (e.g. 3 means pages 1, 2, 3; lastPage===1 means a single page → controls hidden).
+// Permit status filter — sent as ?permit_filter=  (0 انتظار / 1 مؤكد / 2 منهي / 3 ملغى)
+const permitFilter = ref('')
+const permitOptions = [
+  { value: '', label: 'الكل' },
+  { value: 0, label: 'انتظار' },
+  { value: 1, label: 'مؤكد' },
+  { value: 2, label: 'منهي' },
+  { value: 3, label: 'ملغى' },
+]
+
+// Pagination — 1-indexed end-to-end (the store mirrors the Laravel paginator).
 const currentPage = ref(1)
 const lastPage = ref(1)
 const total = ref(0)
@@ -192,6 +283,9 @@ const rangeTo = ref(0)
 const hasActiveFilter = computed(() => Object.values(filters).some((v) => v))
 const activeFilterCount = computed(() => Object.values(filters).filter((v) => !!v).length)
 
+// Stats come from GET /v1/bookings/stats with the same filters as the table.
+const statsLoading = ref(false)
+const stats = ref({ total_bookings: 0, pending: 0, confirmed_permits: 0, total_nights: 0 })
 
 const companies = ref([])
 const owners = ref([])
@@ -221,20 +315,33 @@ async function loadLookups() {
   if (g.ok) groups.value = g.data
 }
 
+async function loadStats() {
+  statsLoading.value = true
+  const r = await csBookings.getBookingStats({
+    company_id: filters.company_id,
+    owner_id: filters.owner_id,
+    group_id: filters.group_id,
+    check_in: filters.check_in,
+    check_out: filters.check_out,
+    permit_filter: permitFilter.value,
+  })
+  statsLoading.value = false
+  if (r.ok) stats.value = r.data
+}
+
 // Pull the current page from the API. `resetPage=true` is used by filter
-// handlers — any filter change should bring the user back to page 1 so they
-// don't end up on a non-existent page after the result set shrinks.
-async function reloadFiltered({ resetPage = false } = {}) {
+// handlers — any filter change should bring the user back to page 1.
+async function reloadList({ resetPage = false } = {}) {
   if (resetPage) currentPage.value = 1
   loading.value = true
-  // listBookingsSlim takes a 1-based `page` and applies the -1 wire offset
-  // itself, so pass currentPage as-is (don't pre-subtract — that double-
-  // decrements and every page shows page-1 data).
-  const r = await csBookings.listBookingsSlim({ page: currentPage.value, ...filters })
+  const r = await csBookings.listBookingsSlim({
+    page: currentPage.value,
+    ...filters,
+    permit_filter: permitFilter.value,
+  })
   loading.value = false
   if (r.ok) {
-    filteredRows.value = r.data.rows
-    // Trust the response (1-based current_page / last_page).
+    rows.value = r.data.rows
     currentPage.value = r.data.page || 1
     lastPage.value = r.data.lastPage || 1
     perPage.value = r.data.perPage
@@ -246,12 +353,15 @@ async function reloadFiltered({ resetPage = false } = {}) {
   }
 }
 
-function onFilterChange() { reloadFiltered({ resetPage: true }) }
+function onFilterChange() {
+  reloadList({ resetPage: true })
+  loadStats()
+}
 
 function goToPage(p) {
   if (p < 1 || p > lastPage.value || p === currentPage.value) return
   currentPage.value = p
-  reloadFiltered()
+  reloadList()
 }
 
 function clearFilters() {
@@ -260,16 +370,34 @@ function clearFilters() {
   filters.group_id = ''
   filters.check_in = ''
   filters.check_out = ''
-  currentPage.value = 1
-  reloadFiltered({ resetPage: true })
+  permitFilter.value = ''
+  reloadList({ resetPage: true })
+  loadStats()
 }
 
 function openBooking(id) {
   router.push({ name: 'admin-village-booking-details', params: { id } })
 }
 
+// Inline permit confirmation — same call as the booking-detail screen, so
+// users don't have to open every row to confirm.
+async function handleConfirmPermit(row) {
+  if (!row?.id || confirmingId.value) return
+  confirmingId.value = row.id
+  const r = await csBookings.confirmPermit(row.id)
+  confirmingId.value = ''
+  if (r.ok) {
+    toast.success('تم تأكيد التصريح بنجاح')
+    const idx = rows.value.findIndex((x) => x.id === row.id)
+    if (idx !== -1) rows.value[idx] = { ...rows.value[idx], permit_exists: true }
+    loadStats()
+  } else {
+    toast.error(r.error)
+  }
+}
+
 onMounted(async () => {
-  await Promise.all([loadLookups(), reloadFiltered()])
+  await Promise.all([loadLookups(), reloadList(), loadStats()])
 })
 </script>
 
@@ -308,8 +436,51 @@ onMounted(async () => {
 }
 .btn-confirm:hover { transform: translateY(-1px); box-shadow: 0 6px 18px rgba(249, 115, 22, 0.45); }
 
+/* ── Stats ── */
+.stats-row {
+  display: grid;
+  grid-template-columns: repeat(4, 1fr);
+  gap: 12px;
+}
+.stat-skeleton {
+  display: block;
+  width: 52px;
+  height: 22px;
+  border-radius: 6px;
+  background: linear-gradient(90deg, #f1f5f9 25%, #e2e8f0 37%, #f1f5f9 63%);
+  background-size: 400% 100%;
+  animation: stat-shimmer 1.2s ease-in-out infinite;
+}
+@keyframes stat-shimmer {
+  0% { background-position: 100% 0; }
+  100% { background-position: 0 0; }
+}
+.stat-card {
+  display: flex;
+  align-items: center;
+  gap: 14px;
+  padding: 14px 16px;
+  background: #fff;
+  border: 1px solid #f1f5f9;
+  border-radius: 14px;
+  box-shadow: 0 1px 3px rgba(15, 23, 42, 0.04);
+}
+.stat-icon {
+  width: 44px; height: 44px;
+  border-radius: 12px;
+  display: inline-flex; align-items: center; justify-content: center;
+  flex-shrink: 0;
+}
+.stat-icon i { font-size: 17px; }
+.stat-icon.orange { background: linear-gradient(135deg, rgba(249, 115, 22, 0.14), rgba(251, 191, 36, 0.14)); color: #ea580c; }
+.stat-icon.green { background: linear-gradient(135deg, rgba(16, 185, 129, 0.14), rgba(52, 211, 153, 0.14)); color: #059669; }
+.stat-icon.amber { background: linear-gradient(135deg, rgba(234, 179, 8, 0.14), rgba(251, 191, 36, 0.14)); color: #b45309; }
+.stat-icon.blue { background: linear-gradient(135deg, rgba(14, 165, 233, 0.14), rgba(56, 189, 248, 0.14)); color: #0284c7; }
+.stat-body { display: flex; flex-direction: column; gap: 4px; min-width: 0; }
+.stat-label { font-size: 11.5px; color: #94a3b8; font-weight: 700; text-transform: uppercase; letter-spacing: 0.5px; }
+.stat-value { font-size: 20px; font-weight: 800; color: #0f172a; line-height: 1; }
 
-/* ── Section card (matches BookingFormView convention) ── */
+/* ── Section card ── */
 .bf-section {
   background: #fff;
   border: 1px solid #f1f5f9;
@@ -356,7 +527,7 @@ onMounted(async () => {
 /* ── Filter grid ── */
 .filter-grid {
   display: grid;
-  grid-template-columns: 1fr 1fr 1fr 1.4fr;
+  grid-template-columns: 1fr 1fr 1fr 1fr 1.4fr;
   gap: 12px;
   align-items: end;
 }
@@ -364,8 +535,8 @@ onMounted(async () => {
 .filter-field label { font-size: 11.5px; font-weight: 700; color: #64748b; }
 .filter-field-range { min-width: 220px; }
 
-
 @media (max-width: 900px) {
+  .stats-row { grid-template-columns: 1fr 1fr; }
   .filter-grid { grid-template-columns: 1fr 1fr; }
 }
 </style>

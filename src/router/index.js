@@ -7,7 +7,7 @@ import DashboardLayout from '@/layouts/DashboardLayout.vue'
 // MUST point to a route the role is actually allowed to access, otherwise
 // the role-guard below will loop back here forever.
 const ROLE_HOME = {
-  [ROLES.SUPER_ADMIN]: 'admin-users',
+  [ROLES.SUPER_ADMIN]: 'admin-operations',
   [ROLES.ADMIN_COMPANY]: 'admin-users',
   [ROLES.ADMIN_VILLAGE]: 'admin-village-bookings',
   [ROLES.CUSTOMER_SERVICE_COMPANY]: 'admin-users',
@@ -238,15 +238,12 @@ const routes = [
         },
       },
 
-      // Permits
+      // Permits were merged into the bookings list (stats + permit-status
+      // filter + inline confirm/print). Keep the path as a redirect so old
+      // links / bookmarks still resolve.
       {
         path: 'permits',
-        name: 'admin-permits',
-        component: () => import('@/views/admin/agent/AgentPermitsView.vue'),
-        meta: {
-          title: 'التصاريح',
-          roles: [ROLES.SUPER_ADMIN, ROLES.ADMIN_COMPANY, ROLES.ADMIN_VILLAGE, ROLES.HEAD_CUSTOMER_SERVICE_VILLAGE, ROLES.CUSTOMER_SERVICE_VILLAGE],
-        },
+        redirect: { name: 'admin-village-bookings' },
       },
 
       // Operations dashboard (board) — monitoring view for operation/super-admin.

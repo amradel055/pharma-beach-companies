@@ -1,127 +1,67 @@
 <template>
   <div class="dashboard-layout">
-    <TheSidebar
-      :collapsed="sidebarCollapsed"
-      :mobile-open="mobileOpen"
-      @toggle="sidebarCollapsed = !sidebarCollapsed"
-      @close-mobile="mobileOpen = false"
-    />
-
-    <!-- Mobile Overlay -->
-    <Transition name="overlay">
-      <div v-if="mobileOpen" class="sidebar-overlay" @click="mobileOpen = false" />
-    </Transition>
-
-    <main :class="['dashboard-main', { 'sidebar-collapsed': sidebarCollapsed }]">
-      <div class="dashboard-container">
-        <div class="topbar-sticky">
-          <TheTopbar
-            :sidebar-collapsed="sidebarCollapsed"
-            @toggle-mobile="mobileOpen = !mobileOpen"
-          />
-        </div>
-        <div class="dashboard-page">
+    <div class="dashboard-scroll">
+      <TheNavbar />
+      <main class="dashboard-page">
+        <div class="dashboard-container">
           <RouterView v-slot="{ Component }">
             <Transition name="page" mode="out-in">
               <component :is="Component" />
             </Transition>
           </RouterView>
         </div>
-      </div>
-    </main>
+      </main>
+    </div>
   </div>
 </template>
 
 <script setup>
-import { ref } from 'vue'
-import TheSidebar from '@/components/admin/TheSidebar.vue'
-import TheTopbar from '@/components/admin/TheTopbar.vue'
-
-const sidebarCollapsed = ref(false)
-const mobileOpen = ref(false)
+import TheNavbar from '@/components/admin/TheNavbar.vue'
 </script>
 
 <style scoped>
 .dashboard-layout {
-  min-height: 100vh;
-  background: #f1f5f9;
   position: fixed;
   inset: 0;
+  background: #f1f5f9;
   overflow: hidden;
 }
 
-/* ═══════════════════════════════════
-   MAIN CONTENT
-   ═══════════════════════════════════ */
-.dashboard-main {
-  margin-right: 260px;
+/* Single scroll surface — the navbar sticks to the top of it. */
+.dashboard-scroll {
   height: 100vh;
   overflow-y: auto;
-  transition: margin-right 0.3s cubic-bezier(0.4, 0, 0.2, 1);
   scrollbar-width: none;
 }
-
-.dashboard-main::-webkit-scrollbar {
+.dashboard-scroll::-webkit-scrollbar {
   width: 0;
 }
-
-.dashboard-main:hover {
+.dashboard-scroll:hover {
   scrollbar-width: thin;
   scrollbar-color: rgba(148, 163, 184, 0.2) transparent;
 }
-
-.dashboard-main:hover::-webkit-scrollbar {
-  width: 4px;
+.dashboard-scroll:hover::-webkit-scrollbar {
+  width: 5px;
 }
-
-.dashboard-main:hover::-webkit-scrollbar-track {
+.dashboard-scroll:hover::-webkit-scrollbar-track {
   background: transparent;
 }
-
-.dashboard-main:hover::-webkit-scrollbar-thumb {
-  background: rgba(148, 163, 184, 0.2);
+.dashboard-scroll:hover::-webkit-scrollbar-thumb {
+  background: rgba(148, 163, 184, 0.25);
   border-radius: 10px;
 }
-
-.dashboard-main:hover::-webkit-scrollbar-thumb:hover {
-  background: rgba(148, 163, 184, 0.4);
-}
-
-.dashboard-main.sidebar-collapsed {
-  margin-right: 72px;
-}
-
-.dashboard-container {
-  padding: 0 24px 24px;
-}
-
-.topbar-sticky {
-  position: sticky;
-  top: 0;
-  z-index: 999;
-  padding: 14px 0;
-  background: linear-gradient(to bottom, #f1f5f9 70%, transparent);
+.dashboard-scroll:hover::-webkit-scrollbar-thumb:hover {
+  background: rgba(148, 163, 184, 0.45);
 }
 
 .dashboard-page {
-  /* content below topbar */
+  padding: 22px 0 32px;
 }
 
-/* ═══════════════════════════════════
-   OVERLAY
-   ═══════════════════════════════════ */
-.sidebar-overlay {
-  display: none;
-}
-
-.overlay-enter-active,
-.overlay-leave-active {
-  transition: opacity 0.3s ease;
-}
-
-.overlay-enter-from,
-.overlay-leave-to {
-  opacity: 0;
+.dashboard-container {
+  max-width: 1480px;
+  margin: 0 auto;
+  padding: 0 26px;
 }
 
 /* ═══════════════════════════════════
@@ -130,47 +70,23 @@ const mobileOpen = ref(false)
 .page-enter-active {
   transition: all 0.25s ease;
 }
-
 .page-leave-active {
   transition: all 0.15s ease;
 }
-
 .page-enter-from {
   opacity: 0;
   transform: translateY(8px);
 }
-
 .page-leave-to {
   opacity: 0;
 }
 
-/* ═══════════════════════════════════
-   RESPONSIVE
-   ═══════════════════════════════════ */
-@media (max-width: 768px) {
-  .dashboard-main {
-    margin-right: 0;
+@media (max-width: 640px) {
+  .dashboard-page {
+    padding: 16px 0 24px;
   }
-
-  .dashboard-main.sidebar-collapsed {
-    margin-right: 0;
-  }
-
   .dashboard-container {
-    padding: 0 12px 12px;
-  }
-
-  .topbar-sticky {
-    padding: 10px 0;
-  }
-
-  .sidebar-overlay {
-    display: block;
-    position: fixed;
-    inset: 0;
-    background: rgba(0, 0, 0, 0.5);
-    backdrop-filter: blur(2px);
-    z-index: 999;
+    padding: 0 14px;
   }
 }
 </style>

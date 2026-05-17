@@ -257,10 +257,10 @@ export const useCsBookingsStore = defineStore('csBookings', () => {
   // GET /v1/bookings/stats — summary counters. Accepts the same optional
   // filters as /v1/bookings-list so the cards stay in sync with the table.
   // Response: { total_bookings, pending, confirmed_permits, total_nights }
-  async function getBookingStats({ company_id, owner_id, group_id, check_in, check_out, status } = {}) {
+  async function getBookingStats({ company_id, owner_id, group_id, check_in, check_out, permit_filter } = {}) {
     try {
       const res = await api.get('/v1/bookings/stats', {
-        params: cleanParams({ company_id, owner_id, group_id, check_in, check_out, status }),
+        params: cleanParams({ company_id, owner_id, group_id, check_in, check_out, permit_filter }),
       })
       const data = unwrap(res) || {}
       return {
@@ -300,11 +300,13 @@ export const useCsBookingsStore = defineStore('csBookings', () => {
   // and converts to 0-based when sending. Returned `page`/`lastPage` stay 1-based
   // since they mirror the response directly.
   // Response: { current_page, data: [...rows], last_page, per_page, total, from, to, ... }
-  async function listBookingsSlim({ page = 1, per_page, company_id, owner_id, group_id, check_in, check_out, status } = {}) {
+  async function listBookingsSlim({ page = 1, per_page, company_id, owner_id, group_id, check_in, check_out, permit_filter } = {}) {
     try {
       const apiPage = Math.max(0, Number(page) - 1)
       const res = await api.get('/v1/bookings-list', {
-        params: cleanParams({ page: apiPage, per_page, company_id, owner_id, group_id, check_in, check_out, status }),
+        // Per the API docs the permit-status param is `permit_filter` (0/1/2/3),
+        // NOT `status` — sending `status` was silently ignored by the backend.
+        params: cleanParams({ page: apiPage, per_page, company_id, owner_id, group_id, check_in, check_out, permit_filter }),
       })
       const payload = unwrap(res)
       if (payload && Array.isArray(payload.data)) {
