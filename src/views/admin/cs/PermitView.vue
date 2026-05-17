@@ -278,6 +278,28 @@
         </div>
       </section>
 
+      <!-- Scan QR — prints with the permit; security scans it to check in/out -->
+      <section v-if="qrDataUrl" class="doc-section full doc-qr">
+        <h2 class="doc-section-title"><i class="pi pi-qrcode" /> رمز التحقق</h2>
+        <div class="qr-wrap">
+          <img :src="qrDataUrl" alt="QR" class="qr-img" />
+          <div class="qr-side">
+            <p class="qr-hint">امسح الرمز لتسجيل الدخول / الخروج لهذا الحجز.</p>
+            <div class="qr-actions no-print">
+              <button class="qr-btn" @click="downloadQr">
+                <i class="pi pi-download" /> تنزيل
+              </button>
+              <button class="qr-btn" @click="shareQr">
+                <i class="pi pi-share-alt" /> مشاركة
+              </button>
+              <button class="qr-btn" @click="copyQr">
+                <i class="pi pi-copy" /> نسخ
+              </button>
+            </div>
+          </div>
+        </div>
+      </section>
+
       <div class="doc-watermark no-print" aria-hidden="true">
         التصريح الأمني
       </div>
@@ -288,6 +310,7 @@
 <script setup>
 import { ref, computed, onMounted } from 'vue'
 import { useRoute } from 'vue-router'
+import QRCode from 'qrcode'
 import { useCsBookingsStore } from '@/stores/csBookings'
 import { useToastStore } from '@/stores/toast'
 import { toDisplayDate, toDisplayDateTime } from '@/utils/date'
@@ -298,6 +321,73 @@ const toast = useToastStore()
 
 const loading = ref(true)
 const permit = ref(null)
+
+const bookingId = String(route.params.id || '')
+
+// The QR encodes a deep link to the in-app scanner so any phone camera (or the
+// security scanner screen) lands straight on this booking's check-in/out flow.
+const scanUrl = computed(() => {
+  const base = (import.meta.env.BASE_URL || '/').replace(/\/$/, '')
+  return `${window.location.origin}${base}/admin/qr-scan?code=${bookingId}`
+})
+const qrDataUrl = ref('')
+
+async function genQr() {
+  try {
+    qrDataUrl.value = await QRCode.toDataURL(scanUrl.value, {
+      errorCorrectionLevel: 'M',
+      margin: 1,
+      width: 220,
+      color: { dark: '#0f172a', light: '#ffffff' },
+    })
+  } catch {
+    qrDataUrl.value = ''
+  }
+}
+
+async function _qrBlob() {
+  const res = await fetch(qrDataUrl.value)
+  return res.blob()
+}
+function _qrFileName() {
+  return `permit-${permit.value?.booking_code || bookingId}.png`
+}
+
+async function downloadQr() {
+  if (!qrDataUrl.value) return
+  const a = document.createElement('a')
+  a.href = qrDataUrl.value
+  a.download = _qrFileName()
+  document.body.appendChild(a)
+  a.click()
+  a.remove()
+}
+
+async function shareQr() {
+  if (!qrDataUrl.value) return
+  try {
+    const file = new File([await _qrBlob()], _qrFileName(), { type: 'image/png' })
+    if (navigator.canShare && navigator.canShare({ files: [file] })) {
+      await navigator.share({ files: [file], title: `تصريح ${permit.value?.booking_code || ''}` })
+      return
+    }
+    downloadQr() // no Web Share for files → fall back
+  } catch (e) {
+    if (e?.name !== 'AbortError') downloadQr()
+  }
+}
+
+async function copyQr() {
+  if (!qrDataUrl.value) return
+  try {
+    await navigator.clipboard.write([
+      new window.ClipboardItem({ 'image/png': await _qrBlob() }),
+    ])
+    toast.success('تم نسخ رمز QR')
+  } catch {
+    toast.error('تعذّر النسخ — استخدم التنزيل')
+  }
+}
 
 async function load() {
   loading.value = true
@@ -336,7 +426,10 @@ const additionalReceipts = computed(() =>
 
 function handlePrint() { window.print() }
 
-onMounted(load)
+onMounted(() => {
+  load()
+  genQr()
+})
 </script>
 
 <style scoped>
@@ -739,6 +832,41 @@ onMounted(load)
   border: 1px dashed #e2e8f0;
   border-radius: 10px;
 }
+
+/* Scan QR block */
+.doc-qr .qr-wrap {
+  display: flex;
+  align-items: center;
+  gap: 20px;
+  flex-wrap: wrap;
+}
+.qr-img {
+  width: 160px;
+  height: 160px;
+  border: 1px solid #f1f5f9;
+  border-radius: 12px;
+  padding: 8px;
+  background: #fff;
+  flex-shrink: 0;
+}
+.qr-side { display: flex; flex-direction: column; gap: 12px; min-width: 0; flex: 1; }
+.qr-hint { margin: 0; font-size: 13px; color: #475569; font-weight: 600; line-height: 1.6; }
+.qr-actions { display: flex; flex-wrap: wrap; gap: 8px; }
+.qr-btn {
+  display: inline-flex; align-items: center; gap: 6px;
+  padding: 8px 14px;
+  border-radius: 9px;
+  border: 1px solid #e2e8f0;
+  background: #fff;
+  color: #475569;
+  font-family: inherit;
+  font-size: 12.5px;
+  font-weight: 700;
+  cursor: pointer;
+  transition: all 0.15s;
+}
+.qr-btn:hover { border-color: #fed7aa; color: #ea580c; background: #fff7ed; }
+.qr-btn i { font-size: 12px; }
 
 
 /* Watermark — visible on screen, hidden on print */

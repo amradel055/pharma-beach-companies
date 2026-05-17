@@ -422,6 +422,61 @@ export const useCsBookingsStore = defineStore('csBookings', () => {
     }
   }
 
+  // GET /v1/bookings/operations — today's board. Returns three arrays the
+  // dashboard renders as columns. Defaults to empty arrays so the view never
+  // sees undefined. Optional company/owner/group filters.
+  async function getOperations({ company_id, owner_id, group_id } = {}) {
+    try {
+      const res = await api.get('/v1/bookings/operations', {
+        params: cleanParams({ company_id, owner_id, group_id }),
+      })
+      const data = unwrap(res) || {}
+      return {
+        ok: true,
+        data: {
+          booked_today: data.booked_today || [],
+          check_in_today: data.check_in_today || [],
+          check_out_today: data.check_out_today || [],
+        },
+      }
+    } catch (error) {
+      return { ok: false, error: getErrorMessage(error, 'تعذر جلب لوحة التشغيل') }
+    }
+  }
+
+  // GET /v1/bookings/{id}/qr-scan — resolves a scanned/typed booking id|code to
+  // its scan_state + booking/chalet/guests/cars payload.
+  async function getQrScan(bookingId) {
+    try {
+      const res = await api.get(`/v1/bookings/${bookingId}/qr-scan`)
+      return { ok: true, data: unwrap(res) }
+    } catch (error) {
+      return { ok: false, error: getErrorMessage(error, 'تعذر قراءة الحجز') }
+    }
+  }
+
+  // PUT /v1/bookings/{id}/confirm-check-in — no body. Returns the booking with
+  // check_in_confirmed flipped true.
+  async function confirmCheckIn(bookingId) {
+    try {
+      const res = await api.put(`/v1/bookings/${bookingId}/confirm-check-in`)
+      return { ok: true, data: unwrap(res) }
+    } catch (error) {
+      return { ok: false, error: getErrorMessage(error, 'تعذر تأكيد تسجيل الدخول') }
+    }
+  }
+
+  // PUT /v1/bookings/{id}/confirm-check-out — no body. Returns the booking with
+  // check_out_confirmed flipped true.
+  async function confirmCheckOut(bookingId) {
+    try {
+      const res = await api.put(`/v1/bookings/${bookingId}/confirm-check-out`)
+      return { ok: true, data: unwrap(res) }
+    } catch (error) {
+      return { ok: false, error: getErrorMessage(error, 'تعذر تأكيد تسجيل الخروج') }
+    }
+  }
+
   return {
     listCompanies,
     listOwners,
@@ -444,5 +499,9 @@ export const useCsBookingsStore = defineStore('csBookings', () => {
     transferAndExtend,
     cancelBooking,
     getPermit,
+    getOperations,
+    getQrScan,
+    confirmCheckIn,
+    confirmCheckOut,
   }
 })

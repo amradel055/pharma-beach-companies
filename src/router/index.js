@@ -13,13 +13,14 @@ const ROLE_HOME = {
   [ROLES.CUSTOMER_SERVICE_COMPANY]: 'admin-users',
   [ROLES.HEAD_CUSTOMER_SERVICE_VILLAGE]: 'admin-village-bookings',
   [ROLES.CUSTOMER_SERVICE_VILLAGE]: 'admin-village-bookings',
-  // Roles whose dedicated dashboards were removed land on the universally
-  // accessible profile page (admin-profile.meta.roles = [...ADMIN_ROLES]).
+  // Broker/financial have no dedicated screen → universally accessible profile
+  // (admin-profile.meta.roles = [...ADMIN_ROLES]).
   [ROLES.BROKER_COMPANY]: 'admin-profile',
   [ROLES.BROKER_VILLAGE]: 'admin-profile',
   [ROLES.FINANCIAL_MEMBER]: 'admin-profile',
-  [ROLES.OPERATION]: 'admin-profile',
-  [ROLES.SECURITY]: 'admin-profile',
+  // Field staff land on their own screens.
+  [ROLES.OPERATION]: 'admin-operations',
+  [ROLES.SECURITY]: 'admin-qr-scan',
   // CLIENT has no admin home — falls through to login.
 }
 
@@ -246,6 +247,21 @@ const routes = [
           title: 'التصاريح',
           roles: [ROLES.SUPER_ADMIN, ROLES.ADMIN_COMPANY, ROLES.ADMIN_VILLAGE, ROLES.HEAD_CUSTOMER_SERVICE_VILLAGE, ROLES.CUSTOMER_SERVICE_VILLAGE],
         },
+      },
+
+      // Operations dashboard (board) — monitoring view for operation/super-admin.
+      {
+        path: 'operations',
+        name: 'admin-operations',
+        component: () => import('@/views/admin/operations/OperationsDashboardView.vue'),
+        meta: { title: 'لوحة التشغيل', roles: [ROLES.SUPER_ADMIN, ROLES.OPERATION] },
+      },
+      // QR scan — security/super-admin check-in/out station.
+      {
+        path: 'qr-scan',
+        name: 'admin-qr-scan',
+        component: () => import('@/views/admin/operations/QrScanView.vue'),
+        meta: { title: 'مسح QR', roles: [ROLES.SUPER_ADMIN, ROLES.SECURITY] },
       },
 
     ],

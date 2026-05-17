@@ -89,6 +89,20 @@ const allSections = [
     ],
   },
   {
+    label: 'لوحة التشغيل',
+    permission: 'view_operator_dashboard',
+    items: [
+      { label: 'لوحة التشغيل', to: '/admin/operations', icon: 'pi pi-desktop' },
+    ],
+  },
+  {
+    label: 'الأمن',
+    permission: 'scan_qr',
+    items: [
+      { label: 'مسح QR', to: '/admin/qr-scan', icon: 'pi pi-qrcode' },
+    ],
+  },
+  {
     label: 'إدارة المستخدمين',
     permission: 'manage_users',
     items: [
